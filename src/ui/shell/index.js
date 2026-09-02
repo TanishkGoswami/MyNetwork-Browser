@@ -117,6 +117,9 @@ class MyNetworkShell {
       // Window Controls (macOS Traffic Lights vs Windows 11)
       macTrafficLights: document.getElementById('mac-traffic-lights'),
       winWindowControls: document.getElementById('win-window-controls'),
+      btnWinClose: document.getElementById('btn-win-close'),
+      btnWinMin: document.getElementById('btn-win-min'),
+      btnWinMax: document.getElementById('btn-win-max'),
       btnWinCloseWin: document.getElementById('btn-win-close-win'),
       btnWinMinWin: document.getElementById('btn-win-min-win'),
       btnWinMaxWin: document.getElementById('btn-win-max-win'),
@@ -1416,7 +1419,17 @@ class MyNetworkShell {
       });
     }
 
-    // 6e. Windows Native Controls Click Handlers
+    // 6e. Window Controls (Both macOS and Windows styles)
+    if (this.dom.btnWinClose) {
+      this.dom.btnWinClose.addEventListener('click', () => ipcBridge.closeWindow());
+    }
+    if (this.dom.btnWinMin) {
+      this.dom.btnWinMin.addEventListener('click', () => ipcBridge.minimizeWindow());
+    }
+    if (this.dom.btnWinMax) {
+      this.dom.btnWinMax.addEventListener('click', () => ipcBridge.toggleMaximize());
+    }
+
     if (this.dom.btnWinCloseWin) {
       this.dom.btnWinCloseWin.addEventListener('click', () => ipcBridge.closeWindow());
     }

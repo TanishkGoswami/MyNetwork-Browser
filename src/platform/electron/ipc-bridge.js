@@ -11,12 +11,28 @@ class IpcBridge {
     if (ipcRenderer) ipcRenderer.send('window-minimize');
   }
 
+  minimize() {
+    this.minimizeWindow();
+  }
+
+  toggleMaximize() {
+    if (ipcRenderer) ipcRenderer.send('window-maximize-toggle');
+  }
+
   toggleMaximizeWindow() {
     if (ipcRenderer) ipcRenderer.send('window-maximize-toggle');
   }
 
+  maximize() {
+    this.toggleMaximize();
+  }
+
   closeWindow() {
     if (ipcRenderer) ipcRenderer.send('window-close');
+  }
+
+  close() {
+    this.closeWindow();
   }
 }
 

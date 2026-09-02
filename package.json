@@ -1,0 +1,12 @@
+{
+  "name": "mynetwork-browser",
+  "version": "1.0.0",
+  "description": "MyNetwork Browser - Advanced Light Mode Desktop Browser",
+  "main": "src/platform/electron/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^34.0.0"
+  }
+}

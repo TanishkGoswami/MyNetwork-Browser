@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyNetwork Browser</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="src/ui/styles/styles.css">
+  <link rel="icon" type="image/svg+xml" href="src/ui/assets/icon.svg">
+</head>
+<body>
+  <div class="app-layout">
+    
+    <!-- TOP APP BAR (Authentic macOS Unified Toolbar) -->
+    <header class="top-bar" id="top-bar">
+      <!-- Left: macOS Traffic Lights + Navigation Controls -->
+      <div class="top-left-nav">
+        <!-- macOS-Style Window Traffic Lights -->
+        <div class="mac-traffic-lights" id="mac-traffic-lights">
+          <button id="btn-win-close" class="mac-dot mac-close" aria-label="Close"></button>
+          <button id="btn-win-min" class="mac-dot mac-minimize" aria-label="Minimize"></button>
+          <button id="btn-win-max" class="mac-dot mac-maximize" aria-label="Maximize"></button>
+        </div>
+
+        <button id="sidebar-toggle-btn" class="nav-btn" title="Toggle Sidebar (Ctrl+B)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
+        </button>
+
+        <button id="btn-back" class="nav-btn" title="Back (Alt+Left)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <button id="btn-forward" class="nav-btn" title="Forward (Alt+Right)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+        <button id="btn-reload" class="nav-btn" title="Reload (Ctrl+R)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+        </button>
+      </div>
+
+      <!-- Center Omnibox -->
+      <div class="omnibox-wrapper">
+        <div class="omnibox" id="omnibox">
+          <div class="omnibox-logo" id="omnibox-engine-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+          </div>
+          <input type="text" id="url-input" placeholder="Search or type a URL..." autocomplete="off" spellcheck="false">
+          <button id="btn-bookmark" class="omnibox-action-btn" title="Bookmark Page">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Actions -->
+      <div class="top-right-tools">
+        <!-- Toggle Split View -->
+        <button id="btn-split-toggle" class="nav-btn" title="Toggle Split View (Ctrl+Shift+S)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+        </button>
+
+        <!-- Ask Gemini Pill -->
+        <button id="btn-toggle-ai" class="ask-gemini-btn" title="Gemini AI Copilot (Ctrl+J)">
+          <svg class="gemini-sparkle" width="14" height="14" viewBox="0 0 24 24">
+            <defs>
+              <linearGradient id="geminiGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#4285f4"/>
+                <stop offset="50%" stop-color="#9b72cb"/>
+                <stop offset="100%" stop-color="#d96570"/>
+              </linearGradient>
+            </defs>
+            <path fill="url(#geminiGrad)" d="m12 2.5 1.8 6.2c.4 1.5 1.6 2.7 3.1 3.1l6.2 1.8-6.2 1.8c-1.5.4-2.7 1.6-3.1 3.1L12 22.5l-1.8-6.2c-.4-1.5-1.6-2.7-3.1-3.1L.9 11.4l6.2-1.8c1.5-.4 2.7-1.6 3.1-3.1L12 2.5z"/>
+          </svg>
+          <span>Gemini</span>
+        </button>
+
+        <!-- 3-Dots Menu Button & Dropdown -->
+        <div class="menu-dropdown-container">
+          <button class="nav-btn" id="btn-menu" title="Menu" aria-expanded="false">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+          </button>
+
+          <div class="app-dropdown-menu" id="app-dropdown-menu">
+            <div class="dropdown-item" id="menu-item-new-tab">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>New Tab</span>
+              <kbd>Ctrl+T</kbd>
+            </div>
+            <div class="dropdown-item" id="menu-item-split-view">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+              <span>Toggle Split View</span>
+              <kbd>Ctrl+Shift+S</kbd>
+            </div>
+            <div class="dropdown-item" id="menu-item-ai-copilot">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 2.5 1.8 6.2c.4 1.5 1.6 2.7 3.1 3.1l6.2 1.8-6.2 1.8c-1.5.4-2.7 1.6-3.1 3.1L12 22.5l-1.8-6.2c-.4-1.5-1.6-2.7-3.1-3.1L.9 11.4l6.2-1.8c1.5-.4 2.7-1.6 3.1-3.1L12 2.5z"/></svg>
+              <span>Gemini Copilot</span>
+              <kbd>Ctrl+J</kbd>
+            </div>
+            
+            <div class="dropdown-divider"></div>
+
+            <div class="dropdown-item" id="menu-item-history">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span>History</span>
+              <kbd>Ctrl+H</kbd>
+            </div>
+            <div class="dropdown-item" id="menu-item-passwords">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-1.5 1.5L16 7l-1.5-1.5M19 5l-2.5 2.5M9 11l-7 7v4h4l7-7"/><circle cx="16" cy="8" r="5"/></svg>
+              <span>Passwords & Keys</span>
+              <kbd>Ctrl+Shift+L</kbd>
+            </div>
+            <div class="dropdown-item" id="menu-item-shortcuts">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="8" x2="6" y2="8"/><line x1="10" y1="8" x2="10" y2="8"/><line x1="14" y1="8" x2="14" y2="8"/><line x1="18" y1="8" x2="18" y2="8"/></svg>
+              <span>Keyboard Shortcuts</span>
+              <kbd>Ctrl+/</kbd>
+            </div>
+
+            <div class="dropdown-divider"></div>
+
+            <div class="dropdown-item" id="menu-item-settings">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              <span>Settings</span>
+              <kbd>Ctrl+,</kbd>
+            </div>
+
+            <div class="dropdown-divider"></div>
+
+            <div class="dropdown-item dropdown-danger" id="menu-item-exit">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <span>Quit MyNetwork</span>
+              <kbd>Ctrl+Q</kbd>
+            </div>
+          </div>
+        </div>
+
+        <!-- Windows-Style Native Window Controls (Toggleable) -->
+        <div class="win-window-controls" id="win-window-controls" style="display: none;">
+          <button id="btn-win-min-win" class="win-control-btn" title="Minimize">
+            <svg width="10" height="1" viewBox="0 0 10 1"><rect width="10" height="1" fill="currentColor"/></svg>
+          </button>
+          <button id="btn-win-max-win" class="win-control-btn" title="Maximize">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1"><rect x="0.5" y="0.5" width="9" height="9"/></svg>
+          </button>
+          <button id="btn-win-close-win" class="win-control-btn win-close-btn" title="Close">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- HORIZONTAL TABS BAR (When Tab Layout is Horizontal) -->
+    <div class="horizontal-tabs-bar" id="horizontal-tabs-bar" style="display: none;">
+      <div class="horizontal-tabs-scroll" id="horizontal-tabs-list">
+        <!-- Rendered dynamically -->
+      </div>
+      <button class="nav-btn btn-add-tab-h" id="btn-add-tab-h" title="New Tab">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    </div>
+
+    <!-- MAIN BODY: COLLAPSIBLE SIDEBAR + CANVAS -->
+    <div class="main-body" id="main-body">
+      
+      <!-- COLLAPSIBLE LIGHT BLUE SIDEBAR -->
+      <aside class="sidebar" id="sidebar">
+        
+        <!-- Top Action Row -->
+        <div class="sidebar-top-bar">
+          <button id="sidebar-toggle-btn" class="sidebar-icon-btn" title="Collapse / Expand Sidebar (Ctrl+S)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" y1="6" x2="14" y2="6"/>
+              <line x1="4" y1="12" x2="11" y2="12"/>
+              <line x1="4" y1="18" x2="14" y2="18"/>
+              <polyline points="15 9 18 12 15 15"/>
+            </svg>
+          </button>
+
+          <div class="sidebar-top-actions">
+            <!-- Workspaces / Grid Icon -->
+            <button class="sidebar-icon-btn" id="btn-workspaces" title="Dashboard">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"/>
+                <rect x="14" y="3" width="7" height="7"/>
+                <rect x="14" y="14" width="7" height="7"/>
+                <rect x="3" y="14" width="7" height="7"/>
+              </svg>
+            </button>
+
+            <!-- Search Tabs Icon -->
+            <button class="sidebar-icon-btn" id="btn-search-tabs" title="Focus Omnibox (Ctrl+L)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Open Tabs List -->
+        <div class="tabs-list-container" id="tabs-list">
+          <!-- Dynamic Tabs Rendered Here -->
+        </div>
+
+        <!-- Wide Add Tab Button -->
+        <button id="btn-add-tab" class="add-tab-btn" title="New Tab (Ctrl+T)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+
+        <!-- Bottom Sidebar Tools -->
+        <div class="sidebar-bottom-tools">
+          <button class="sidebar-footer-btn" id="btn-split-toggle" title="Split View Mode">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+            <span class="footer-btn-label">Split View</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- MAIN WEB CONTENT CANVAS -->
+      <main class="content-canvas" id="content-canvas">
+        <!-- Progress Bar -->
+        <div class="progress-bar-container">
+          <div class="progress-bar" id="load-progress"></div>
+        </div>
+
+        <!-- Webview Container -->
+        <div class="webview-container" id="webview-container">
+          
+          <!-- CUSTOM DEDICATED NEW TAB DASHBOARD (Pure Light Mode) -->
+          <div class="new-tab-view" id="new-tab-view">
+            <div class="dashboard-scroll-area">
+              
+              <!-- Top Greeting & Live Clock Banner -->
+              <section class="dash-greeting-banner">
+                <div class="dash-clock-group">
+                  <div class="dash-live-time" id="live-time-display">12:00 PM</div>
+                  <div class="dash-live-date" id="live-date-display">Thursday, September 3</div>
+                </div>
+                <div class="dash-greeting-text" id="greeting-text">Welcome to your focus workspace</div>
+              </section>
+
+              <!-- Central Omnisearch & Search Engine Selector -->
+              <section class="dash-search-section">
+                <!-- Search Provider Switcher -->
+                <div class="search-engines-bar" id="search-engines-bar">
+                  <button class="engine-chip active" data-engine="google">
+                    <svg width="13" height="13" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+                    <span>Google</span>
+                  </button>
+                  <button class="engine-chip" data-engine="duckduckgo">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#de5833" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+                    <span>DuckDuckGo</span>
+                  </button>
+                  <button class="engine-chip" data-engine="youtube">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="#ff0000"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                    <span>YouTube</span>
+                  </button>
+                  <button class="engine-chip" data-engine="github">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="#24292f"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                    <span>GitHub</span>
+                  </button>
+                  <button class="engine-chip" data-engine="wikipedia">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
+                    <span>Wikipedia</span>
+                  </button>
+                </div>
+
+                <!-- Main Pill Search Box -->
+                <div class="dash-search-pill">
+                  <div class="dash-search-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  </div>
+                  <input type="text" id="dash-search-input" placeholder="Search the web or enter URL..." autocomplete="off" spellcheck="false">
+                  <button class="dash-ai-btn" id="dash-ai-btn" title="Ask Gemini AI">
+                    <svg width="14" height="14" viewBox="0 0 24 24">
+                      <path fill="currentColor" d="m12 2.5 1.8 6.2c.4 1.5 1.6 2.7 3.1 3.1l6.2 1.8-6.2 1.8c-1.5.4-2.7 1.6-3.1 3.1L12 22.5l-1.8-6.2c-.4-1.5-1.6-2.7-3.1-3.1L.9 11.4l6.2-1.8c1.5-.4 2.7-1.6 3.1-3.1L12 2.5z"/>
+                    </svg>
+                    <span>AI Mode</span>
+                  </button>
+                </div>
+              </section>
+
+              <!-- DASHBOARD TOOLS & PRODUCTIVITY SUITE -->
+              <section class="dash-widgets-grid">
+                
+                <!-- WIDGET 1: Quick Scratchpad / Sticky Notes -->
+                <div class="widget-card" id="widget-scratchpad">
+                  <div class="widget-header">
+                    <div class="widget-title">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      <span>Quick Scratchpad</span>
+                    </div>
+                    <button class="widget-action-btn" id="btn-clear-scratchpad" title="Clear Note">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                  </div>
+                  <textarea id="scratchpad-textarea" placeholder="Jot down quick thoughts, links, or code snippets (auto-saves instantly)..." spellcheck="false"></textarea>
+                  <div class="widget-footer-info" id="scratchpad-char-count">0 characters</div>
+                </div>
+
+                <!-- WIDGET 2: Daily Focus & Task Checklist -->
+                <div class="widget-card" id="widget-tasks">
+                  <div class="widget-header">
+                    <div class="widget-title">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10a37f" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                      <span>Daily Focus Tasks</span>
+                    </div>
+                    <span class="tasks-progress-badge" id="tasks-count-badge">0/0 done</span>
+                  </div>
+
+                  <form class="tasks-input-form" id="tasks-input-form">
+                    <input type="text" id="task-input-field" placeholder="Add a new task..." autocomplete="off">
+                    <button type="submit" id="btn-add-task" title="Add Task">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                  </form>
+
+                  <div class="tasks-list" id="tasks-list-container">
+                    <!-- Tasks dynamic list -->
+                  </div>
+                </div>
+
+                <!-- WIDGET 3: Focus / Pomodoro Timer -->
+                <div class="widget-card" id="widget-timer">
+                  <div class="widget-header">
+                    <div class="widget-title">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      <span>Focus Session</span>
+                    </div>
+                    <div class="timer-mode-switcher">
+                      <button class="timer-mode-btn active" id="timer-mode-focus">25m Focus</button>
+                      <button class="timer-mode-btn" id="timer-mode-break">5m Break</button>
+                    </div>
+                  </div>
+
+                  <div class="timer-display-area">
+                    <div class="timer-digits" id="timer-digits-display">25:00</div>
+                    <div class="timer-controls">
+                      <button class="timer-btn primary" id="btn-timer-toggle">Start Focus</button>
+                      <button class="timer-btn" id="btn-timer-reset">Reset</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- WIDGET 4: Recent History & Quick Navigation -->
+                <div class="widget-card" id="widget-recent">
+                  <div class="widget-header">
+                    <div class="widget-title">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 15"/></svg>
+                      <span>Recently Visited</span>
+                    </div>
+                    <button class="widget-action-btn" id="btn-clear-recent" title="Clear History">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                    </button>
+                  </div>
+                  <div class="recent-links-list" id="recent-links-list">
+                    <!-- Recently visited items -->
+                  </div>
+                </div>
+
+              </section>
+
+            </div>
+          </div>
+
+          <!-- DEDICATED SETTINGS VIEW (mynetwork://settings) - macOS System Settings Style -->
+          <div class="settings-view" id="settings-view" style="display: none;">
+            <!-- Left Category Navigation Rail -->
+            <aside class="settings-nav-pane">
+              <div class="settings-nav-header">
+                <button id="btn-settings-back" class="mac-nav-back-btn" title="Back to Workspace">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <span class="mac-settings-header-title">Settings</span>
+              </div>
+
+              <nav class="settings-nav-links">
+                <button class="settings-nav-item active" data-category="general">
+                  <div class="settings-icon-badge badge-blue">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                  </div>
+                  <span>General & Search</span>
+                </button>
+                <button class="settings-nav-item" data-category="appearance">
+                  <div class="settings-icon-badge badge-purple">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+                  </div>
+                  <span>Appearance & Layout</span>
+                </button>
+                <button class="settings-nav-item" data-category="privacy">
+                  <div class="settings-icon-badge badge-orange">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  </div>
+                  <span>Privacy & History</span>
+                </button>
+                <button class="settings-nav-item" data-category="productivity">
+                  <div class="settings-icon-badge badge-emerald">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  </div>
+                  <span>Productivity & Copilot</span>
+                </button>
+                <button class="settings-nav-item" data-category="passwords">
+                  <div class="settings-icon-badge badge-amber">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><path d="M21 2l-2 2m-1.5 1.5L16 7l-1.5-1.5M19 5l-2.5 2.5M9 11l-7 7v4h4l7-7"/><circle cx="16" cy="8" r="5"/></svg>
+                  </div>
+                  <span>Passwords & Keys</span>
+                </button>
+                <button class="settings-nav-item" data-category="shortcuts">
+                  <div class="settings-icon-badge badge-slate">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="8" x2="6" y2="8"/><line x1="10" y1="8" x2="10" y2="8"/><line x1="14" y1="8" x2="14" y2="8"/><line x1="18" y1="8" x2="18" y2="8"/></svg>
+                  </div>
+                  <span>Keyboard Shortcuts</span>
+                </button>
+                <button class="settings-nav-item" data-category="about">
+                  <div class="settings-icon-badge badge-sky">
+                    <svg width="13" height="13" viewBox="0 0 100 100">
+                      <path d="M 48 23 Q 54 38 72 48 Q 59 54 53 60 Q 49 48 42 38 Q 43 29 48 23 Z" fill="#ffffff"/>
+                      <path d="M 52 77 Q 46 62 28 52 Q 41 46 47 40 Q 51 52 58 62 Q 57 71 52 77 Z" fill="#ffffff"/>
+                    </svg>
+                  </div>
+                  <span>About MyNetwork</span>
+                </button>
+              </nav>
+            </aside>
+
+            <!-- Right Content Panels -->
+            <main class="settings-content-pane">
+              
+              <!-- 1. General & Search -->
+              <section class="settings-section" id="section-general">
+                <div class="settings-section-header">
+                  <h2>General & Search</h2>
+                  <p>Configure search providers, startup page, and default browser behaviors.</p>
+                </div>
+
+                <div class="mac-card-group">
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">Default Search Engine</span>
+                      <span class="setting-desc">The search engine used when searching from the address bar.</span>
+                    </div>
+                    <div class="setting-control">
+                      <select id="setting-search-engine" class="mac-select">
+                        <option value="duckduckgo">DuckDuckGo</option>
+                        <option value="google">Google</option>
+                        <option value="youtube">YouTube</option>
+                        <option value="github">GitHub</option>
+                        <option value="wikipedia">Wikipedia</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">Startup Experience</span>
+                      <span class="setting-desc">What page to display when opening a new window or tab.</span>
+                    </div>
+                    <div class="setting-control">
+                      <select id="setting-startup-behavior" class="mac-select">
+                        <option value="dashboard">MyNetwork Dashboard</option>
+                        <option value="blank">Blank Workspace</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 2. Appearance & Layout -->
+              <section class="settings-section" id="section-appearance" style="display: none;">
+                <div class="settings-section-header">
+                  <h2>Appearance & Layout</h2>
+                  <p>Customize the window controls, workspace layout, tab bar style, and theme accents.</p>
+                </div>
+
+                <div class="mac-card-group">
+                  <!-- Window Controls Style Switcher -->
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">Window Controls Style</span>
+                      <span class="setting-desc">Choose between macOS Traffic Lights (top-left) or clean Windows 11 controls (top-right).</span>
+                    </div>
+                    <div class="setting-control">
+                      <div class="mac-segmented-control" id="control-window-style">
+                        <button class="segmented-btn active" data-win-style="mac">macOS Traffic Lights</button>
+                        <button class="segmented-btn" data-win-style="win">Windows 11 Style</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Tab Layout Switcher (Vertical vs Horizontal) -->
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">Tab Bar Layout</span>
+                      <span class="setting-desc">Switch between vertical sidebar tabs or horizontal top tabs.</span>
+                    </div>
+                    <div class="setting-control">
+                      <div class="mac-segmented-control" id="control-tab-layout">
+                        <button class="segmented-btn active" data-layout="vertical">Vertical Tabs</button>
+                        <button class="segmented-btn" data-layout="horizontal">Horizontal Tabs</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Tab Strip Density -->
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">Tab Density</span>
+                      <span class="setting-desc">Adjust the padding and height of tab items for more screen space.</span>
+                    </div>
+                    <div class="setting-control">
+                      <div class="mac-segmented-control" id="control-tab-density">
+                        <button class="segmented-btn active" data-density="comfortable">Comfortable</button>
+                        <button class="segmented-btn" data-density="compact">Compact</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Theme Accent Color -->
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">Theme Accent Color</span>
+                      <span class="setting-desc">Primary accent color for active tabs, buttons, and highlights.</span>
+                    </div>
+                    <div class="setting-control theme-accent-picker">
+                      <button class="accent-color-btn active" data-color="blue" style="background: #2563eb;" title="Ocean Blue"></button>
+                      <button class="accent-color-btn" data-color="indigo" style="background: #4f46e5;" title="Electric Indigo"></button>
+                      <button class="accent-color-btn" data-color="purple" style="background: #7c3aed;" title="Royal Purple"></button>
+                      <button class="accent-color-btn" data-color="emerald" style="background: #059669;" title="Emerald Green"></button>
+                      <button class="accent-color-btn" data-color="amber" style="background: #d97706;" title="Warm Amber"></button>
+                      <button class="accent-color-btn" data-color="rose" style="background: #e11d48;" title="Rose Red"></button>
+                      <button class="accent-color-btn" data-color="slate" style="background: #475569;" title="Slate Monochrome"></button>
+                    </div>
+                  </div>
+
+                  <!-- Startup Session Restore -->
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">Restore Tabs on Startup</span>
+                      <span class="setting-desc">Automatically reopen previous open and pinned tabs when launching MyNetwork.</span>
+                    </div>
+                    <div class="setting-control">
+                      <label class="mac-toggle-switch">
+                        <input type="checkbox" id="setting-restore-session" checked>
+                        <span class="mac-toggle-slider"></span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- Compact Sidebar on Startup -->
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">Compact Sidebar on Startup</span>
+                      <span class="setting-desc">Start the browser with the sidebar collapsed in icon rail mode.</span>
+                    </div>
+                    <div class="setting-control">
+                      <label class="mac-toggle-switch">
+                        <input type="checkbox" id="setting-compact-sidebar">
+                        <span class="mac-toggle-slider"></span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 3. Privacy & History -->
+              <section class="settings-section" id="section-privacy" style="display: none;">
+                <div class="settings-section-header">
+                  <h2>Privacy & Browsing History</h2>
+                  <p>Manage your local browsing data, cache storage, and tracking protection.</p>
+                </div>
+
+                <div class="mac-card-group">
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">Tracking Protection</span>
+                      <span class="setting-desc">Blocks known third-party tracking scripts across websites.</span>
+                    </div>
+                    <div class="setting-control">
+                      <select id="setting-tracking-level" class="mac-select">
+                        <option value="standard">Standard</option>
+                        <option value="strict">Strict</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">Clear Browsing Data</span>
+                      <span class="setting-desc">Remove all visited links and temporary storage cache.</span>
+                    </div>
+                    <div class="setting-control">
+                      <button class="mac-btn-secondary" id="btn-settings-clear-history">Clear History</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Live Browsing History Table -->
+                <div class="mac-card-group" style="margin-top: 14px;">
+                  <div class="mac-history-header">
+                    <span class="setting-title">Visited History Log</span>
+                    <input type="text" id="history-search-input" class="mac-search-input" placeholder="Search history..." autocomplete="off">
+                  </div>
+                  <div class="mac-history-list" id="settings-history-list">
+                    <!-- Rendered dynamically -->
+                  </div>
+                </div>
+
+                <div class="mac-card-group danger-group" style="margin-top: 14px;">
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title" style="color: #ef4444;">Reset Browser to Defaults</span>
+                      <span class="setting-desc">Restores all configurations, widgets, and scratchpad to clean state.</span>
+                    </div>
+                    <div class="setting-control">
+                      <button class="mac-btn-danger" id="btn-settings-reset-all">Reset All</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 4. Productivity & Copilot -->
+              <section class="settings-section" id="section-productivity" style="display: none;">
+                <div class="settings-section-header">
+                  <h2>Productivity & Copilot</h2>
+                  <p>Fine-tune the Pomodoro focus timer, sticky scratchpad, and Gemini assistant.</p>
+                </div>
+
+                <div class="mac-card-group">
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">Pomodoro Focus Length</span>
+                      <span class="setting-desc">Default countdown duration for focused work sessions.</span>
+                    </div>
+                    <div class="setting-control">
+                      <select id="setting-focus-duration" class="mac-select">
+                        <option value="15">15 Minutes</option>
+                        <option value="25" selected>25 Minutes</option>
+                        <option value="45">45 Minutes</option>
+                        <option value="60">60 Minutes</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">Break Session Length</span>
+                      <span class="setting-desc">Default rest duration between focus sessions.</span>
+                    </div>
+                    <div class="setting-control">
+                      <select id="setting-break-duration" class="mac-select">
+                        <option value="5" selected>5 Minutes</option>
+                        <option value="10">10 Minutes</option>
+                        <option value="15">15 Minutes</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 5. Passwords & Keychain -->
+              <section class="settings-section" id="section-passwords" style="display: none;">
+                <div class="settings-section-header">
+                  <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                    <div>
+                      <h2>Passwords & Keychain</h2>
+                      <p>AES-256 encrypted vault for accounts, passkeys, API keys, and security audit.</p>
+                    </div>
+                    <div style="display: flex; gap: 6px;">
+                      <button class="mac-btn-secondary" id="btn-vault-security" title="Optional Master PIN Lock for extra protection">🔒 Lock / PIN</button>
+                      <button class="mac-btn-secondary" id="btn-export-passwords" title="Export CSV Backup">Export</button>
+                      <button class="mac-btn-secondary" id="btn-import-passwords" title="Import CSV from Chrome/Brave">Import</button>
+                      <button class="mac-btn-primary" id="btn-open-add-pwd-modal">+ New Password</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Security Recommendation Health Banner -->
+                <div class="mac-pwd-health-card" id="pwd-health-card">
+                  <div class="pwd-health-score-ring">
+                    <span class="pwd-score-val" id="pwd-health-score">100%</span>
+                    <span class="pwd-score-lbl">Security Score</span>
+                  </div>
+                  <div class="pwd-health-details">
+                    <h3 id="pwd-health-headline">Security Recommendations</h3>
+                    <p id="pwd-health-subline">All passwords meet strong entropy and uniqueness standards.</p>
+                    <div class="pwd-health-badges" id="pwd-health-badges">
+                      <span class="pwd-badge badge-safe">0 Weak Passwords</span>
+                      <span class="pwd-badge badge-safe">0 Reused Passwords</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Search & Category Filters -->
+                <div class="mac-card-group" style="padding: 8px 12px;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                    <div class="mac-segmented-control" id="pwd-category-filters">
+                      <button class="segmented-btn active" data-pwd-cat="all">All</button>
+                      <button class="segmented-btn" data-pwd-cat="logins">Logins</button>
+                      <button class="segmented-btn" data-pwd-cat="apikeys">API Keys</button>
+                      <button class="segmented-btn" data-pwd-cat="alerts">Security Alerts</button>
+                    </div>
+                    <div style="position: relative; width: 220px;">
+                      <input type="text" id="pwd-search-input" class="mac-search-input" placeholder="Search accounts or URLs..." style="width: 100%;">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Passwords List -->
+                <div class="mac-card-group" style="margin-top: 10px;">
+                  <div class="mac-passwords-list" id="passwords-list-container">
+                    <!-- Dynamic Rows -->
+                  </div>
+                </div>
+              </section>
+
+              <!-- 6. Keyboard Shortcuts -->
+              <section class="settings-section" id="section-shortcuts" style="display: none;">
+                <div class="settings-section-header">
+                  <h2>Keyboard Shortcuts</h2>
+                  <p>Review the comprehensive shortcut map or press <kbd>Ctrl</kbd> + <kbd>/</kbd> for the HUD.</p>
+                </div>
+
+                <div class="mac-card-group">
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">Keyboard Shortcuts Cheat Sheet</span>
+                      <span class="setting-desc">Launch the full interactive modal overlay directly.</span>
+                    </div>
+                    <div class="setting-control">
+                      <button class="mac-btn-secondary" id="btn-settings-open-shortcuts">Open HUD (Ctrl+/)</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 6. About MyNetwork -->
+              <section class="settings-section" id="section-about" style="display: none;">
+                <div class="settings-section-header">
+                  <h2>About MyNetwork Browser</h2>
+                  <p>Version, architectural specifications, and platform details.</p>
+                </div>
+
+                <div class="mac-about-card">
+                  <div class="about-app-icon">
+                    <svg width="28" height="28" viewBox="0 0 100 100">
+                      <path d="M 48 23 Q 54 38 72 48 Q 59 54 53 60 Q 49 48 42 38 Q 43 29 48 23 Z" fill="currentColor"/>
+                      <path d="M 52 77 Q 46 62 28 52 Q 41 46 47 40 Q 51 52 58 62 Q 57 71 52 77 Z" fill="currentColor"/>
+                    </svg>
+                  </div>
+                  <div class="about-app-details">
+                    <h3>MyNetwork Browser</h3>
+                    <span class="about-version">Version 1.0.0</span>
+                    <p>A high-performance, modular desktop browser built for privacy, deep focus, and seamless intelligence.</p>
+                  </div>
+                </div>
+              </section>
+
+            </main>
+          </div>
+
+        </div>
+      </main>
+
+      <!-- ASK GEMINI AI ASSISTANT DRAWER -->
+      <aside class="ai-drawer" id="ai-drawer">
+        <div class="drawer-header">
+          <div class="drawer-title-group">
+            <div class="ai-icon-orb">
+              <svg width="16" height="16" viewBox="0 0 24 24">
+                <path fill="#ffffff" d="m12 2.5 1.8 6.2c.4 1.5 1.6 2.7 3.1 3.1l6.2 1.8-6.2 1.8c-1.5.4-2.7 1.6-3.1 3.1L12 22.5l-1.8-6.2c-.4-1.5-1.6-2.7-3.1-3.1L.9 11.4l6.2-1.8c1.5-.4 2.7-1.6 3.1-3.1L12 2.5z"/>
+              </svg>
+            </div>
+            <div>
+              <h3>Gemini Assistant</h3>
+              <p>Smart Web Intelligence</p>
+            </div>
+          </div>
+          <button id="btn-close-ai" class="drawer-close-btn" title="Close">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <div class="ai-quick-actions">
+          <button class="ai-chip" data-action="summarize">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="3" y2="18"/></svg>
+            <span>Summarize Page</span>
+          </button>
+          <button class="ai-chip" data-action="keypoints">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <span>Key Takeaways</span>
+          </button>
+          <button class="ai-chip" data-action="explain">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span>Explain Topic</span>
+          </button>
+        </div>
+
+        <div class="ai-messages" id="ai-messages-container">
+          <div class="ai-msg bot">
+            <p>Hello! I am your built-in Gemini copilot. Ask me questions about the active web page, request instant summaries, or research any topic.</p>
+          </div>
+        </div>
+
+        <div class="ai-input-wrapper">
+          <input type="text" id="ai-user-input" placeholder="Ask Gemini about this page..." autocomplete="off">
+          <button id="btn-send-ai" title="Send Query">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+
+  <!-- ADD / EDIT PASSWORD MODAL (macOS Sheet Style) -->
+  <dialog id="pwd-modal-dialog" class="shortcuts-modal-dialog">
+    <div class="shortcuts-modal-card" style="max-width: 480px;">
+      <div class="shortcuts-modal-header">
+        <div class="shortcuts-header-title">
+          <div class="settings-icon-badge badge-amber" style="width: 22px; height: 22px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><path d="M21 2l-2 2m-1.5 1.5L16 7l-1.5-1.5M19 5l-2.5 2.5M9 11l-7 7v4h4l7-7"/><circle cx="16" cy="8" r="5"/></svg>
+          </div>
+          <h3 id="pwd-modal-title">Add New Password</h3>
+        </div>
+        <button id="btn-close-pwd-modal" class="shortcuts-modal-close" aria-label="Close">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      
+      <form id="pwd-form" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 12px;">
+        <input type="hidden" id="pwd-form-id">
+        
+        <div class="mac-form-group">
+          <label class="mac-form-label">Website / Service Domain</label>
+          <input type="text" id="pwd-form-url" class="mac-form-input" placeholder="e.g. github.com or https://accounts.google.com" required>
+        </div>
+
+        <div class="mac-form-group">
+          <label class="mac-form-label">Account Name / Title</label>
+          <input type="text" id="pwd-form-title" class="mac-form-input" placeholder="e.g. GitHub Work Account">
+        </div>
+
+        <div class="mac-form-group">
+          <label class="mac-form-label">Username or Email</label>
+          <input type="text" id="pwd-form-username" class="mac-form-input" placeholder="e.g. user@example.com" required autocomplete="off">
+        </div>
+
+        <div class="mac-form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <label class="mac-form-label" style="margin: 0;">Password / Key</label>
+            <button type="button" id="btn-pwd-generate" class="mac-btn-link" title="Generate strong password">⚡ Suggest Strong Password</button>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <input type="text" id="pwd-form-password" class="mac-form-input" placeholder="Enter password or generate..." required autocomplete="off" style="font-family: var(--font-mono); font-size: 12px;">
+          </div>
+          <!-- Live Strength Meter -->
+          <div class="pwd-strength-bar-container">
+            <div class="pwd-strength-bar" id="pwd-strength-bar" style="width: 0%; background: #94a3b8;"></div>
+          </div>
+          <div class="pwd-strength-caption" id="pwd-strength-caption">Strength: Not entered</div>
+        </div>
+
+        <div class="mac-form-group">
+          <label class="mac-form-label">Category</label>
+          <select id="pwd-form-category" class="mac-select" style="width: 100%;">
+            <option value="logins">Logins & Accounts</option>
+            <option value="apikeys">API Keys & Tokens</option>
+            <option value="notes">Secure Notes</option>
+          </select>
+        </div>
+
+        <div class="mac-form-group">
+          <label class="mac-form-label">Secure Notes / Recovery Codes</label>
+          <textarea id="pwd-form-notes" class="mac-form-input" placeholder="Optional backup codes, pin, or notes..." style="height: 50px; resize: none;"></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+          <button type="button" id="btn-cancel-pwd-form" class="mac-btn-secondary">Cancel</button>
+          <button type="submit" class="mac-btn-primary" id="btn-save-pwd">Save Account</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- MASTER SECURITY PIN MODAL (Optional Vault Lock) -->
+  <dialog id="vault-pin-modal" class="mac-pin-modal-dialog">
+    <div class="mac-pin-modal-card" id="pin-modal-card">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div class="settings-icon-badge badge-amber" style="width: 24px; height: 24px; border-radius: 6px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <h3 id="pin-modal-title" style="font-size: 13px; font-weight: 600; color: #0f172a; margin: 0;">Unlock Keychain</h3>
+        </div>
+        <button id="btn-close-pin-modal" class="shortcuts-modal-close" aria-label="Close">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <p id="pin-modal-desc" style="font-size: 11px; color: #64748b; margin: 0; line-height: 1.35;">Enter your 4-digit Master PIN to unlock passwords.</p>
+      
+      <form id="vault-pin-form" style="display: flex; flex-direction: column; gap: 10px; margin: 0;">
+        <div class="mac-form-group" id="pin-input-group">
+          <label class="mac-form-label" id="pin-input-label" style="font-size: 10.5px; font-weight: 600; color: #475569;">4-Digit Master PIN</label>
+          <input type="password" id="vault-pin-input" class="mac-form-input mac-pin-input" placeholder="••••" maxlength="4" pattern="[0-9]*" inputmode="numeric" required autocomplete="off" autofocus>
+        </div>
+
+        <div class="mac-form-group" id="pin-confirm-group" style="display: none;">
+          <label class="mac-form-label" style="font-size: 10.5px; font-weight: 600; color: #475569;">Confirm 4-Digit PIN</label>
+          <input type="password" id="vault-pin-confirm-input" class="mac-form-input mac-pin-input" placeholder="••••" maxlength="4" pattern="[0-9]*" inputmode="numeric" autocomplete="off">
+        </div>
+
+        <div id="pin-error-msg" style="color: #dc2626; font-size: 11px; font-weight: 500; text-align: center; display: none;">Incorrect PIN. Please try again.</div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+          <button type="button" id="btn-remove-pin" class="mac-btn-secondary" style="display: none; color: #dc2626; border-color: rgba(220, 38, 38, 0.2);">Remove PIN</button>
+          <div style="display: flex; gap: 6px; margin-left: auto;">
+            <button type="button" id="btn-cancel-pin" class="mac-btn-secondary">Cancel</button>
+            <button type="submit" id="btn-submit-pin" class="mac-btn-primary">Unlock</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- KEYBOARD SHORTCUTS CHEAT SHEET MODAL -->
+  <dialog class="shortcuts-modal-dialog" id="modal-shortcuts">
+    <div class="shortcuts-modal-card">
+      <div class="shortcuts-modal-header">
+        <div class="shortcuts-header-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="8" x2="6" y2="8"/><line x1="10" y1="8" x2="10" y2="8"/><line x1="14" y1="8" x2="14" y2="8"/><line x1="18" y1="8" x2="18" y2="8"/><line x1="6" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="18" y2="12"/><line x1="8" y1="16" x2="16" y2="16"/></svg>
+          <h3>Keyboard Shortcuts</h3>
+        </div>
+        <button class="shortcuts-modal-close" id="btn-close-shortcuts-modal" aria-label="Close">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="shortcuts-modal-body" id="shortcuts-modal-list">
+        <!-- Rendered dynamically from KeybindingManager -->
+      </div>
+
+      <div class="shortcuts-modal-footer">
+        <span>Press <kbd>Esc</kbd> or <kbd>Ctrl</kbd> + <kbd>/</kbd> to close</span>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- FLOATING AUTO-SAVE PASSWORD PROMPT (macOS Native Banner) -->
+  <div id="mac-save-pwd-banner" class="mac-save-pwd-banner" style="display: none;">
+    <div class="mac-save-pwd-header">
+      <div class="settings-icon-badge badge-amber" style="width: 24px; height: 24px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><path d="M21 2l-2 2m-1.5 1.5L16 7l-1.5-1.5M19 5l-2.5 2.5M9 11l-7 7v4h4l7-7"/><circle cx="16" cy="8" r="5"/></svg>
+      </div>
+      <div class="mac-save-pwd-info">
+        <h4>Save Password to Keychain?</h4>
+        <p id="save-pwd-domain-text">mynetwork Keychain protects your credentials with AES-256 encryption.</p>
+      </div>
+      <button id="btn-dismiss-save-pwd" class="mac-save-pwd-close" title="Dismiss">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="mac-save-pwd-credentials">
+      <div class="save-pwd-field">
+        <span class="save-pwd-label">Username</span>
+        <span class="save-pwd-value" id="save-pwd-user-val">-</span>
+      </div>
+      <div class="save-pwd-field">
+        <span class="save-pwd-label">Password</span>
+        <span class="save-pwd-value" id="save-pwd-pass-val">••••••••••••</span>
+      </div>
+    </div>
+    <div class="mac-save-pwd-actions">
+      <button id="btn-never-save-pwd" class="mac-btn-secondary">Never for this site</button>
+      <button id="btn-confirm-save-pwd" class="mac-btn-primary">Save to Keychain</button>
+    </div>
+  </div>
+
+  <!-- MAC OS TAB CONTEXT MENU -->
+  <div id="tab-context-menu" class="mac-context-menu" style="display: none;">
+    <div class="context-menu-item" id="ctx-pin-tab">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.89A2 2 0 0 1 15 10.77V6h1a1 1 0 0 0 0-2H8a1 1 0 0 0 0 2h1v4.77a2 2 0 0 1-1.11 1.79l-1.78.89A2 2 0 0 0 5 15.24V17z"/></svg>
+      <span id="ctx-pin-label">Pin Tab</span>
+    </div>
+    <div class="context-menu-item" id="ctx-duplicate-tab">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      <span>Duplicate Tab</span>
+    </div>
+    <div class="context-menu-item" id="ctx-reload-tab">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      <span>Reload</span>
+    </div>
+    <div class="context-menu-item" id="ctx-mute-tab">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+      <span id="ctx-mute-label">Mute Tab</span>
+    </div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item" id="ctx-close-tab">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      <span>Close Tab</span>
+      <kbd>Ctrl+W</kbd>
+    </div>
+    <div class="context-menu-item" id="ctx-close-other-tabs">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+      <span>Close Other Tabs</span>
+    </div>
+    <div class="context-menu-item" id="ctx-close-tabs-right">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      <span>Close Tabs to the Right</span>
+    </div>
+  </div>
+
+  <script>
+    require('./src/ui/shell/index.js');
+  </script>
+</body>
+</html>

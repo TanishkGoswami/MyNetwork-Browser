@@ -97,7 +97,7 @@ src/
 ## 5. Future Capability Evolution
 
 The folder architecture is designed to expand organically when new advanced capabilities are built:
-- `src/features/bookmarks/`
+- `src/features/bookmarks/` — (See [BOOKMARKS_AND_WORKSPACES.md](file:///c:/Users/pc/Documents/GitHub/MyNetwork-Browser/BOOKMARKS_AND_WORKSPACES.md) for full architectural specs)
 - `src/features/downloads/`
 - `src/ai/` (Gemini API / Local LLM provider adapters)
 - `src/automation/` (Workflow scripts and web automation)

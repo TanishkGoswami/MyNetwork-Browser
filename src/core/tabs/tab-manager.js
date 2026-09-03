@@ -11,8 +11,8 @@ class TabManager {
   createTab(url = DEFAULT_NEWTAB_URL, title = 'New Tab', favicon = null) {
     const tabId = 'tab_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
     
-    // Normalize new tab scheme
-    if (url === LEGACY_NEWTAB_URL || url === BLANK_URL) {
+    // Normalize new tab scheme or invalid undefined
+    if (!url || url === 'undefined' || url === LEGACY_NEWTAB_URL || url === BLANK_URL) {
       url = DEFAULT_NEWTAB_URL;
     }
 

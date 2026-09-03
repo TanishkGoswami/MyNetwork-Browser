@@ -27,6 +27,7 @@ This document catalogs every keyboard shortcut supported in **MyNetwork Browser*
 | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd> | **Hard Reload** | Reloads the active page ignoring local cache. |
 | <kbd>Alt</kbd> + <kbd>←</kbd> | **Navigate Back** | Goes back to the previous page in history. |
 | <kbd>Alt</kbd> + <kbd>→</kbd> | **Navigate Forward** | Goes forward to the next page in history. |
+| <kbd>Ctrl</kbd> + <kbd>H</kbd> | **Open Browsing History** | Opens the dedicated macOS Browsing History manager. |
 | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>L</kbd> | **Open Passwords & Keychain** | Opens the secure password manager vault. |
 | <kbd>Escape</kbd> | **Dismiss / Unfocus** | Unfocuses search bars, closes the AI copilot drawer, and closes open modals. |
 

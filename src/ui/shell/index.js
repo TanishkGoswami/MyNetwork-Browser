@@ -1,6 +1,6 @@
 // UI Shell - Main Renderer Controller (Clean Pure Light Mode Architecture)
 const { eventBus } = require('../../shared/events/event-bus');
-const { EVENTS, DEFAULT_NEWTAB_URL, LEGACY_NEWTAB_URL, SETTINGS_URL, LEGACY_SETTINGS_URL, BLANK_URL } = require('../../shared/constants');
+const { EVENTS, DEFAULT_NEWTAB_URL, LEGACY_NEWTAB_URL, SETTINGS_URL, LEGACY_SETTINGS_URL, HISTORY_URL, LEGACY_HISTORY_URL, BOOKMARKS_URL, LEGACY_BOOKMARKS_URL, BLANK_URL } = require('../../shared/constants');
 const { tabManager } = require('../../core/tabs/tab-manager');
 const { browserContext } = require('../../core/browser/browser-context');
 const { WebviewAdapter } = require('../../engine/webview/webview-adapter');
@@ -15,17 +15,33 @@ const { historyService } = require('../../features/history/history-service');
 const { settingsService } = require('../../infrastructure/config/settings-service');
 const { passwordService } = require('../../infrastructure/storage/password-service');
 const { sessionService } = require('../../features/session/session-service');
+const { bookmarkService, workspaceService } = require('../../features/bookmarks');
 
 class MyNetworkShell {
   constructor() {
     this.initDomCache();
     this.engineAdapter = new WebviewAdapter(this.dom.webviewContainer);
 
+    // History Controller State
+    this.historyViewMode = 'date'; // 'date' | 'group' | 'tree'
+    this.historySortBy = 'last-visited'; // 'by-date-site' | 'by-site' | 'by-date' | 'most-visited' | 'last-visited'
+    this.historySelectedIds = new Set();
+    this.historySearchQuery = '';
+    this.activeContextItem = null;
+
+    // Bookmarks Controller State
+    this.currentBmFilter = { rootId: null, workspaceId: null, folderId: null, tag: null, isRead: null, query: '' };
+    this.currentBmViewMode = 'grid'; // 'grid' | 'list'
+    this.popoverActiveTags = [];
+    this.activeBmContextItem = null;
+
     this.bindCoreEvents();
     this.bindFeatureEvents();
     this.bindUiInteractions();
     this.initKeybindings();
     this.initSettings();
+    this.initHistoryController();
+    this.initBookmarksController();
     this.initPasswordManager();
     this.initTabContextMenu();
     this.initClockAndGreeting();
@@ -37,6 +53,8 @@ class MyNetworkShell {
     this.initTimer();
     this.renderPasswordsList();
     this.renderPasswordHealth();
+    this.renderBookmarksBar();
+    this.renderNewTabShortcuts();
 
     // Restore Session Tabs or Start with initial tab
     this.restoreSessionOrStart();
@@ -103,7 +121,7 @@ class MyNetworkShell {
 
       // Recents
       recentLinksList: document.getElementById('recent-links-list'),
-      btnClearRecents: document.getElementById('btn-clear-recents'),
+      btnClearRecents: document.getElementById('btn-clear-recent') || document.getElementById('btn-clear-recents'),
 
       // Shortcuts Modal
       modalShortcuts: document.getElementById('modal-shortcuts'),
@@ -147,6 +165,35 @@ class MyNetworkShell {
       btnSettingsOpenShortcuts: document.getElementById('btn-settings-open-shortcuts'),
       settingsHistoryList: document.getElementById('settings-history-list'),
       historySearchInput: document.getElementById('history-search-input'),
+
+      // Dedicated macOS History View DOM
+      historyView: document.getElementById('history-view'),
+      btnHistoryBack: document.getElementById('btn-history-back'),
+      macHistorySearch: document.getElementById('mac-history-search'),
+      btnHistoryClearSearch: document.getElementById('btn-history-clear-search'),
+      btnHistoryViewDropdown: document.getElementById('btn-history-view-dropdown'),
+      historyViewDropdownLabel: document.getElementById('history-view-dropdown-label'),
+      historyViewMenu: document.getElementById('history-view-menu'),
+      btnOpenClearHistoryDialog: document.getElementById('btn-open-clear-history-dialog'),
+      tabModeDate: document.getElementById('tab-mode-date'),
+      tabModeGroup: document.getElementById('tab-mode-group'),
+      tabModeTree: document.getElementById('tab-mode-tree'),
+      historyBatchBar: document.getElementById('history-batch-bar'),
+      batchSelectedCount: document.getElementById('batch-selected-count'),
+      btnBatchCancel: document.getElementById('btn-batch-cancel'),
+      btnBatchDelete: document.getElementById('btn-batch-delete'),
+      historyMainFeed: document.getElementById('history-main-feed'),
+      clearHistoryDialog: document.getElementById('clear-history-dialog'),
+      btnCloseClearHistoryDialog: document.getElementById('btn-close-clear-history-dialog'),
+      btnCancelClearHistory: document.getElementById('btn-cancel-clear-history'),
+      btnConfirmClearHistory: document.getElementById('btn-confirm-clear-history'),
+      clearHistoryRangeSelect: document.getElementById('clear-history-range-select'),
+      historyContextMenu: document.getElementById('history-context-menu'),
+      ctxHistOpenTab: document.getElementById('ctx-hist-open-tab'),
+      ctxHistOpenSplit: document.getElementById('ctx-hist-open-split'),
+      ctxHistCopyLink: document.getElementById('ctx-hist-copy-link'),
+      ctxHistFilterDomain: document.getElementById('ctx-hist-filter-domain'),
+      ctxHistDelete: document.getElementById('ctx-hist-delete'),
 
       // Password Manager DOM
       btnOpenAddPwdModal: document.getElementById('btn-open-add-pwd-modal'),
@@ -208,7 +255,88 @@ class MyNetworkShell {
       ctxMuteLabel: document.getElementById('ctx-mute-label'),
       ctxCloseTab: document.getElementById('ctx-close-tab'),
       ctxCloseOtherTabs: document.getElementById('ctx-close-other-tabs'),
-      ctxCloseTabsRight: document.getElementById('ctx-close-tabs-right')
+      ctxCloseTabsRight: document.getElementById('ctx-close-tabs-right'),
+
+      // Bookmarks & Workspaces DOM
+      btnBookmark: document.getElementById('btn-bookmark'),
+      btnBookmarkStarSvg: document.getElementById('btn-bookmark-star-svg'),
+      bookmarkStarPopover: document.getElementById('bookmark-star-popover'),
+      btnBmPopoverClose: document.getElementById('btn-bm-popover-close'),
+      bmPopoverHeading: document.getElementById('bm-popover-heading'),
+      bmPopoverName: document.getElementById('bm-popover-name'),
+      bmPopoverUrl: document.getElementById('bm-popover-url'),
+      bmPopoverFolderSelect: document.getElementById('bm-popover-folder-select'),
+      btnBmPopoverNewFolder: document.getElementById('btn-bm-popover-new-folder'),
+      bmPopoverNewFolderRow: document.getElementById('bm-popover-new-folder-row'),
+      bmPopoverNewFolderInput: document.getElementById('bm-popover-new-folder-input'),
+      btnBmPopoverCreateFolderConfirm: document.getElementById('btn-bm-popover-create-folder-confirm'),
+      btnBmPopoverCreateFolderCancel: document.getElementById('btn-bm-popover-create-folder-cancel'),
+      bmPopoverTagsBox: document.getElementById('bm-popover-tags-box'),
+      bmPopoverTagsInput: document.getElementById('bm-popover-tags-input'),
+      bmPopoverFavCheck: document.getElementById('bm-popover-fav-check'),
+      btnBmPopoverRemove: document.getElementById('btn-bm-popover-remove'),
+      btnBmPopoverCancel: document.getElementById('btn-bm-popover-cancel'),
+      btnBmPopoverSave: document.getElementById('btn-bm-popover-save'),
+
+      bookmarksBar: document.getElementById('bookmarks-bar'),
+      bookmarksBarItems: document.getElementById('bookmarks-bar-items'),
+      btnBookmarksBarAdd: document.getElementById('btn-bookmarks-bar-add'),
+      bookmarksBarDropdown: document.getElementById('bookmarks-bar-dropdown'),
+      bmBarDropdownContent: document.getElementById('bm-bar-dropdown-content'),
+
+      newtabShortcutsContainer: document.getElementById('newtab-shortcuts-container'),
+      newtabShortcutsRow: document.getElementById('newtab-shortcuts-row'),
+      newtabWorkspaceBoards: document.getElementById('newtab-workspace-boards'),
+      newtabWorkspaceTabs: document.getElementById('newtab-workspace-tabs'),
+
+      modalAddShortcut: document.getElementById('modal-add-shortcut'),
+      formAddShortcut: document.getElementById('form-add-shortcut'),
+      shortcutEditId: document.getElementById('shortcut-edit-id'),
+      shortcutInputTitle: document.getElementById('shortcut-input-title'),
+      shortcutInputUrl: document.getElementById('shortcut-input-url'),
+      btnDeleteShortcut: document.getElementById('btn-delete-shortcut'),
+      btnCloseShortcutModal: document.getElementById('btn-close-shortcut-modal'),
+      btnCancelShortcutModal: document.getElementById('btn-cancel-shortcut-modal'),
+
+      modalAddBmFolder: document.getElementById('modal-add-bm-folder'),
+      formAddBmFolder: document.getElementById('form-add-bm-folder'),
+      bmFolderEditId: document.getElementById('bm-folder-edit-id'),
+      bmFolderInputTitle: document.getElementById('bm-folder-input-title'),
+      bmFolderInputParent: document.getElementById('bm-folder-input-parent'),
+      bmFolderColorOptions: document.getElementById('bm-folder-color-options'),
+      btnCloseBmFolderModal: document.getElementById('btn-close-bm-folder-modal'),
+      btnCancelBmFolderModal: document.getElementById('btn-cancel-bm-folder-modal'),
+
+      bookmarksView: document.getElementById('bookmarks-view'),
+      btnBookmarksBack: document.getElementById('btn-bookmarks-back'),
+      macBookmarksSearch: document.getElementById('mac-bookmarks-search'),
+      btnBookmarksClearSearch: document.getElementById('btn-bookmarks-clear-search'),
+      btnBmAddNewFolder: document.getElementById('btn-bm-add-new-folder'),
+      btnBmAddNewBookmark: document.getElementById('btn-bm-add-new-bookmark'),
+      btnBmViewGrid: document.getElementById('btn-bm-view-grid'),
+      btnBmViewList: document.getElementById('btn-bm-view-list'),
+      bmMgrWorkspacesList: document.getElementById('bm-mgr-workspaces-list'),
+      bmMgrFolderTree: document.getElementById('bm-mgr-folder-tree'),
+      bmMgrTagsCloud: document.getElementById('bm-mgr-tags-cloud'),
+      bmMgrBreadcrumbs: document.getElementById('bm-mgr-breadcrumbs'),
+      bmMgrItemsContainer: document.getElementById('bm-mgr-items-container'),
+      bmStatusText: document.getElementById('bm-status-text'),
+      btnBmImportHtml: document.getElementById('btn-bm-import-html'),
+      btnBmExportHtml: document.getElementById('btn-bm-export-html'),
+      btnBmEmptyTrash: document.getElementById('btn-bm-empty-trash'),
+      bookmarkContextMenu: document.getElementById('bookmark-context-menu'),
+
+      // Settings bookmark controls
+      settingBookmarksBarMode: document.getElementById('setting-bookmarks-bar-mode'),
+      settingNewtabBookmarksLayout: document.getElementById('setting-newtab-bookmarks-layout'),
+      settingDefaultBookmarkFolder: document.getElementById('setting-default-bookmark-folder'),
+      settingBookmarkOpenTarget: document.getElementById('setting-bookmark-open-target'),
+      settingToggleWidgetScratchpad: document.getElementById('setting-toggle-widget-scratchpad'),
+      settingToggleWidgetTasks: document.getElementById('setting-toggle-widget-tasks'),
+      settingToggleWidgetTimer: document.getElementById('setting-toggle-widget-timer'),
+      settingToggleWidgetRecent: document.getElementById('setting-toggle-widget-recent'),
+      btnSettingsImportBm: document.getElementById('btn-settings-import-bm'),
+      btnSettingsExportBm: document.getElementById('btn-settings-export-bm')
     };
   }
 
@@ -245,6 +373,8 @@ class MyNetworkShell {
         if (updates && updates.url && updates.url !== DEFAULT_NEWTAB_URL && updates.url !== BLANK_URL && !updates.url.startsWith('mynetwork://')) {
           this.dom.urlInput.value = updates.url;
         }
+        this.updateOmniboxIcon(activeTab);
+        this.updateOmniboxStarState(activeTab);
       }
       sessionService.saveSession(tabManager.getAllTabs(), tabManager.activeTabId);
     });
@@ -260,6 +390,10 @@ class MyNetworkShell {
 
     eventBus.on(EVENTS.NAV_FINISH, ({ tabId, url, title, favicon }) => {
       this.hideProgress();
+      const activeTab = tabManager.getActiveTab();
+      if (activeTab && activeTab.id === tabId) {
+        this.updateOmniboxStarState(activeTab);
+      }
     });
 
     // In-page Login Credentials Submitted Observer
@@ -288,7 +422,8 @@ class MyNetworkShell {
         }
       });
       if (this.dom.dashSearchInput) this.dom.dashSearchInput.placeholder = engine.placeholder;
-      if (this.dom.omniboxEngineIcon) this.dom.omniboxEngineIcon.innerHTML = engine.icon;
+      const activeTab = tabManager.getActiveTab();
+      this.updateOmniboxIcon(activeTab);
     });
 
     eventBus.on('ui:sidebar-toggled', ({ isRail }) => {
@@ -339,6 +474,20 @@ class MyNetworkShell {
 
     eventBus.on(EVENTS.HISTORY_UPDATED, () => {
       this.renderRecents();
+    });
+
+    eventBus.on(EVENTS.BOOKMARKS_UPDATED, () => {
+      this.renderBookmarksBar();
+      this.renderNewTabShortcuts();
+      this.renderBookmarksManager();
+      const activeTab = tabManager.getActiveTab();
+      if (activeTab) this.updateOmniboxStarState(activeTab);
+    });
+
+    eventBus.on(EVENTS.WORKSPACE_CHANGED, () => {
+      this.renderBookmarksBar();
+      this.renderNewTabShortcuts();
+      this.renderBookmarksManager();
     });
   }
 
@@ -392,6 +541,27 @@ class MyNetworkShell {
           const input = this.dom.urlInput.value.trim();
           if (input) this.navigateCurrentTab(input);
         }
+      });
+
+      this.dom.urlInput.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        if (val.startsWith('mynetwork://') || val.startsWith('about:')) {
+          this.updateOmniboxIcon({ url: val });
+        } else if (val) {
+          const currentEngine = browserContext.getCurrentEngine();
+          if (this.dom.omniboxEngineIcon) {
+            this.dom.omniboxEngineIcon.innerHTML = currentEngine.icon;
+            this.dom.omniboxEngineIcon.title = `Search with ${currentEngine.name}`;
+          }
+        } else {
+          const active = tabManager.getActiveTab();
+          this.updateOmniboxIcon(active);
+        }
+      });
+
+      this.dom.urlInput.addEventListener('blur', () => {
+        const active = tabManager.getActiveTab();
+        this.updateOmniboxIcon(active);
       });
     }
 
@@ -479,6 +649,16 @@ class MyNetworkShell {
     keybindingManager.startListening();
   }
 
+  escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   /* ==========================================================================
      TAB RENDERING & NAVIGATION LOGIC
      ========================================================================== */
@@ -488,16 +668,24 @@ class MyNetworkShell {
       el.className = `tab-item ${tab.isPinned ? 'pinned' : ''}`;
       el.id = `${prefix}-${tab.id}`;
       
-      const isInternal = !tab.url || tab.url === BLANK_URL || tab.url === DEFAULT_NEWTAB_URL || tab.url === LEGACY_NEWTAB_URL;
-      const displayTitle = isInternal ? 'New Tab' : (tab.title && tab.title !== 'about:blank' ? tab.title : (tab.url || 'New Tab'));
+      const url = tab.url || '';
+      const isNewTab = !url || url === BLANK_URL || url === DEFAULT_NEWTAB_URL || url === LEGACY_NEWTAB_URL;
+      const isSettings = url === SETTINGS_URL || url === LEGACY_SETTINGS_URL || url.toLowerCase() === 'mynetwork://settings' || url.toLowerCase() === 'about:settings';
+      const isHistory = url === HISTORY_URL || url === LEGACY_HISTORY_URL || url.toLowerCase() === 'mynetwork://history' || url.toLowerCase() === 'about:history';
+      const isBookmarks = url === BOOKMARKS_URL || url === LEGACY_BOOKMARKS_URL || url.toLowerCase() === 'mynetwork://bookmarks' || url.toLowerCase() === 'about:bookmarks';
+      const isInternal = isNewTab || isSettings || isHistory || isBookmarks || url.startsWith('mynetwork://') || url.startsWith('about:') || url.startsWith('chrome://');
 
-      const faviconHtml = tab.favicon 
+      let displayTitle = 'New Tab';
+      if (isSettings) displayTitle = 'Settings';
+      else if (isHistory) displayTitle = 'History';
+      else if (isBookmarks) displayTitle = 'Bookmarks';
+      else if (isNewTab) displayTitle = 'New Tab';
+      else displayTitle = (tab.title && tab.title !== 'about:blank') ? tab.title : (url || 'New Tab');
+
+      const faviconHtml = (tab.favicon && !isInternal)
         ? `<img src="${tab.favicon}" alt="" width="14" height="14" class="tab-favicon-img" onerror="this.outerHTML='<svg width=\\'13\\' height=\\'13\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><circle cx=\\'12\\' cy=\\'12\\' r=\\'10\\'/><line x1=\\'2\\' y1=\\'12\\' x2=\\'22\\' y2=\\'12\\'/><path d=\\'M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z\\'/></svg>'">`
         : (isInternal
-          ? `<svg width="14" height="14" viewBox="0 0 100 100" style="color: var(--accent-blue);">
-              <path d="M 48 23 Q 54 38 72 48 Q 59 54 53 60 Q 49 48 42 38 Q 43 29 48 23 Z" fill="currentColor"/>
-              <path d="M 52 77 Q 46 62 28 52 Q 41 46 47 40 Q 51 52 58 62 Q 57 71 52 77 Z" fill="currentColor"/>
-            </svg>`
+          ? `<img src="assets/icon-symbol.svg" alt="" width="14" height="14" class="tab-favicon-img" style="object-fit: contain;">`
           : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
               <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
@@ -526,10 +714,13 @@ class MyNetworkShell {
         this.openTabContextMenu(e, tab.id);
       });
 
-      el.querySelector('.tab-close-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        tabManager.closeTab(tab.id);
-      });
+      const closeBtn = el.querySelector('.tab-close-btn');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          tabManager.closeTab(tab.id);
+        });
+      }
 
       return el;
     };
@@ -545,12 +736,66 @@ class MyNetworkShell {
     }
   }
 
+  updateOmniboxIcon(tab) {
+    if (!this.dom.omniboxEngineIcon) return;
+
+    const url = tab ? (tab.url || '') : '';
+    const isInternal = !url || 
+      url === BLANK_URL || 
+      url === DEFAULT_NEWTAB_URL || 
+      url === LEGACY_NEWTAB_URL || 
+      url === SETTINGS_URL || 
+      url === LEGACY_SETTINGS_URL || 
+      url === HISTORY_URL || 
+      url === LEGACY_HISTORY_URL || 
+      url === BOOKMARKS_URL || 
+      url === LEGACY_BOOKMARKS_URL || 
+      url.startsWith('mynetwork://') || 
+      url.startsWith('about:') || 
+      url.startsWith('chrome://');
+
+    const browserLogoHtml = `
+      <img src="assets/icon-symbol.svg" width="16" height="16" alt="MyNetwork" style="display: block; object-fit: contain;">
+    `;
+
+    if (isInternal) {
+      this.dom.omniboxEngineIcon.innerHTML = browserLogoHtml;
+      this.dom.omniboxEngineIcon.title = 'MyNetwork Internal Page';
+      return;
+    }
+
+    if (tab && tab.favicon) {
+      this.dom.omniboxEngineIcon.innerHTML = `<img src="${tab.favicon}" width="14" height="14" style="border-radius: 3px; object-fit: contain;" onerror="this.parentElement.innerHTML='<svg width=\\'13\\' height=\\'13\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'#10b981\\' stroke-width=\\'2\\'><rect x=\\'3\\' y=\\'11\\' width=\\'18\\' height=\\'11\\' rx=\\'2\\' ry=\\'2\\'/><path d=\\'M7 11V7a5 5 0 0 1 10 0v4\\'/></svg>'">`;
+      this.dom.omniboxEngineIcon.title = 'Secure Connection';
+      return;
+    }
+
+    if (url.startsWith('https://')) {
+      this.dom.omniboxEngineIcon.innerHTML = `
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      `;
+      this.dom.omniboxEngineIcon.title = 'Connection is secure (HTTPS)';
+      return;
+    }
+
+    const currentEngine = browserContext.getCurrentEngine();
+    this.dom.omniboxEngineIcon.innerHTML = currentEngine.icon;
+    this.dom.omniboxEngineIcon.title = `Search with ${currentEngine.name}`;
+  }
+
   updateActiveTabUi(tabId, tab) {
+    this.updateOmniboxIcon(tab);
+
     document.querySelectorAll('.tab-item').forEach(el => {
       el.classList.toggle('active', el.id === `tab-pill-${tabId}` || el.id === `h-tab-pill-${tabId}`);
     });
 
     const isSettings = tab.url === SETTINGS_URL || tab.url === LEGACY_SETTINGS_URL;
+    const isHistory = tab.url === HISTORY_URL || tab.url === LEGACY_HISTORY_URL;
+    const isBookmarks = tab.url === BOOKMARKS_URL || tab.url === LEGACY_BOOKMARKS_URL;
     const isNewTab = tab.url === DEFAULT_NEWTAB_URL || tab.url === LEGACY_NEWTAB_URL || tab.url === BLANK_URL;
 
     if (isSettings) {
@@ -558,29 +803,59 @@ class MyNetworkShell {
       if (this.dom.sidebar) this.dom.sidebar.style.display = 'none';
       if (this.dom.horizontalTabsBar) this.dom.horizontalTabsBar.style.display = 'none';
       if (this.dom.newTabView) this.dom.newTabView.style.display = 'none';
+      if (this.dom.historyView) this.dom.historyView.style.display = 'none';
+      if (this.dom.bookmarksView) this.dom.bookmarksView.style.display = 'none';
       if (this.dom.settingsView) this.dom.settingsView.style.display = 'flex';
       this.dom.urlInput.value = 'mynetwork://settings';
       document.querySelectorAll('.browser-webview').forEach(wv => wv.classList.remove('active'));
       this.populateSettingsForm();
       this.renderSettingsHistory();
+    } else if (isHistory) {
+      // Show dedicated macOS History view
+      if (this.dom.sidebar) this.dom.sidebar.style.display = 'none';
+      if (this.dom.horizontalTabsBar) this.dom.horizontalTabsBar.style.display = 'none';
+      if (this.dom.newTabView) this.dom.newTabView.style.display = 'none';
+      if (this.dom.settingsView) this.dom.settingsView.style.display = 'none';
+      if (this.dom.bookmarksView) this.dom.bookmarksView.style.display = 'none';
+      if (this.dom.historyView) this.dom.historyView.style.display = 'flex';
+      this.dom.urlInput.value = 'mynetwork://history';
+      document.querySelectorAll('.browser-webview').forEach(wv => wv.classList.remove('active'));
+      this.renderHistoryView();
+    } else if (isBookmarks) {
+      // Show dedicated macOS Bookmarks Manager view
+      if (this.dom.sidebar) this.dom.sidebar.style.display = 'none';
+      if (this.dom.horizontalTabsBar) this.dom.horizontalTabsBar.style.display = 'none';
+      if (this.dom.newTabView) this.dom.newTabView.style.display = 'none';
+      if (this.dom.settingsView) this.dom.settingsView.style.display = 'none';
+      if (this.dom.historyView) this.dom.historyView.style.display = 'none';
+      if (this.dom.bookmarksView) this.dom.bookmarksView.style.display = 'flex';
+      this.dom.urlInput.value = 'mynetwork://bookmarks';
+      document.querySelectorAll('.browser-webview').forEach(wv => wv.classList.remove('active'));
+      this.renderBookmarksManager();
     } else {
       // Restore layout mode (Vertical vs Horizontal)
       const currentLayout = settingsService.get('tabLayout', 'vertical');
       this.applyTabLayout(currentLayout);
 
       if (this.dom.settingsView) this.dom.settingsView.style.display = 'none';
+      if (this.dom.historyView) this.dom.historyView.style.display = 'none';
+      if (this.dom.bookmarksView) this.dom.bookmarksView.style.display = 'none';
 
       if (isNewTab) {
         if (this.dom.newTabView) this.dom.newTabView.style.display = 'flex';
         this.dom.urlInput.value = '';
         this.dom.urlInput.placeholder = browserContext.getCurrentEngine().placeholder;
         document.querySelectorAll('.browser-webview').forEach(wv => wv.classList.remove('active'));
+        this.renderNewTabShortcuts();
       } else {
         if (this.dom.newTabView) this.dom.newTabView.style.display = 'none';
         this.dom.urlInput.value = tab.url;
         this.engineAdapter.showWebview(tabId);
       }
     }
+
+    this.updateOmniboxStarState(tab);
+    this.renderBookmarksBar();
   }
 
   updateTabPillDisplay(tabId, tab) {
@@ -588,8 +863,19 @@ class MyNetworkShell {
       if (!el || !tab) return;
       el.classList.toggle('pinned', !!tab.isPinned);
       const titleEl = el.querySelector('.tab-title');
-      const isInternal = !tab.url || tab.url === BLANK_URL || tab.url === DEFAULT_NEWTAB_URL || tab.url === LEGACY_NEWTAB_URL;
-      const displayTitle = isInternal ? 'New Tab' : (tab.title && tab.title !== 'about:blank' ? tab.title : (tab.url || 'New Tab'));
+      const url = tab.url || '';
+      const isNewTab = !url || url === BLANK_URL || url === DEFAULT_NEWTAB_URL || url === LEGACY_NEWTAB_URL;
+      const isSettings = url === SETTINGS_URL || url === LEGACY_SETTINGS_URL || url.toLowerCase() === 'mynetwork://settings' || url.toLowerCase() === 'about:settings';
+      const isHistory = url === HISTORY_URL || url === LEGACY_HISTORY_URL || url.toLowerCase() === 'mynetwork://history' || url.toLowerCase() === 'about:history';
+      const isBookmarks = url === BOOKMARKS_URL || url === LEGACY_BOOKMARKS_URL || url.toLowerCase() === 'mynetwork://bookmarks' || url.toLowerCase() === 'about:bookmarks';
+      const isInternal = isNewTab || isSettings || isHistory || isBookmarks || url.startsWith('mynetwork://') || url.startsWith('about:') || url.startsWith('chrome://');
+
+      let displayTitle = 'New Tab';
+      if (isSettings) displayTitle = 'Settings';
+      else if (isHistory) displayTitle = 'History';
+      else if (isBookmarks) displayTitle = 'Bookmarks';
+      else if (isNewTab) displayTitle = 'New Tab';
+      else displayTitle = (tab.title && tab.title !== 'about:blank') ? tab.title : (url || 'New Tab');
       
       if (titleEl) {
         titleEl.textContent = displayTitle;
@@ -598,14 +884,10 @@ class MyNetworkShell {
 
       const faviconEl = el.querySelector('.tab-favicon');
       if (faviconEl) {
-        if (tab.favicon) {
+        if (tab.favicon && !isInternal) {
           faviconEl.innerHTML = `<img src="${tab.favicon}" alt="" width="14" height="14" class="tab-favicon-img" onerror="this.outerHTML='<svg width=\\'13\\' height=\\'13\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><circle cx=\\'12\\' cy=\\'12\\' r=\\'10\\'/><line x1=\\'2\\' y1=\\'12\\' x2=\\'22\\' y2=\\'12\\'/><path d=\\'M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z\\'/></svg>'">`;
         } else if (isInternal) {
-          faviconEl.innerHTML = `
-            <svg width="14" height="14" viewBox="0 0 100 100" style="color: var(--accent-blue);">
-              <path d="M 48 23 Q 54 38 72 48 Q 59 54 53 60 Q 49 48 42 38 Q 43 29 48 23 Z" fill="currentColor"/>
-              <path d="M 52 77 Q 46 62 28 52 Q 41 46 47 40 Q 51 52 58 62 Q 57 71 52 77 Z" fill="currentColor"/>
-            </svg>`;
+          faviconEl.innerHTML = `<img src="assets/icon-symbol.svg" alt="" width="14" height="14" class="tab-favicon-img" style="object-fit: contain;">`;
         } else {
           faviconEl.innerHTML = `
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -621,12 +903,27 @@ class MyNetworkShell {
   }
 
   navigateCurrentTab(query) {
+    if (!query || typeof query !== 'string' || query === 'undefined' || !query.trim()) {
+      return;
+    }
     const activeTab = tabManager.getActiveTab();
     if (!activeTab) return;
 
     let targetUrl = query.trim();
     if (targetUrl.toLowerCase() === 'mynetwork://settings' || targetUrl.toLowerCase() === 'about:settings') {
       tabManager.updateTab(activeTab.id, { url: SETTINGS_URL, title: 'Settings' });
+      this.updateActiveTabUi(activeTab.id, tabManager.getActiveTab());
+      return;
+    }
+
+    if (targetUrl.toLowerCase() === 'mynetwork://history' || targetUrl.toLowerCase() === 'about:history' || targetUrl.toLowerCase() === 'chrome://history') {
+      tabManager.updateTab(activeTab.id, { url: HISTORY_URL, title: 'History' });
+      this.updateActiveTabUi(activeTab.id, tabManager.getActiveTab());
+      return;
+    }
+
+    if (targetUrl.toLowerCase() === 'mynetwork://bookmarks' || targetUrl.toLowerCase() === 'about:bookmarks' || targetUrl.toLowerCase() === 'chrome://bookmarks') {
+      tabManager.updateTab(activeTab.id, { url: BOOKMARKS_URL, title: 'Bookmarks' });
       this.updateActiveTabUi(activeTab.id, tabManager.getActiveTab());
       return;
     }
@@ -661,10 +958,15 @@ class MyNetworkShell {
       favicon: provisionalFavicon
     });
 
-    this.dom.newTabView.style.display = 'none';
-    this.dom.urlInput.value = targetUrl;
+    if (this.dom.newTabView) this.dom.newTabView.style.display = 'none';
+    if (this.dom.settingsView) this.dom.settingsView.style.display = 'none';
+    if (this.dom.historyView) this.dom.historyView.style.display = 'none';
+    if (this.dom.bookmarksView) this.dom.bookmarksView.style.display = 'none';
+    if (this.dom.urlInput) this.dom.urlInput.value = targetUrl;
+    
     this.engineAdapter.navigate(activeTab.id, targetUrl);
     this.engineAdapter.showWebview(activeTab.id);
+    this.updateActiveTabUi(activeTab.id, tabManager.getTab(activeTab.id));
   }
 
   /* ==========================================================================
@@ -761,6 +1063,47 @@ class MyNetworkShell {
           taskService.addTask(text);
           this.dom.taskInputField.value = '';
         }
+      });
+    }
+  }
+
+  renderRecents() {
+    if (!this.dom.recentLinksList) return;
+    this.dom.recentLinksList.innerHTML = '';
+
+    const recents = historyService.getRecent(8);
+    if (recents.length === 0) {
+      this.dom.recentLinksList.innerHTML = `<div style="text-align:center; padding: 14px; color: #94a3b8; font-size:11.5px;">No recently visited pages yet</div>`;
+      return;
+    }
+
+    recents.forEach(item => {
+      const itemEl = document.createElement('div');
+      itemEl.className = 'recent-item';
+      
+      const faviconHtml = item.favicon 
+        ? `<img src="${item.favicon}" alt="" width="14" height="14" class="recent-favicon" onerror="this.outerHTML='<svg width=\\'13\\' height=\\'13\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'#64748b\\' stroke-width=\\'2\\'><circle cx=\\'12\\' cy=\\'12\\' r=\\'10\\'/><line x1=\\'2\\' y1=\\'12\\' x2=\\'22\\' y2=\\'12\\'/><path d=\\'M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z\\'/></svg>'">`
+        : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`;
+
+      itemEl.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
+          <div style="width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">${faviconHtml}</div>
+          <span class="recent-item-title" title="${item.url}">${item.title || item.url}</span>
+        </div>
+        <span class="recent-item-time">${item.time || ''}</span>
+      `;
+
+      itemEl.addEventListener('click', () => {
+        tabManager.createTab(item.url, item.title || item.url);
+      });
+
+      this.dom.recentLinksList.appendChild(itemEl);
+    });
+
+    if (this.dom.btnClearRecents && !this.dom.btnClearRecents._bound) {
+      this.dom.btnClearRecents._bound = true;
+      this.dom.btnClearRecents.addEventListener('click', () => {
+        this.toggleClearHistoryDialog(true);
       });
     }
   }
@@ -1020,13 +1363,46 @@ class MyNetworkShell {
       }
     });
 
+    keybindingManager.register('ctrl+h', {
+      id: 'feature:open-history',
+      label: 'Open Browsing History',
+      category: 'General',
+      handler: () => this.openHistoryTab()
+    });
+
+    keybindingManager.register('ctrl+b', {
+      id: 'feature:open-bookmarks',
+      label: 'Open Bookmarks & Workspaces',
+      category: 'General',
+      handler: () => this.openBookmarksTab()
+    });
+
+    keybindingManager.register('ctrl+d', {
+      id: 'feature:bookmark-active-tab',
+      label: 'Bookmark Active Tab',
+      category: 'General',
+      handler: () => this.toggleBookmarkPopover()
+    });
+
+    keybindingManager.register('ctrl+shift+b', {
+      id: 'ui:toggle-bookmarks-bar',
+      label: 'Toggle Favorites Bar',
+      category: 'Workspace & Layout',
+      handler: () => this.toggleBookmarksBar()
+    });
+
     keybindingManager.register('escape', {
       id: 'ui:dismiss',
       label: 'Dismiss Overlay / Blur',
       category: 'General',
       handler: () => {
         this.toggleShortcutsModal(false);
+        this.toggleClearHistoryDialog(false);
+        this.closeBookmarkPopover();
         browserContext.toggleAiDrawer(false);
+        if (this.dom.historyContextMenu) this.dom.historyContextMenu.style.display = 'none';
+        if (this.dom.bookmarkContextMenu) this.dom.bookmarkContextMenu.style.display = 'none';
+        if (this.dom.bookmarksBarDropdown) this.dom.bookmarksBarDropdown.style.display = 'none';
         if (document.activeElement) document.activeElement.blur();
       }
     });
@@ -1035,13 +1411,6 @@ class MyNetworkShell {
     keybindingManager.register('ctrl+s', {
       id: 'ui:toggle-sidebar',
       label: 'Toggle Sidebar Compact Rail',
-      category: 'Workspace & Layout',
-      handler: () => browserContext.toggleSidebarRail()
-    });
-
-    keybindingManager.register('ctrl+b', {
-      id: 'ui:toggle-sidebar-alt',
-      label: 'Toggle Sidebar (Ctrl+B)',
       category: 'Workspace & Layout',
       handler: () => browserContext.toggleSidebarRail()
     });
@@ -1198,6 +1567,8 @@ class MyNetworkShell {
     } else if (category === 'passwords') {
       this.renderPasswordsList();
       this.renderPasswordHealth();
+    } else if (category === 'bookmarks') {
+      this.populateBookmarkSettings();
     }
   }
 
@@ -1224,12 +1595,657 @@ class MyNetworkShell {
     });
   }
 
+  /* ==========================================================================
+     DEDICATED macOS BROWSING HISTORY CONTROLLER
+     ========================================================================== */
+  openHistoryTab(mode = 'date') {
+    this.historyViewMode = mode;
+    const existing = tabManager.getTabs().find(t => t.url === HISTORY_URL || t.url === LEGACY_HISTORY_URL);
+    if (existing) {
+      tabManager.activateTab(existing.id);
+    } else {
+      tabManager.createTab(HISTORY_URL, 'History');
+    }
+    this.updateHistorySegmentButtons();
+    this.renderHistoryView();
+  }
+
+  initHistoryController() {
+    // 1. History Back Button
+    if (this.dom.btnHistoryBack) {
+      this.dom.btnHistoryBack.addEventListener('click', () => {
+        const active = tabManager.getActiveTab();
+        const nonHistoryTab = tabManager.getTabs().find(t => t.url !== HISTORY_URL && t.url !== LEGACY_HISTORY_URL && t.url !== SETTINGS_URL && t.url !== LEGACY_SETTINGS_URL);
+        if (nonHistoryTab) {
+          tabManager.activateTab(nonHistoryTab.id);
+        } else {
+          tabManager.createTab(DEFAULT_NEWTAB_URL, 'New Tab');
+          if (active) tabManager.closeTab(active.id);
+        }
+      });
+    }
+
+    // 2. Search History Input
+    if (this.dom.macHistorySearch) {
+      this.dom.macHistorySearch.addEventListener('input', (e) => {
+        this.historySearchQuery = e.target.value.trim();
+        if (this.dom.btnHistoryClearSearch) {
+          this.dom.btnHistoryClearSearch.style.display = this.historySearchQuery ? 'flex' : 'none';
+        }
+        this.renderHistoryView();
+      });
+    }
+
+    if (this.dom.btnHistoryClearSearch) {
+      this.dom.btnHistoryClearSearch.addEventListener('click', () => {
+        if (this.dom.macHistorySearch) {
+          this.dom.macHistorySearch.value = '';
+          this.dom.macHistorySearch.focus();
+        }
+        this.historySearchQuery = '';
+        this.dom.btnHistoryClearSearch.style.display = 'none';
+        this.renderHistoryView();
+      });
+    }
+
+    // 3. Segmented Mode Switches (By Date, By Group, Tree View)
+    if (this.dom.tabModeDate) {
+      this.dom.tabModeDate.addEventListener('click', () => {
+        this.historyViewMode = 'date';
+        this.updateHistorySegmentButtons();
+        this.renderHistoryView();
+      });
+    }
+
+    if (this.dom.tabModeGroup) {
+      this.dom.tabModeGroup.addEventListener('click', () => {
+        this.historyViewMode = 'group';
+        this.updateHistorySegmentButtons();
+        this.renderHistoryView();
+      });
+    }
+
+    if (this.dom.tabModeTree) {
+      this.dom.tabModeTree.addEventListener('click', () => {
+        this.historyViewMode = 'tree';
+        this.updateHistorySegmentButtons();
+        this.renderHistoryView();
+      });
+    }
+
+    // 4. View Dropdown Menu
+    if (this.dom.btnHistoryViewDropdown && this.dom.historyViewMenu) {
+      this.dom.btnHistoryViewDropdown.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.dom.historyViewMenu.classList.toggle('active');
+      });
+
+      document.querySelectorAll('.history-view-menu-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const viewType = item.getAttribute('data-view');
+          this.setHistoryViewSort(viewType);
+          this.dom.historyViewMenu.classList.remove('active');
+        });
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.history-view-dropdown-container')) {
+          this.dom.historyViewMenu.classList.remove('active');
+        }
+      });
+    }
+
+    // 5. Batch Selection Actions
+    if (this.dom.btnBatchCancel) {
+      this.dom.btnBatchCancel.addEventListener('click', () => {
+        this.historySelectedIds.clear();
+        this.updateHistoryBatchBar();
+        document.querySelectorAll('.mac-history-checkbox').forEach(cb => cb.checked = false);
+        document.querySelectorAll('.mac-history-item-row').forEach(r => r.classList.remove('selected'));
+      });
+    }
+
+    if (this.dom.btnBatchDelete) {
+      this.dom.btnBatchDelete.addEventListener('click', () => {
+        if (this.historySelectedIds.size === 0) return;
+        historyService.removeItems(Array.from(this.historySelectedIds));
+        this.historySelectedIds.clear();
+        this.updateHistoryBatchBar();
+        this.renderHistoryView();
+        this.renderSettingsHistory();
+        this.renderRecents();
+      });
+    }
+
+    // 6. Clear Browsing Data Dialog (macOS sheet)
+    if (this.dom.btnOpenClearHistoryDialog) {
+      this.dom.btnOpenClearHistoryDialog.addEventListener('click', () => {
+        this.toggleClearHistoryDialog(true);
+      });
+    }
+
+    if (this.dom.btnCloseClearHistoryDialog) {
+      this.dom.btnCloseClearHistoryDialog.addEventListener('click', () => {
+        this.toggleClearHistoryDialog(false);
+      });
+    }
+
+    if (this.dom.btnCancelClearHistory) {
+      this.dom.btnCancelClearHistory.addEventListener('click', () => {
+        this.toggleClearHistoryDialog(false);
+      });
+    }
+
+    if (this.dom.btnConfirmClearHistory) {
+      this.dom.btnConfirmClearHistory.addEventListener('click', () => {
+        const range = this.dom.clearHistoryRangeSelect ? this.dom.clearHistoryRangeSelect.value : 'all';
+        historyService.clearRange(range);
+        this.toggleClearHistoryDialog(false);
+        this.historySelectedIds.clear();
+        this.updateHistoryBatchBar();
+        this.renderHistoryView();
+        this.renderSettingsHistory();
+        this.renderRecents();
+      });
+    }
+
+    // 7. Context Menu Event Listeners
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#history-context-menu')) {
+        if (this.dom.historyContextMenu) this.dom.historyContextMenu.style.display = 'none';
+      }
+    });
+
+    if (this.dom.ctxHistOpenTab) {
+      this.dom.ctxHistOpenTab.addEventListener('click', () => {
+        if (this.activeContextItem) {
+          tabManager.createTab(this.activeContextItem.url, this.activeContextItem.title || this.activeContextItem.url);
+        }
+        if (this.dom.historyContextMenu) this.dom.historyContextMenu.style.display = 'none';
+      });
+    }
+
+    if (this.dom.ctxHistOpenSplit) {
+      this.dom.ctxHistOpenSplit.addEventListener('click', () => {
+        if (this.activeContextItem) {
+          browserContext.toggleSplitView(true);
+        }
+        if (this.dom.historyContextMenu) this.dom.historyContextMenu.style.display = 'none';
+      });
+    }
+
+    if (this.dom.ctxHistCopyLink) {
+      this.dom.ctxHistCopyLink.addEventListener('click', () => {
+        if (this.activeContextItem && this.activeContextItem.url) {
+          navigator.clipboard.writeText(this.activeContextItem.url);
+        }
+        if (this.dom.historyContextMenu) this.dom.historyContextMenu.style.display = 'none';
+      });
+    }
+
+    if (this.dom.ctxHistFilterDomain) {
+      this.dom.ctxHistFilterDomain.addEventListener('click', () => {
+        if (this.activeContextItem && this.activeContextItem.domain) {
+          this.historySearchQuery = this.activeContextItem.domain;
+          if (this.dom.macHistorySearch) this.dom.macHistorySearch.value = this.activeContextItem.domain;
+          if (this.dom.btnHistoryClearSearch) this.dom.btnHistoryClearSearch.style.display = 'flex';
+          this.renderHistoryView();
+        }
+        if (this.dom.historyContextMenu) this.dom.historyContextMenu.style.display = 'none';
+      });
+    }
+
+    if (this.dom.ctxHistDelete) {
+      this.dom.ctxHistDelete.addEventListener('click', () => {
+        if (this.activeContextItem) {
+          historyService.removeItem(this.activeContextItem.id);
+          this.renderHistoryView();
+          this.renderSettingsHistory();
+          this.renderRecents();
+        }
+        if (this.dom.historyContextMenu) this.dom.historyContextMenu.style.display = 'none';
+      });
+    }
+
+    // 8. EventBus History Update Listener
+    eventBus.on(EVENTS.HISTORY_UPDATED, () => {
+      const active = tabManager.getActiveTab();
+      if (active && (active.url === HISTORY_URL || active.url === LEGACY_HISTORY_URL)) {
+        this.renderHistoryView();
+      }
+      this.renderRecents();
+      this.renderSettingsHistory();
+    });
+  }
+
+  setHistoryViewSort(viewType) {
+    document.querySelectorAll('.history-view-menu-item').forEach(item => {
+      item.classList.toggle('active', item.getAttribute('data-view') === viewType);
+    });
+
+    const labelMap = {
+      'by-date-site': 'By Date and Site',
+      'by-site': 'By Site',
+      'by-date': 'By Date',
+      'most-visited': 'By Most Visited',
+      'last-visited': 'By Last Visited'
+    };
+
+    if (this.dom.historyViewDropdownLabel && labelMap[viewType]) {
+      this.dom.historyViewDropdownLabel.textContent = labelMap[viewType];
+    }
+
+    if (viewType === 'by-site') {
+      this.historyViewMode = 'group';
+      this.historySortBy = 'by-site';
+    } else if (viewType === 'by-date-site') {
+      this.historyViewMode = 'tree';
+      this.historySortBy = 'by-date-site';
+    } else if (viewType === 'most-visited') {
+      this.historyViewMode = 'date';
+      this.historySortBy = 'most-visited';
+    } else {
+      this.historyViewMode = 'date';
+      this.historySortBy = viewType;
+    }
+
+    this.updateHistorySegmentButtons();
+    this.renderHistoryView();
+  }
+
+  updateHistorySegmentButtons() {
+    if (this.dom.tabModeDate) this.dom.tabModeDate.classList.toggle('active', this.historyViewMode === 'date');
+    if (this.dom.tabModeGroup) this.dom.tabModeGroup.classList.toggle('active', this.historyViewMode === 'group');
+    if (this.dom.tabModeTree) this.dom.tabModeTree.classList.toggle('active', this.historyViewMode === 'tree');
+  }
+
+  toggleClearHistoryDialog(show) {
+    if (!this.dom.clearHistoryDialog) return;
+    if (show) {
+      if (!this.dom.clearHistoryDialog.open) this.dom.clearHistoryDialog.showModal();
+    } else {
+      if (this.dom.clearHistoryDialog.open) this.dom.clearHistoryDialog.close();
+    }
+  }
+
+  updateHistoryBatchBar() {
+    if (!this.dom.historyBatchBar || !this.dom.batchSelectedCount) return;
+    const count = this.historySelectedIds.size;
+    this.dom.batchSelectedCount.textContent = count;
+    this.dom.historyBatchBar.style.display = count > 0 ? 'flex' : 'none';
+  }
+
+  handleHistoryCheckbox(id, isChecked) {
+    if (isChecked) {
+      this.historySelectedIds.add(id);
+    } else {
+      this.historySelectedIds.delete(id);
+    }
+    const row = document.getElementById(`hist-row-${id}`);
+    if (row) row.classList.toggle('selected', isChecked);
+    this.updateHistoryBatchBar();
+  }
+
+  selectAllInGroup(items, isSelectAll) {
+    items.forEach(item => {
+      if (isSelectAll) {
+        this.historySelectedIds.add(item.id);
+      } else {
+        this.historySelectedIds.delete(item.id);
+      }
+      const cb = document.getElementById(`hist-cb-${item.id}`);
+      if (cb) cb.checked = isSelectAll;
+      const row = document.getElementById(`hist-row-${item.id}`);
+      if (row) row.classList.toggle('selected', isSelectAll);
+    });
+    this.updateHistoryBatchBar();
+  }
+
+  showHistoryContextMenu(e, item) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.activeContextItem = item;
+
+    if (!this.dom.historyContextMenu) return;
+    const menu = this.dom.historyContextMenu;
+    menu.style.display = 'block';
+
+    const menuWidth = 180;
+    const menuHeight = 160;
+    let x = e.clientX;
+    let y = e.clientY;
+
+    if (x + menuWidth > window.innerWidth) x = window.innerWidth - menuWidth - 10;
+    if (y + menuHeight > window.innerHeight) y = window.innerHeight - menuHeight - 10;
+
+    menu.style.left = `${Math.max(10, x)}px`;
+    menu.style.top = `${Math.max(10, y)}px`;
+  }
+
+  renderHistoryView() {
+    if (!this.dom.historyMainFeed) return;
+    this.dom.historyMainFeed.innerHTML = '';
+
+    const query = this.historySearchQuery;
+
+    if (this.historyViewMode === 'group') {
+      const domainGroups = historyService.getGroupedByDomain(query);
+      if (domainGroups.length === 0) {
+        this.renderHistoryEmptyState();
+        return;
+      }
+      this.renderHistoryDomainCards(domainGroups);
+    } else if (this.historyViewMode === 'tree') {
+      const treeData = historyService.getTreeStructure(query);
+      if (treeData.length === 0) {
+        this.renderHistoryEmptyState();
+        return;
+      }
+      this.renderHistoryTreeView(treeData);
+    } else {
+      const dateGroups = historyService.getGroupedByDate(query, this.historySortBy);
+      if (dateGroups.length === 0) {
+        this.renderHistoryEmptyState();
+        return;
+      }
+      this.renderHistoryDateCards(dateGroups);
+    }
+
+    this.updateHistoryBatchBar();
+  }
+
+  renderHistoryEmptyState() {
+    if (!this.dom.historyMainFeed) return;
+    this.dom.historyMainFeed.innerHTML = `
+      <div class="history-empty-state">
+        <div class="history-empty-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <h3>${this.historySearchQuery ? 'No Matching History Found' : 'No Browsing History'}</h3>
+        <p>${this.historySearchQuery ? 'Try checking your spelling or searching for another keyword.' : 'Sites and pages you visit will be recorded and organized here.'}</p>
+        ${this.historySearchQuery ? `<button class="mac-btn-secondary" id="btn-empty-clear-search">Clear Search Filter</button>` : ''}
+      </div>
+    `;
+
+    const btnClearSearch = document.getElementById('btn-empty-clear-search');
+    if (btnClearSearch) {
+      btnClearSearch.addEventListener('click', () => {
+        if (this.dom.macHistorySearch) this.dom.macHistorySearch.value = '';
+        this.historySearchQuery = '';
+        if (this.dom.btnHistoryClearSearch) this.dom.btnHistoryClearSearch.style.display = 'none';
+        this.renderHistoryView();
+      });
+    }
+  }
+
+  renderHistoryDateCards(groups) {
+    groups.forEach(group => {
+      const card = document.createElement('div');
+      card.className = 'mac-history-group-card';
+
+      const isAllInGroupSelected = group.items.length > 0 && group.items.every(item => this.historySelectedIds.has(item.id));
+
+      const header = document.createElement('div');
+      header.className = 'mac-history-group-header';
+      header.innerHTML = `
+        <div class="group-header-left">
+          <span class="group-header-title">${group.header}</span>
+          <span class="group-header-count">(${group.items.length})</span>
+        </div>
+        <button class="group-select-all-btn">${isAllInGroupSelected ? 'Deselect group' : 'Select group'}</button>
+      `;
+
+      header.querySelector('.group-select-all-btn').addEventListener('click', () => {
+        const currentlySelected = group.items.every(item => this.historySelectedIds.has(item.id));
+        this.selectAllInGroup(group.items, !currentlySelected);
+        header.querySelector('.group-select-all-btn').textContent = !currentlySelected ? 'Deselect group' : 'Select group';
+      });
+
+      card.appendChild(header);
+
+      const itemsList = document.createElement('div');
+      itemsList.className = 'mac-history-items-list';
+
+      group.items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'mac-history-item-row';
+        row.id = `hist-row-${item.id}`;
+        if (this.historySelectedIds.has(item.id)) row.classList.add('selected');
+
+        const isChecked = this.historySelectedIds.has(item.id);
+        const faviconHtml = item.favicon 
+          ? `<img src="${item.favicon}" alt="" onerror="this.outerHTML='<svg width=\\'12\\' height=\\'12\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><circle cx=\\'12\\' cy=\\'12\\' r=\\'10\\'/><line x1=\\'2\\' y1=\\'12\\' x2=\\'22\\' y2=\\'12\\'/><path d=\\'M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z\\'/></svg>'">`
+          : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`;
+
+        row.innerHTML = `
+          <input type="checkbox" class="mac-history-checkbox" id="hist-cb-${item.id}" ${isChecked ? 'checked' : ''}>
+          <span class="mac-history-time-col">${item.time}</span>
+          <div class="mac-history-favicon">${faviconHtml}</div>
+          <div class="mac-history-title-col">
+            <span class="mac-history-title-text" title="${item.url}">${item.title || item.url}</span>
+            <span class="mac-history-domain-pill">${item.domain}</span>
+            ${(item.visitCount && item.visitCount > 1) ? `<span class="mac-history-visits-badge">${item.visitCount} visits</span>` : ''}
+          </div>
+          <div class="mac-history-row-actions">
+            <button class="mac-history-row-btn btn-row-menu" title="More options">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+            </button>
+            <button class="mac-history-row-btn danger btn-row-del" title="Delete from history">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+            </button>
+          </div>
+        `;
+
+        const cb = row.querySelector('.mac-history-checkbox');
+        cb.addEventListener('change', (e) => {
+          this.handleHistoryCheckbox(item.id, e.target.checked);
+        });
+
+        row.querySelector('.mac-history-title-col').addEventListener('click', () => {
+          tabManager.createTab(item.url, item.title || item.url);
+        });
+
+        row.querySelector('.btn-row-menu').addEventListener('click', (e) => {
+          this.showHistoryContextMenu(e, item);
+        });
+
+        row.querySelector('.btn-row-del').addEventListener('click', (e) => {
+          e.stopPropagation();
+          historyService.removeItem(item.id);
+          this.renderHistoryView();
+          this.renderSettingsHistory();
+          this.renderRecents();
+        });
+
+        row.addEventListener('contextmenu', (e) => {
+          this.showHistoryContextMenu(e, item);
+        });
+
+        itemsList.appendChild(row);
+      });
+
+      card.appendChild(itemsList);
+      this.dom.historyMainFeed.appendChild(card);
+    });
+  }
+
+  renderHistoryDomainCards(domainGroups) {
+    domainGroups.forEach(grp => {
+      const card = document.createElement('div');
+      card.className = 'mac-domain-group-card';
+
+      const faviconHtml = grp.favicon
+        ? `<img src="${grp.favicon}" alt="" width="14" height="14" onerror="this.outerHTML='<svg width=\\'12\\' height=\\'12\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><circle cx=\\'12\\' cy=\\'12\\' r=\\'10\\'/></svg>'">`
+        : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`;
+
+      const header = document.createElement('div');
+      header.className = 'mac-domain-group-header';
+      header.innerHTML = `
+        <div class="domain-header-left">
+          <div class="mac-history-favicon">${faviconHtml}</div>
+          <span class="domain-header-title">${grp.domain}</span>
+          <span class="mac-history-visits-badge">${grp.totalVisits} visits</span>
+        </div>
+        <button class="mac-btn-secondary btn-del-domain" style="height: 24px; font-size: 11px; padding: 0 8px;">Delete all from site</button>
+      `;
+
+      header.querySelector('.btn-del-domain').addEventListener('click', (e) => {
+        e.stopPropagation();
+        historyService.removeDomain(grp.domain);
+        this.renderHistoryView();
+        this.renderSettingsHistory();
+        this.renderRecents();
+      });
+
+      card.appendChild(header);
+
+      const itemsList = document.createElement('div');
+      itemsList.className = 'mac-history-items-list';
+
+      grp.items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'mac-history-item-row';
+        row.id = `hist-row-${item.id}`;
+        if (this.historySelectedIds.has(item.id)) row.classList.add('selected');
+
+        const isChecked = this.historySelectedIds.has(item.id);
+
+        row.innerHTML = `
+          <input type="checkbox" class="mac-history-checkbox" id="hist-cb-${item.id}" ${isChecked ? 'checked' : ''}>
+          <span class="mac-history-time-col">${item.time}</span>
+          <div class="mac-history-title-col">
+            <span class="mac-history-title-text" title="${item.url}">${item.title || item.url}</span>
+            <span class="mac-history-domain-pill">${item.url}</span>
+          </div>
+          <div class="mac-history-row-actions">
+            <button class="mac-history-row-btn btn-row-menu" title="More options">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+            </button>
+            <button class="mac-history-row-btn danger btn-row-del" title="Delete from history">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+            </button>
+          </div>
+        `;
+
+        const cb = row.querySelector('.mac-history-checkbox');
+        cb.addEventListener('change', (e) => {
+          this.handleHistoryCheckbox(item.id, e.target.checked);
+        });
+
+        row.querySelector('.mac-history-title-col').addEventListener('click', () => {
+          tabManager.createTab(item.url, item.title || item.url);
+        });
+
+        row.querySelector('.btn-row-menu').addEventListener('click', (e) => {
+          this.showHistoryContextMenu(e, item);
+        });
+
+        row.querySelector('.btn-row-del').addEventListener('click', (e) => {
+          e.stopPropagation();
+          historyService.removeItem(item.id);
+          this.renderHistoryView();
+          this.renderSettingsHistory();
+          this.renderRecents();
+        });
+
+        row.addEventListener('contextmenu', (e) => {
+          this.showHistoryContextMenu(e, item);
+        });
+
+        itemsList.appendChild(row);
+      });
+
+      card.appendChild(itemsList);
+      this.dom.historyMainFeed.appendChild(card);
+    });
+  }
+
+  renderHistoryTreeView(treeData) {
+    const treeContainer = document.createElement('div');
+    treeContainer.className = 'mac-history-tree';
+
+    treeData.forEach(bucket => {
+      const dateNode = document.createElement('div');
+      dateNode.className = 'tree-node-date';
+
+      const dateHeader = document.createElement('div');
+      dateHeader.className = 'tree-date-header';
+      dateHeader.innerHTML = `
+        <svg class="tree-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#007aff" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>${bucket.title}</span>
+        <span style="font-size: 11px; color: #8e8e93; font-weight: normal;">(${bucket.totalItems})</span>
+      `;
+
+      dateHeader.addEventListener('click', () => {
+        dateNode.classList.toggle('tree-collapsed');
+      });
+
+      dateNode.appendChild(dateHeader);
+
+      const domainList = document.createElement('div');
+      domainList.className = 'tree-children';
+
+      bucket.domains.forEach(dom => {
+        const domNode = document.createElement('div');
+        domNode.className = 'tree-node-domain';
+
+        const domHeader = document.createElement('div');
+        domHeader.className = 'tree-domain-header';
+        domHeader.innerHTML = `
+          <svg class="tree-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <span>${dom.domain}</span>
+          <span style="font-size: 10.5px; color: #8e8e93; font-weight: normal;">(${dom.items.length})</span>
+        `;
+
+        domHeader.addEventListener('click', () => {
+          domNode.classList.toggle('tree-collapsed');
+        });
+
+        domNode.appendChild(domHeader);
+
+        const pagesList = document.createElement('div');
+        pagesList.className = 'tree-children';
+
+        dom.items.forEach(item => {
+          const pageItem = document.createElement('div');
+          pageItem.className = 'tree-page-item';
+          pageItem.innerHTML = `
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <span class="tree-page-title" title="${item.url}">${item.title || item.url}</span>
+            <span class="tree-page-time">${item.time}</span>
+          `;
+
+          pageItem.addEventListener('click', () => {
+            tabManager.createTab(item.url, item.title || item.url);
+          });
+
+          pageItem.addEventListener('contextmenu', (e) => {
+            this.showHistoryContextMenu(e, item);
+          });
+
+          pagesList.appendChild(pageItem);
+        });
+
+        domNode.appendChild(pagesList);
+        domainList.appendChild(domNode);
+      });
+
+      dateNode.appendChild(domainList);
+      treeContainer.appendChild(dateNode);
+    });
+
+    this.dom.historyMainFeed.appendChild(treeContainer);
+  }
+
   renderSettingsHistory(filterText = '') {
     if (!this.dom.settingsHistoryList) return;
     const history = historyService.getHistory();
     const query = filterText.toLowerCase().trim();
     const filtered = query
-      ? history.filter(h => (h.title && h.title.toLowerCase().includes(query)) || (h.url && h.url.toLowerCase().includes(query)))
+      ? history.filter(h => (h.title && h.title.toLowerCase().includes(query)) || (h.url && h.url.toLowerCase().includes(query)) || (h.domain && h.domain.toLowerCase().includes(query)))
       : history;
 
     this.dom.settingsHistoryList.innerHTML = '';
@@ -1242,10 +2258,10 @@ class MyNetworkShell {
       return;
     }
 
-    filtered.forEach(item => {
+    filtered.slice(0, 30).forEach(item => {
       const row = document.createElement('div');
       row.className = 'mac-history-row';
-      const timeStr = new Date(item.visitedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const timeStr = item.time || new Date(item.visitedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       
       row.innerHTML = `
         <span class="mac-history-time">${timeStr}</span>
@@ -1268,6 +2284,1157 @@ class MyNetworkShell {
 
       this.dom.settingsHistoryList.appendChild(row);
     });
+  }
+
+  /* ==========================================================================
+     BOOKMARKS & WORKSPACES SYSTEM CONTROLLER (macOS Finder Style)
+     ========================================================================== */
+  openBookmarksTab() {
+    const allTabs = tabManager.getAllTabs();
+    const existing = allTabs.find(t => t.url === BOOKMARKS_URL || t.url === LEGACY_BOOKMARKS_URL);
+    if (existing) {
+      tabManager.activateTab(existing.id);
+    } else {
+      tabManager.createTab(BOOKMARKS_URL, 'Bookmarks');
+    }
+  }
+
+  updateOmniboxStarState(tab) {
+    if (!this.dom.btnBookmark) return;
+    const url = tab ? (tab.url || '') : '';
+    const isInternal = !url || 
+      url === BLANK_URL || 
+      url === DEFAULT_NEWTAB_URL || 
+      url === LEGACY_NEWTAB_URL || 
+      url === SETTINGS_URL || 
+      url === LEGACY_SETTINGS_URL || 
+      url === HISTORY_URL || 
+      url === LEGACY_HISTORY_URL || 
+      url === BOOKMARKS_URL || 
+      url === LEGACY_BOOKMARKS_URL || 
+      url.startsWith('mynetwork://') || 
+      url.startsWith('about:') || 
+      url.startsWith('chrome://');
+
+    if (isInternal) {
+      this.dom.btnBookmark.style.display = 'none';
+      return;
+    }
+    this.dom.btnBookmark.style.display = 'flex';
+    const isBookmarked = bookmarkService.isBookmarked(url);
+    this.dom.btnBookmark.classList.toggle('bookmarked', isBookmarked);
+    this.dom.btnBookmark.title = isBookmarked ? 'Edit Bookmark (Ctrl+D)' : 'Bookmark This Tab (Ctrl+D)';
+  }
+
+  toggleBookmarkPopover() {
+    if (!this.dom.bookmarkStarPopover) return;
+    if (this.dom.bookmarkStarPopover.style.display === 'flex') {
+      this.closeBookmarkPopover();
+      return;
+    }
+
+    const activeTab = tabManager.getActiveTab();
+    const tabUrl = (activeTab && activeTab.url && activeTab.url !== BLANK_URL && !activeTab.url.startsWith('mynetwork://') && !activeTab.url.startsWith('about:') && !activeTab.url.startsWith('chrome://')) 
+      ? activeTab.url 
+      : (this.dom.urlInput ? this.dom.urlInput.value.trim() : '');
+
+    if (!tabUrl || tabUrl.startsWith('mynetwork://') || tabUrl.startsWith('about:') || tabUrl.startsWith('chrome://')) {
+      return;
+    }
+
+    const tabTitle = (activeTab && activeTab.title && activeTab.title !== 'about:blank' && activeTab.title !== 'New Tab') 
+      ? activeTab.title 
+      : tabUrl;
+
+    const existing = bookmarkService.getBookmarkByUrl(tabUrl);
+    if (this.dom.bmPopoverHeading) {
+      this.dom.bmPopoverHeading.textContent = existing ? 'Edit Bookmark' : 'Bookmark Added';
+    }
+
+    if (this.dom.bmPopoverName) {
+      this.dom.bmPopoverName.value = existing ? existing.title : tabTitle;
+    }
+    if (this.dom.bmPopoverUrl) {
+      this.dom.bmPopoverUrl.value = existing ? existing.url : tabUrl;
+    }
+
+    const defaultFolder = settingsService.get('defaultBookmarkFolder', 'root_bar');
+    const targetFolderId = existing ? existing.parentId : defaultFolder;
+    this.populatePopoverFolders(targetFolderId);
+
+    this.popoverActiveTags = (existing && Array.isArray(existing.tags)) ? [...existing.tags] : [];
+    this.renderPopoverTags();
+
+    if (this.dom.bmPopoverFavCheck) {
+      this.dom.bmPopoverFavCheck.checked = existing ? (existing.parentId === 'root_bar') : true;
+    }
+
+    if (this.dom.btnBmPopoverRemove) {
+      this.dom.btnBmPopoverRemove.style.display = existing ? 'block' : 'none';
+    }
+
+    this.dom.bookmarkStarPopover.style.display = 'flex';
+    if (this.dom.bmPopoverName) {
+      this.dom.bmPopoverName.focus();
+      this.dom.bmPopoverName.select();
+    }
+  }
+
+  closeBookmarkPopover() {
+    if (this.dom.bookmarkStarPopover) {
+      this.dom.bookmarkStarPopover.style.display = 'none';
+    }
+  }
+
+  populatePopoverFolders(selectedId = 'root_bar') {
+    if (!this.dom.bmPopoverFolderSelect) return;
+    const folders = bookmarkService.getAllFolders();
+    this.dom.bmPopoverFolderSelect.innerHTML = '';
+    folders.forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f.id;
+      opt.textContent = (f.parentId && f.parentId.startsWith('folder_')) ? `  📁 ${f.title}` : `📁 ${f.title}`;
+      if (f.id === selectedId) opt.selected = true;
+      this.dom.bmPopoverFolderSelect.appendChild(opt);
+    });
+  }
+
+  renderPopoverTags() {
+    if (!this.dom.bmPopoverTagsBox || !this.dom.bmPopoverTagsInput) return;
+    this.dom.bmPopoverTagsBox.querySelectorAll('.bm-tag-chip').forEach(el => el.remove());
+    this.popoverActiveTags.forEach(tag => {
+      const chip = document.createElement('span');
+      chip.className = 'bm-tag-chip';
+      chip.innerHTML = `<span>#${this.escapeHtml(tag)}</span><span class="bm-tag-chip-remove" data-tag="${this.escapeHtml(tag)}">×</span>`;
+      chip.querySelector('.bm-tag-chip-remove').addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.popoverActiveTags = this.popoverActiveTags.filter(t => t !== tag);
+        this.renderPopoverTags();
+      });
+      this.dom.bmPopoverTagsBox.insertBefore(chip, this.dom.bmPopoverTagsInput);
+    });
+  }
+
+  saveBookmarkFromPopover() {
+    const activeTab = tabManager.getActiveTab();
+    const url = this.dom.bmPopoverUrl ? this.dom.bmPopoverUrl.value.trim() : (activeTab ? activeTab.url : '');
+    const title = this.dom.bmPopoverName ? this.dom.bmPopoverName.value.trim() : (activeTab ? activeTab.title : 'Untitled');
+    const selectedFolder = this.dom.bmPopoverFolderSelect ? this.dom.bmPopoverFolderSelect.value : 'root_bar';
+    const isFav = this.dom.bmPopoverFavCheck ? this.dom.bmPopoverFavCheck.checked : true;
+    
+    // Target folder is the selected folder, or root_bar if checked for favorites bar
+    const finalParentId = (selectedFolder && selectedFolder !== 'root_bar') ? selectedFolder : (isFav ? 'root_bar' : 'root_other');
+
+    if (!url) {
+      this.showToast('Please enter a valid URL');
+      return;
+    }
+
+    const existing = bookmarkService.getBookmarkByUrl(url);
+    if (existing) {
+      bookmarkService.updateBookmark(existing.id, {
+        title: title || existing.title,
+        url,
+        parentId: finalParentId,
+        tags: this.popoverActiveTags,
+        favicon: (activeTab && activeTab.favicon) ? activeTab.favicon : existing.favicon
+      });
+      this.showToast(`Updated bookmark "${title}"`);
+    } else {
+      bookmarkService.createBookmark({
+        title: title || 'Bookmark',
+        url,
+        parentId: finalParentId,
+        tags: this.popoverActiveTags,
+        favicon: (activeTab && activeTab.favicon) ? activeTab.favicon : null,
+        workspaceId: workspaceService.getActiveWorkspaceId()
+      });
+      this.showToast(`Saved "${title}" to Bookmarks ⭐`);
+    }
+
+    // Immediately trigger UI updates
+    if (activeTab) this.updateOmniboxStarState(activeTab);
+    this.renderBookmarksBar();
+    this.renderNewTabShortcuts();
+    this.renderBookmarksManager();
+
+    this.closeBookmarkPopover();
+  }
+
+  removeBookmarkFromPopover() {
+    const url = this.dom.bmPopoverUrl ? this.dom.bmPopoverUrl.value.trim() : '';
+    if (url) {
+      const existing = bookmarkService.getBookmarkByUrl(url);
+      if (existing) {
+        bookmarkService.deleteBookmark(existing.id);
+        this.showToast(`Removed bookmark "${existing.title}"`);
+      }
+    }
+    const activeTab = tabManager.getActiveTab();
+    if (activeTab) this.updateOmniboxStarState(activeTab);
+    this.renderBookmarksBar();
+    this.renderNewTabShortcuts();
+    this.renderBookmarksManager();
+    this.closeBookmarkPopover();
+  }
+
+  renderBookmarksBar() {
+    if (!this.dom.bookmarksBar || !this.dom.bookmarksBarItems) return;
+    const mode = settingsService.get('bookmarksBarMode', 'always');
+    const activeTab = tabManager.getActiveTab();
+    const isNewTab = activeTab && (activeTab.url === DEFAULT_NEWTAB_URL || activeTab.url === LEGACY_NEWTAB_URL || activeTab.url === BLANK_URL);
+
+    const shouldShow = (mode === 'always') || (mode === 'newtab' && isNewTab);
+    this.dom.bookmarksBar.style.display = shouldShow ? 'flex' : 'none';
+    if (!shouldShow) return;
+
+    const activeWorkspaceId = workspaceService.getActiveWorkspaceId();
+    const items = bookmarkService.getFavoritesBarItems(activeWorkspaceId);
+    this.dom.bookmarksBarItems.innerHTML = '';
+
+    items.forEach(item => {
+      if (!item) return;
+      const isFolder = item.type === 'folder' || !!item.isFolder;
+      const pill = document.createElement('a');
+      pill.className = `bm-bar-item ${isFolder ? 'folder' : ''}`;
+      pill.setAttribute('data-id', item.id);
+      
+      if (isFolder) {
+        pill.innerHTML = `
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${item.color || '#f59e0b'}" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <span>${this.escapeHtml(item.title)}</span>
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+        `;
+        pill.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const rect = pill.getBoundingClientRect();
+          this.renderBookmarkFolderDropdown(item.id, rect.left, rect.bottom + 4);
+        });
+      } else {
+        const faviconHtml = item.favicon 
+          ? `<img src="${item.favicon}" alt="" onerror="this.outerHTML='<svg width=\\'12\\' height=\\'12\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><circle cx=\\'12\\' cy=\\'12\\' r=\\'10\\'/></svg>'">`
+          : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>`;
+        
+        pill.innerHTML = `
+          ${faviconHtml}
+          <span>${this.escapeHtml(item.title)}</span>
+        `;
+        pill.title = `${item.title} (${item.url || ''})`;
+        pill.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (item.url) this.openBookmarkUrl(item.url, e.ctrlKey || e.metaKey);
+        });
+      }
+      pill.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.showBookmarkContextMenu(e, item);
+      });
+      this.dom.bookmarksBarItems.appendChild(pill);
+    });
+  }
+
+  toggleBookmarksBar() {
+    const current = settingsService.get('bookmarksBarMode', 'never');
+    const next = current === 'always' ? 'never' : 'always';
+    settingsService.set('bookmarksBarMode', next);
+    this.renderBookmarksBar();
+    this.showToast(`Favorites Bar: ${next === 'always' ? 'Always Shown' : 'Hidden'}`);
+  }
+
+  openBookmarkUrl(url, forceNewTab = false) {
+    if (!url || typeof url !== 'string' || url === 'undefined' || !url.trim()) {
+      return;
+    }
+    const targetMode = settingsService.get('bookmarkOpenTarget', 'current');
+    if (forceNewTab || targetMode === 'new') {
+      tabManager.createTab(url);
+    } else if (targetMode === 'background') {
+      const active = tabManager.getActiveTab();
+      const tab = tabManager.createTab(url);
+      if (active) tabManager.activateTab(active.id);
+    } else {
+      const active = tabManager.getActiveTab();
+      if (active && (active.url === DEFAULT_NEWTAB_URL || active.url === LEGACY_NEWTAB_URL || active.url === BLANK_URL)) {
+        this.navigateCurrentTab(url);
+      } else {
+        tabManager.createTab(url);
+      }
+    }
+  }
+
+  renderBookmarkFolderDropdown(folderId, x, y) {
+    if (!this.dom.bookmarksBarDropdown || !this.dom.bmBarDropdownContent) return;
+    const children = bookmarkService.getFolderChildren(folderId);
+    this.dom.bmBarDropdownContent.innerHTML = '';
+
+    if (children.length === 0) {
+      this.dom.bmBarDropdownContent.innerHTML = `<div class="bm-dropdown-item" style="color: #94a3b8; cursor: default;">(Empty folder)</div>`;
+    } else {
+      children.forEach(child => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'bm-dropdown-item';
+        const faviconHtml = child.favicon 
+          ? `<img src="${child.favicon}" width="13" height="13" alt="">`
+          : (child.isFolder ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>` : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>`);
+        itemEl.innerHTML = `
+          ${faviconHtml}
+          <span>${this.escapeHtml(child.title)}</span>
+        `;
+        itemEl.addEventListener('click', () => {
+          if (child.isFolder) {
+            this.openBookmarksTab();
+          } else {
+            this.openBookmarkUrl(child.url);
+          }
+          this.dom.bookmarksBarDropdown.style.display = 'none';
+        });
+        this.dom.bmBarDropdownContent.appendChild(itemEl);
+      });
+    }
+
+    this.dom.bookmarksBarDropdown.style.left = `${Math.min(x, window.innerWidth - 220)}px`;
+    this.dom.bookmarksBarDropdown.style.top = `${y}px`;
+    this.dom.bookmarksBarDropdown.style.display = 'block';
+  }
+
+  renderNewTabShortcuts() {
+    if (!this.dom.newtabShortcutsContainer) return;
+    const layout = settingsService.get('newtabBookmarksLayout', 'spotlight');
+    if (layout === 'minimal') {
+      this.dom.newtabShortcutsContainer.style.display = 'none';
+      return;
+    }
+    this.dom.newtabShortcutsContainer.style.display = 'flex';
+
+    if (layout === 'spotlight') {
+      if (this.dom.newtabShortcutsRow) this.dom.newtabShortcutsRow.style.display = 'flex';
+      if (this.dom.newtabWorkspaceBoards) this.dom.newtabWorkspaceBoards.style.display = 'none';
+      if (this.dom.newtabWorkspaceTabs && this.dom.newtabWorkspaceTabs.parentElement) {
+        this.dom.newtabWorkspaceTabs.parentElement.style.display = 'none';
+      }
+
+      const items = bookmarkService.getFavoritesBarItems()
+        .filter(i => i && (i.type === 'bookmark' || (!i.isFolder && i.type !== 'folder')) && i.url && i.url !== 'undefined')
+        .slice(0, 10);
+      this.dom.newtabShortcutsRow.innerHTML = '';
+
+      items.forEach(item => {
+        const chip = document.createElement('div');
+        chip.className = 'shortcut-chip';
+        const faviconHtml = item.favicon 
+          ? `<img src="${item.favicon}" alt="" onerror="this.outerHTML='<svg width=\\'20\\' height=\\'20\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'#64748b\\' stroke-width=\\'2\\'><circle cx=\\'12\\' cy=\\'12\\' r=\\'10\\'/></svg>'">`
+          : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>`;
+        
+        chip.innerHTML = `
+          <div class="shortcut-icon-bubble">
+            ${faviconHtml}
+          </div>
+          <span class="shortcut-title-text">${this.escapeHtml(item.title)}</span>
+        `;
+        chip.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (item.url && item.url !== 'undefined') {
+            this.openBookmarkUrl(item.url, e.ctrlKey || e.metaKey);
+          }
+        });
+        chip.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.showBookmarkContextMenu(e, item);
+        });
+        this.dom.newtabShortcutsRow.appendChild(chip);
+      });
+
+      // + Add Shortcut button
+      const addChip = document.createElement('div');
+      addChip.className = 'shortcut-chip add-shortcut';
+      addChip.innerHTML = `
+        <div class="shortcut-icon-bubble">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </div>
+        <span class="shortcut-title-text">Add shortcut</span>
+      `;
+      addChip.addEventListener('click', () => this.openAddShortcutModal());
+      this.dom.newtabShortcutsRow.appendChild(addChip);
+
+    } else if (layout === 'boards') {
+      if (this.dom.newtabShortcutsRow) this.dom.newtabShortcutsRow.style.display = 'none';
+      if (this.dom.newtabWorkspaceBoards) this.dom.newtabWorkspaceBoards.style.display = 'grid';
+      if (this.dom.newtabWorkspaceTabs && this.dom.newtabWorkspaceTabs.parentElement) {
+        this.dom.newtabWorkspaceTabs.parentElement.style.display = 'flex';
+      }
+
+      // Render workspace switch tabs
+      const workspaces = workspaceService.getWorkspaces();
+      const activeWsId = workspaceService.getActiveWorkspaceId();
+      this.dom.newtabWorkspaceTabs.innerHTML = '';
+      workspaces.forEach(ws => {
+        const tabEl = document.createElement('div');
+        tabEl.className = `ws-tab-pill ${ws.id === activeWsId ? 'active' : ''}`;
+        tabEl.textContent = ws.name;
+        tabEl.addEventListener('click', () => {
+          workspaceService.setActiveWorkspace(ws.id);
+        });
+        this.dom.newtabWorkspaceTabs.appendChild(tabEl);
+      });
+
+      // Render boards
+      const folders = bookmarkService.getAllFolders();
+      this.dom.newtabWorkspaceBoards.innerHTML = '';
+      folders.forEach(f => {
+        const children = bookmarkService.getFolderChildren(f.id).filter(c => !c.isFolder);
+        const card = document.createElement('div');
+        card.className = 'ws-board-card';
+        card.innerHTML = `
+          <div class="ws-board-title">📁 ${this.escapeHtml(f.title)} (${children.length})</div>
+          <div class="ws-board-favicons-row">
+            ${children.slice(0, 6).map(c => c.favicon ? `<img src="${c.favicon}" alt="" title="${this.escapeHtml(c.title)}">` : `<span style="font-size: 11px;">🔗</span>`).join('')}
+            ${children.length === 0 ? '<span style="font-size: 11px; color: #94a3b8;">Empty folder</span>' : ''}
+          </div>
+        `;
+        card.addEventListener('click', () => {
+          this.currentBmFilter.folderId = f.id;
+          this.openBookmarksTab();
+        });
+        this.dom.newtabWorkspaceBoards.appendChild(card);
+      });
+    }
+  }
+
+  openAddShortcutModal(existing = null) {
+    if (!this.dom.modalAddShortcut) return;
+    const activeTab = tabManager.getActiveTab();
+    const isSpecial = !activeTab || !activeTab.url || activeTab.url.startsWith('mynetwork://') || activeTab.url.startsWith('about:') || activeTab.url.startsWith('chrome://');
+
+    const defaultTitle = existing ? existing.title : (!isSpecial ? (activeTab.title || '') : '');
+    const defaultUrl = existing ? existing.url : (!isSpecial ? activeTab.url : '');
+
+    if (this.dom.shortcutEditId) this.dom.shortcutEditId.value = existing ? existing.id : '';
+    if (this.dom.shortcutInputTitle) this.dom.shortcutInputTitle.value = defaultTitle;
+    if (this.dom.shortcutInputUrl) this.dom.shortcutInputUrl.value = defaultUrl;
+    if (this.dom.btnDeleteShortcut) this.dom.btnDeleteShortcut.style.display = existing ? 'block' : 'none';
+    const titleEl = document.getElementById('shortcut-modal-title');
+    if (titleEl) titleEl.textContent = existing ? 'Edit Shortcut' : 'Add Shortcut';
+    this.dom.modalAddShortcut.showModal();
+    if (this.dom.shortcutInputTitle) this.dom.shortcutInputTitle.focus();
+  }
+
+  openAddBookmarkFolderModal(existing = null) {
+    if (!this.dom.modalAddBmFolder) return;
+    if (this.dom.bmFolderEditId) this.dom.bmFolderEditId.value = existing ? existing.id : '';
+    if (this.dom.bmFolderInputTitle) this.dom.bmFolderInputTitle.value = existing ? existing.title : '';
+    
+    // Populate parent dropdown
+    if (this.dom.bmFolderInputParent) {
+      const folders = bookmarkService.getAllFolders();
+      this.dom.bmFolderInputParent.innerHTML = '';
+      folders.forEach(f => {
+        if (!existing || f.id !== existing.id) {
+          const opt = document.createElement('option');
+          opt.value = f.id;
+          opt.textContent = `📁 ${f.title}`;
+          if (existing && f.id === existing.parentId) opt.selected = true;
+          this.dom.bmFolderInputParent.appendChild(opt);
+        }
+      });
+    }
+
+    const titleEl = document.getElementById('bm-folder-modal-title');
+    if (titleEl) titleEl.textContent = existing ? 'Edit Folder' : 'New Folder';
+    this.dom.modalAddBmFolder.showModal();
+    if (this.dom.bmFolderInputTitle) this.dom.bmFolderInputTitle.focus();
+  }
+
+  renderBookmarksManager() {
+    this.renderBookmarksSidebar();
+    this.renderBookmarksList();
+  }
+
+  renderBookmarksSidebar() {
+    // 1. Workspaces
+    if (this.dom.bmMgrWorkspacesList) {
+      const workspaces = workspaceService.getWorkspaces();
+      const activeWsId = workspaceService.getActiveWorkspaceId();
+      const wsIconMap = { globe: '🌐', code: '💻', user: '👤' };
+
+      this.dom.bmMgrWorkspacesList.innerHTML = '';
+      workspaces.forEach(ws => {
+        const item = document.createElement('div');
+        item.className = `bm-ws-item ${ws.id === activeWsId && !this.currentBmFilter.rootId ? 'active' : ''}`;
+        const iconDisplay = wsIconMap[ws.icon] || ws.icon || '💼';
+        item.innerHTML = `
+          <span style="font-size: 13px;">${iconDisplay}</span>
+          <span>${this.escapeHtml(ws.name)}</span>
+        `;
+        item.addEventListener('click', () => {
+          workspaceService.setActiveWorkspace(ws.id);
+          this.currentBmFilter = { rootId: null, workspaceId: ws.id, folderId: null, tag: null, isRead: null, query: '' };
+          this.renderBookmarksManager();
+        });
+        this.dom.bmMgrWorkspacesList.appendChild(item);
+      });
+    }
+
+    // 2. Collection count badges
+    const allCount = bookmarkService.getAllBookmarks().length;
+    const barCount = bookmarkService.getFavoritesBarItems().length;
+    const readingCount = bookmarkService.getReadingList().length;
+    const trashCount = bookmarkService.getTrashItems().length;
+
+    const badgeAll = document.getElementById('badge-count-all');
+    if (badgeAll) badgeAll.textContent = allCount;
+    const badgeBar = document.getElementById('badge-count-bar');
+    if (badgeBar) badgeBar.textContent = barCount;
+    const badgeReading = document.getElementById('badge-count-reading');
+    if (badgeReading) badgeReading.textContent = readingCount;
+    const badgeTrash = document.getElementById('badge-count-trash');
+    if (badgeTrash) badgeTrash.textContent = trashCount;
+
+    // Collection click listeners
+    document.querySelectorAll('.bookmarks-sidebar .bm-nav-item').forEach(nav => {
+      nav.onclick = () => {
+        document.querySelectorAll('.bookmarks-sidebar .bm-nav-item').forEach(n => n.classList.remove('active'));
+        nav.classList.add('active');
+        const target = nav.getAttribute('data-nav');
+        if (target === 'all') {
+          this.currentBmFilter = { rootId: null, workspaceId: null, folderId: null, tag: null, isRead: null, query: '' };
+        } else if (target === 'bar') {
+          this.currentBmFilter = { rootId: 'root_bar', workspaceId: null, folderId: null, tag: null, isRead: null, query: '' };
+        } else if (target === 'reading') {
+          this.currentBmFilter = { rootId: 'root_reading', workspaceId: null, folderId: null, tag: null, isRead: false, query: '' };
+        } else if (target === 'trash') {
+          this.currentBmFilter = { rootId: 'root_trash', workspaceId: null, folderId: null, tag: null, isRead: null, query: '' };
+        }
+        this.renderBookmarksList();
+      };
+    });
+
+    // 3. Folder Tree
+    if (this.dom.bmMgrFolderTree) {
+      const folders = bookmarkService.getAllFolders();
+      this.dom.bmMgrFolderTree.innerHTML = '';
+      folders.forEach(f => {
+        const item = document.createElement('div');
+        item.className = `bm-tree-item ${this.currentBmFilter.folderId === f.id ? 'active' : ''}`;
+        item.innerHTML = `
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${f.color || '#f59e0b'}" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <span>${this.escapeHtml(f.title)}</span>
+        `;
+        item.addEventListener('click', () => {
+          document.querySelectorAll('.bookmarks-sidebar .bm-nav-item, .bm-tree-item').forEach(n => n.classList.remove('active'));
+          item.classList.add('active');
+          this.currentBmFilter = { rootId: null, workspaceId: null, folderId: f.id, tag: null, isRead: null, query: '' };
+          this.renderBookmarksList();
+        });
+        this.dom.bmMgrFolderTree.appendChild(item);
+      });
+    }
+
+    // 4. Tags cloud
+    if (this.dom.bmMgrTagsCloud) {
+      const tags = bookmarkService.getAllTags();
+      this.dom.bmMgrTagsCloud.innerHTML = '';
+      tags.forEach(tObj => {
+        const tagName = typeof tObj === 'object' ? tObj.name : tObj;
+        if (!tagName) return;
+        const tagEl = document.createElement('span');
+        tagEl.className = `bm-tag-pill ${this.currentBmFilter.tag === tagName ? 'active' : ''}`;
+        tagEl.textContent = `#${this.escapeHtml(tagName)}`;
+        tagEl.addEventListener('click', () => {
+          if (this.currentBmFilter.tag === tagName) {
+            this.currentBmFilter.tag = null;
+          } else {
+            this.currentBmFilter.tag = tagName;
+          }
+          this.renderBookmarksList();
+        });
+        this.dom.bmMgrTagsCloud.appendChild(tagEl);
+      });
+    }
+  }
+
+  renderBookmarksList() {
+    if (!this.dom.bmMgrItemsContainer) return;
+    let items = [];
+
+    if (this.currentBmFilter.query) {
+      items = bookmarkService.search(this.currentBmFilter.query);
+    } else if (this.currentBmFilter.tag) {
+      items = bookmarkService.searchByTag(this.currentBmFilter.tag);
+    } else if (this.currentBmFilter.folderId) {
+      items = bookmarkService.getFolderChildren(this.currentBmFilter.folderId);
+    } else if (this.currentBmFilter.rootId === 'root_bar') {
+      items = bookmarkService.getFavoritesBarItems();
+    } else if (this.currentBmFilter.rootId === 'root_reading') {
+      items = bookmarkService.getReadingList();
+    } else if (this.currentBmFilter.rootId === 'root_trash') {
+      items = bookmarkService.getTrashItems();
+    } else {
+      items = bookmarkService.getAllBookmarks();
+    }
+
+    // Update Empty Trash visibility
+    if (this.dom.btnBmEmptyTrash) {
+      this.dom.btnBmEmptyTrash.style.display = (this.currentBmFilter.rootId === 'root_trash') ? 'block' : 'none';
+    }
+
+    // Update Status Bar text
+    if (this.dom.bmStatusText) {
+      const folderCount = items.filter(i => i.isFolder).length;
+      const bmCount = items.filter(i => !i.isFolder).length;
+      this.dom.bmStatusText.textContent = `${bmCount} Bookmark${bmCount === 1 ? '' : 's'}${folderCount > 0 ? ` • ${folderCount} Folder${folderCount === 1 ? '' : 's'}` : ''} • Synced locally`;
+    }
+
+    // Update Breadcrumbs
+    if (this.dom.bmMgrBreadcrumbs) {
+      let label = 'All Bookmarks';
+      if (this.currentBmFilter.query) label = `Search: "${this.currentBmFilter.query}"`;
+      else if (this.currentBmFilter.tag) label = `Tag: #${this.currentBmFilter.tag}`;
+      else if (this.currentBmFilter.folderId) {
+        const folder = bookmarkService.getBookmark(this.currentBmFilter.folderId);
+        label = folder ? `Folder: ${folder.title}` : 'Folder';
+      } else if (this.currentBmFilter.rootId === 'root_bar') label = 'Favorites Bar';
+      else if (this.currentBmFilter.rootId === 'root_reading') label = 'Reading List';
+      else if (this.currentBmFilter.rootId === 'root_trash') label = 'Trash';
+
+      this.dom.bmMgrBreadcrumbs.innerHTML = `<span class="breadcrumb-item active">${this.escapeHtml(label)}</span>`;
+    }
+
+    // Render items Container
+    this.dom.bmMgrItemsContainer.className = `bm-items-container ${this.currentBmViewMode === 'list' ? 'list-view' : 'grid-view'}`;
+    this.dom.bmMgrItemsContainer.innerHTML = '';
+
+    if (items.length === 0) {
+      this.dom.bmMgrItemsContainer.innerHTML = `
+        <div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 20px; color: #94a3b8; gap: 8px;">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <span style="font-size: 13px; font-weight: 500;">No bookmarks found</span>
+        </div>
+      `;
+      return;
+    }
+
+    items.forEach(item => {
+      if (!item) return;
+      const isFolder = item.type === 'folder' || !!item.isFolder;
+
+      if (this.currentBmViewMode === 'grid') {
+        const card = document.createElement('div');
+        card.className = 'bm-card';
+        const faviconHtml = item.favicon 
+          ? `<img src="${item.favicon}" alt="" class="bm-card-favicon" onerror="this.outerHTML='<svg width=\\'20\\' height=\\'20\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'#64748b\\' stroke-width=\\'2\\'><circle cx=\\'12\\' cy=\\'12\\' r=\\'10\\'/></svg>'">`
+          : (isFolder ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${item.color || '#f59e0b'}" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>` : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>`);
+
+        const tagsHtml = (item.tags && item.tags.length > 0)
+          ? `<div class="bm-card-tags">${item.tags.map(t => `<span class="bm-card-tag">#${this.escapeHtml(t)}</span>`).join('')}</div>`
+          : '';
+
+        card.innerHTML = `
+          <div class="bm-card-header">
+            ${faviconHtml}
+            <span class="bm-card-title">${this.escapeHtml(item.title)}</span>
+          </div>
+          ${isFolder ? '' : `<div class="bm-card-url">${this.escapeHtml(item.url || '')}</div>`}
+          ${tagsHtml}
+        `;
+
+        card.addEventListener('click', () => {
+          if (isFolder) {
+            this.currentBmFilter.folderId = item.id;
+            this.renderBookmarksList();
+          } else if (item.url && item.url !== 'undefined') {
+            this.openBookmarkUrl(item.url);
+          }
+        });
+        card.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          this.showBookmarkContextMenu(e, item);
+        });
+        this.dom.bmMgrItemsContainer.appendChild(card);
+
+      } else {
+        // List View Row
+        const row = document.createElement('div');
+        row.className = 'bm-list-row';
+        const faviconHtml = item.favicon 
+          ? `<img src="${item.favicon}" alt="" class="bm-list-favicon">`
+          : (isFolder ? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${item.color || '#f59e0b'}" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>` : `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>`);
+
+        row.innerHTML = `
+          ${faviconHtml}
+          <span class="bm-list-title">${this.escapeHtml(item.title)}</span>
+          <span class="bm-list-url">${this.escapeHtml(item.url || (isFolder ? 'Folder' : ''))}</span>
+        `;
+        row.addEventListener('click', () => {
+          if (isFolder) {
+            this.currentBmFilter.folderId = item.id;
+            this.renderBookmarksList();
+          } else if (item.url && item.url !== 'undefined') {
+            this.openBookmarkUrl(item.url);
+          }
+        });
+        row.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          this.showBookmarkContextMenu(e, item);
+        });
+        this.dom.bmMgrItemsContainer.appendChild(row);
+      }
+    });
+  }
+
+  showBookmarkContextMenu(e, item) {
+    if (!this.dom.bookmarkContextMenu || !item) return;
+    this.activeBmContextItem = item;
+    const isFolder = item.type === 'folder' || !!item.isFolder;
+
+    const ctxOpenSplit = document.getElementById('ctx-bm-open-split');
+    const ctxCopyLink = document.getElementById('ctx-bm-copy-link');
+    if (ctxOpenSplit) ctxOpenSplit.style.display = isFolder ? 'none' : 'flex';
+    if (ctxCopyLink) ctxCopyLink.style.display = isFolder ? 'none' : 'flex';
+
+    this.dom.bookmarkContextMenu.style.left = `${Math.min(e.clientX, window.innerWidth - 200)}px`;
+    this.dom.bookmarkContextMenu.style.top = `${Math.min(e.clientY, window.innerHeight - 180)}px`;
+    this.dom.bookmarkContextMenu.style.display = 'block';
+  }
+
+  importBookmarksHtml() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.html,.htm';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const html = event.target.result;
+        const imported = bookmarkService.importNetscapeHtml(html, 'root_bar');
+        this.showToast(`Imported ${imported.length} bookmarks successfully!`);
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
+
+  exportBookmarksHtml() {
+    const html = bookmarkService.exportNetscapeHtml();
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mynetwork-bookmarks-${new Date().toISOString().slice(0,10)}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+    this.showToast('Bookmarks backup exported');
+  }
+
+  initBookmarkSettings() {
+    if (this.dom.settingBookmarksBarMode) {
+      this.dom.settingBookmarksBarMode.addEventListener('change', (e) => {
+        settingsService.set('bookmarksBarMode', e.target.value);
+        this.renderBookmarksBar();
+      });
+    }
+
+    if (this.dom.settingNewtabBookmarksLayout) {
+      this.dom.settingNewtabBookmarksLayout.addEventListener('change', (e) => {
+        settingsService.set('newtabBookmarksLayout', e.target.value);
+        this.renderNewTabShortcuts();
+      });
+    }
+
+    if (this.dom.settingDefaultBookmarkFolder) {
+      this.dom.settingDefaultBookmarkFolder.addEventListener('change', (e) => {
+        settingsService.set('defaultBookmarkFolder', e.target.value);
+      });
+    }
+
+    if (this.dom.settingBookmarkOpenTarget) {
+      this.dom.settingBookmarkOpenTarget.addEventListener('change', (e) => {
+        settingsService.set('bookmarkOpenTarget', e.target.value);
+      });
+    }
+
+    // Widget Toggles
+    const bindWidgetToggle = (el, settingKey, widgetId) => {
+      if (!el) return;
+      el.addEventListener('change', (e) => {
+        settingsService.set(settingKey, e.target.checked);
+        const w = document.getElementById(widgetId);
+        if (w) w.style.display = e.target.checked ? 'flex' : 'none';
+      });
+    };
+
+    bindWidgetToggle(this.dom.settingToggleWidgetScratchpad, 'widgetScratchpadVisible', 'widget-scratchpad');
+    bindWidgetToggle(this.dom.settingToggleWidgetTasks, 'widgetTasksVisible', 'widget-tasks');
+    bindWidgetToggle(this.dom.settingToggleWidgetTimer, 'widgetTimerVisible', 'widget-timer');
+    bindWidgetToggle(this.dom.settingToggleWidgetRecent, 'widgetRecentVisible', 'widget-recent');
+
+    if (this.dom.btnSettingsImportBm) {
+      this.dom.btnSettingsImportBm.addEventListener('click', () => this.importBookmarksHtml());
+    }
+    if (this.dom.btnSettingsExportBm) {
+      this.dom.btnSettingsExportBm.addEventListener('click', () => this.exportBookmarksHtml());
+    }
+  }
+
+  populateBookmarkSettings() {
+    const s = settingsService.getAll();
+    if (this.dom.settingBookmarksBarMode) this.dom.settingBookmarksBarMode.value = s.bookmarksBarMode || 'never';
+    if (this.dom.settingNewtabBookmarksLayout) this.dom.settingNewtabBookmarksLayout.value = s.newtabBookmarksLayout || 'spotlight';
+    if (this.dom.settingDefaultBookmarkFolder) this.dom.settingDefaultBookmarkFolder.value = s.defaultBookmarkFolder || 'root_bar';
+    if (this.dom.settingBookmarkOpenTarget) this.dom.settingBookmarkOpenTarget.value = s.bookmarkOpenTarget || 'current';
+    if (this.dom.settingToggleWidgetScratchpad) this.dom.settingToggleWidgetScratchpad.checked = s.widgetScratchpadVisible !== false;
+    if (this.dom.settingToggleWidgetTasks) this.dom.settingToggleWidgetTasks.checked = s.widgetTasksVisible !== false;
+    if (this.dom.settingToggleWidgetTimer) this.dom.settingToggleWidgetTimer.checked = s.widgetTimerVisible !== false;
+    if (this.dom.settingToggleWidgetRecent) this.dom.settingToggleWidgetRecent.checked = s.widgetRecentVisible !== false;
+  }
+
+  initBookmarksController() {
+    // 1. Omnibox Star Button -> Toggle Popover
+    if (this.dom.btnBookmark) {
+      this.dom.btnBookmark.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleBookmarkPopover();
+      });
+    }
+
+    // 2. Star Popover Close & Cancel
+    if (this.dom.btnBmPopoverClose) {
+      this.dom.btnBmPopoverClose.addEventListener('click', () => this.closeBookmarkPopover());
+    }
+    if (this.dom.btnBmPopoverCancel) {
+      this.dom.btnBmPopoverCancel.addEventListener('click', () => this.closeBookmarkPopover());
+    }
+
+    // 3. Star Popover Save & Remove
+    if (this.dom.btnBmPopoverSave) {
+      this.dom.btnBmPopoverSave.addEventListener('click', () => this.saveBookmarkFromPopover());
+    }
+    if (this.dom.btnBmPopoverRemove) {
+      this.dom.btnBmPopoverRemove.addEventListener('click', () => this.removeBookmarkFromPopover());
+    }
+
+    // 4. Star Popover Tag Input (Enter adds chip)
+    if (this.dom.bmPopoverTagsInput) {
+      this.dom.bmPopoverTagsInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ',') {
+          e.preventDefault();
+          const val = this.dom.bmPopoverTagsInput.value.trim().replace(/^#/, '');
+          if (val && !this.popoverActiveTags.includes(val)) {
+            this.popoverActiveTags.push(val);
+            this.renderPopoverTags();
+          }
+          this.dom.bmPopoverTagsInput.value = '';
+        }
+      });
+    }
+
+    // 5. Star Popover New Folder inline button
+    if (this.dom.btnBmPopoverNewFolder) {
+      this.dom.btnBmPopoverNewFolder.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.dom.bmPopoverNewFolderRow) {
+          const isVisible = this.dom.bmPopoverNewFolderRow.style.display === 'flex';
+          this.dom.bmPopoverNewFolderRow.style.display = isVisible ? 'none' : 'flex';
+          if (!isVisible && this.dom.bmPopoverNewFolderInput) {
+            this.dom.bmPopoverNewFolderInput.value = '';
+            this.dom.bmPopoverNewFolderInput.focus();
+          }
+        }
+      });
+    }
+
+    if (this.dom.btnBmPopoverCreateFolderCancel) {
+      this.dom.btnBmPopoverCreateFolderCancel.addEventListener('click', () => {
+        if (this.dom.bmPopoverNewFolderRow) this.dom.bmPopoverNewFolderRow.style.display = 'none';
+      });
+    }
+
+    const handleConfirmCreateInlineFolder = () => {
+      const name = this.dom.bmPopoverNewFolderInput ? this.dom.bmPopoverNewFolderInput.value.trim() : '';
+      if (!name) return;
+      const folder = bookmarkService.createFolder(name, 'root_bar');
+      this.populatePopoverFolders(folder.id);
+      if (this.dom.bmPopoverNewFolderRow) this.dom.bmPopoverNewFolderRow.style.display = 'none';
+      this.showToast(`Folder "${name}" created`);
+    };
+
+    if (this.dom.btnBmPopoverCreateFolderConfirm) {
+      this.dom.btnBmPopoverCreateFolderConfirm.addEventListener('click', handleConfirmCreateInlineFolder);
+    }
+
+    if (this.dom.bmPopoverNewFolderInput) {
+      this.dom.bmPopoverNewFolderInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleConfirmCreateInlineFolder();
+        } else if (e.key === 'Escape') {
+          if (this.dom.bmPopoverNewFolderRow) this.dom.bmPopoverNewFolderRow.style.display = 'none';
+        }
+      });
+    }
+
+    // 6. Favorites Top Bar Add button
+    if (this.dom.btnBookmarksBarAdd) {
+      this.dom.btnBookmarksBarAdd.addEventListener('click', () => {
+        const activeTab = tabManager.getActiveTab();
+        if (activeTab && activeTab.url && !activeTab.url.startsWith('mynetwork://')) {
+          this.toggleBookmarkPopover();
+        } else {
+          this.openAddShortcutModal();
+        }
+      });
+    }
+
+    // 7. Dedicated Bookmarks Manager View (mynetwork://bookmarks)
+    // Back button
+    if (this.dom.btnBookmarksBack) {
+      this.dom.btnBookmarksBack.addEventListener('click', () => {
+        const active = tabManager.getActiveTab();
+        const nonBmTab = tabManager.getTabs().find(t => t.url !== BOOKMARKS_URL && t.url !== LEGACY_BOOKMARKS_URL && t.url !== SETTINGS_URL && t.url !== HISTORY_URL);
+        if (nonBmTab) {
+          tabManager.activateTab(nonBmTab.id);
+        } else {
+          tabManager.createTab(DEFAULT_NEWTAB_URL, 'New Tab');
+          if (active) tabManager.closeTab(active.id);
+        }
+      });
+    }
+
+    // Search Input in Bookmarks Manager
+    if (this.dom.macBookmarksSearch) {
+      this.dom.macBookmarksSearch.addEventListener('input', (e) => {
+        this.currentBmFilter.query = e.target.value.trim();
+        if (this.dom.btnBookmarksClearSearch) {
+          this.dom.btnBookmarksClearSearch.style.display = this.currentBmFilter.query ? 'flex' : 'none';
+        }
+        this.renderBookmarksList();
+      });
+    }
+
+    if (this.dom.btnBookmarksClearSearch) {
+      this.dom.btnBookmarksClearSearch.addEventListener('click', () => {
+        if (this.dom.macBookmarksSearch) {
+          this.dom.macBookmarksSearch.value = '';
+          this.dom.macBookmarksSearch.focus();
+        }
+        this.currentBmFilter.query = '';
+        this.dom.btnBookmarksClearSearch.style.display = 'none';
+        this.renderBookmarksList();
+      });
+    }
+
+    // Add New Folder button in Manager
+    if (this.dom.btnBmAddNewFolder) {
+      this.dom.btnBmAddNewFolder.addEventListener('click', () => {
+        this.openAddBookmarkFolderModal();
+      });
+    }
+
+    // Add New Bookmark button in Manager
+    if (this.dom.btnBmAddNewBookmark) {
+      this.dom.btnBmAddNewBookmark.addEventListener('click', () => {
+        this.openAddShortcutModal();
+      });
+    }
+
+    // View Mode Toggle (Grid vs List)
+    if (this.dom.btnBmViewGrid) {
+      this.dom.btnBmViewGrid.addEventListener('click', () => {
+        this.currentBmViewMode = 'grid';
+        if (this.dom.btnBmViewGrid) this.dom.btnBmViewGrid.classList.add('active');
+        if (this.dom.btnBmViewList) this.dom.btnBmViewList.classList.remove('active');
+        this.renderBookmarksList();
+      });
+    }
+    if (this.dom.btnBmViewList) {
+      this.dom.btnBmViewList.addEventListener('click', () => {
+        this.currentBmViewMode = 'list';
+        if (this.dom.btnBmViewList) this.dom.btnBmViewList.classList.add('active');
+        if (this.dom.btnBmViewGrid) this.dom.btnBmViewGrid.classList.remove('active');
+        this.renderBookmarksList();
+      });
+    }
+
+    // Empty Trash button
+    if (this.dom.btnBmEmptyTrash) {
+      this.dom.btnBmEmptyTrash.addEventListener('click', () => {
+        if (confirm('Permanently delete all bookmarks in Trash?')) {
+          bookmarkService.emptyTrash();
+          this.showToast('Trash emptied');
+        }
+      });
+    }
+
+    // Import / Export HTML buttons
+    if (this.dom.btnBmImportHtml) {
+      this.dom.btnBmImportHtml.addEventListener('click', () => this.importBookmarksHtml());
+    }
+    if (this.dom.btnBmExportHtml) {
+      this.dom.btnBmExportHtml.addEventListener('click', () => this.exportBookmarksHtml());
+    }
+
+    // Modals: Add Shortcut Form Submit
+    if (this.dom.formAddShortcut) {
+      this.dom.formAddShortcut.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const id = this.dom.shortcutEditId ? this.dom.shortcutEditId.value : null;
+        const title = this.dom.shortcutInputTitle.value.trim();
+        const url = this.dom.shortcutInputUrl.value.trim();
+        if (!title || !url) return;
+
+        if (id) {
+          bookmarkService.updateBookmark(id, { title, url });
+          this.showToast(`Updated "${title}"`);
+        } else {
+          bookmarkService.createBookmark({
+            title,
+            url,
+            parentId: 'root_bar',
+            workspaceId: workspaceService.getActiveWorkspaceId()
+          });
+          this.showToast(`Added "${title}" to Shortcuts`);
+        }
+        if (this.dom.modalAddShortcut) this.dom.modalAddShortcut.close();
+      });
+    }
+
+    if (this.dom.btnCloseShortcutModal) {
+      this.dom.btnCloseShortcutModal.addEventListener('click', () => {
+        if (this.dom.modalAddShortcut) this.dom.modalAddShortcut.close();
+      });
+    }
+    if (this.dom.btnCancelShortcutModal) {
+      this.dom.btnCancelShortcutModal.addEventListener('click', () => {
+        if (this.dom.modalAddShortcut) this.dom.modalAddShortcut.close();
+      });
+    }
+    if (this.dom.btnDeleteShortcut) {
+      this.dom.btnDeleteShortcut.addEventListener('click', () => {
+        const id = this.dom.shortcutEditId ? this.dom.shortcutEditId.value : null;
+        if (id) {
+          bookmarkService.deleteBookmark(id);
+          this.showToast('Shortcut deleted');
+        }
+        if (this.dom.modalAddShortcut) this.dom.modalAddShortcut.close();
+      });
+    }
+
+    // Modals: Add Bookmark Folder Form Submit
+    if (this.dom.formAddBmFolder) {
+      this.dom.formAddBmFolder.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const id = this.dom.bmFolderEditId ? this.dom.bmFolderEditId.value : null;
+        const title = this.dom.bmFolderInputTitle.value.trim();
+        const parentId = this.dom.bmFolderInputParent ? this.dom.bmFolderInputParent.value : 'root_bar';
+        const activeColorEl = document.querySelector('#bm-folder-color-options .color-dot.active');
+        const color = activeColorEl ? activeColorEl.getAttribute('data-color') : '#f59e0b';
+        if (!title) return;
+
+        if (id) {
+          bookmarkService.updateBookmark(id, { title, parentId, color });
+          this.showToast(`Updated folder "${title}"`);
+        } else {
+          bookmarkService.createFolder(title, parentId, color);
+          this.showToast(`Created folder "${title}"`);
+        }
+        if (this.dom.modalAddBmFolder) this.dom.modalAddBmFolder.close();
+      });
+    }
+
+    if (this.dom.btnCloseBmFolderModal) {
+      this.dom.btnCloseBmFolderModal.addEventListener('click', () => {
+        if (this.dom.modalAddBmFolder) this.dom.modalAddBmFolder.close();
+      });
+    }
+    if (this.dom.btnCancelBmFolderModal) {
+      this.dom.btnCancelBmFolderModal.addEventListener('click', () => {
+        if (this.dom.modalAddBmFolder) this.dom.modalAddBmFolder.close();
+      });
+    }
+
+    // Color picker in folder modal
+    document.querySelectorAll('#bm-folder-color-options .color-dot').forEach(dot => {
+      dot.addEventListener('click', () => {
+        document.querySelectorAll('#bm-folder-color-options .color-dot').forEach(d => d.classList.remove('active'));
+        dot.classList.add('active');
+      });
+    });
+
+    // Bookmark Context Menu Items
+    const ctxBmOpenTab = document.getElementById('ctx-bm-open-tab');
+    if (ctxBmOpenTab) {
+      ctxBmOpenTab.addEventListener('click', () => {
+        if (this.activeBmContextItem && this.activeBmContextItem.url) {
+          tabManager.createTab(this.activeBmContextItem.url, this.activeBmContextItem.title, this.activeBmContextItem.favicon);
+        }
+        if (this.dom.bookmarkContextMenu) this.dom.bookmarkContextMenu.style.display = 'none';
+      });
+    }
+
+    const ctxBmOpenSplit = document.getElementById('ctx-bm-open-split');
+    if (ctxBmOpenSplit) {
+      ctxBmOpenSplit.addEventListener('click', () => {
+        if (this.activeBmContextItem && this.activeBmContextItem.url) {
+          browserContext.toggleSplitView(true);
+          tabManager.createTab(this.activeBmContextItem.url, this.activeBmContextItem.title, this.activeBmContextItem.favicon);
+        }
+        if (this.dom.bookmarkContextMenu) this.dom.bookmarkContextMenu.style.display = 'none';
+      });
+    }
+
+    const ctxBmEdit = document.getElementById('ctx-bm-edit');
+    if (ctxBmEdit) {
+      ctxBmEdit.addEventListener('click', () => {
+        if (this.activeBmContextItem) {
+          if (this.activeBmContextItem.isFolder) {
+            this.openAddBookmarkFolderModal(this.activeBmContextItem);
+          } else {
+            this.openAddShortcutModal(this.activeBmContextItem);
+          }
+        }
+        if (this.dom.bookmarkContextMenu) this.dom.bookmarkContextMenu.style.display = 'none';
+      });
+    }
+
+    const ctxBmCopyLink = document.getElementById('ctx-bm-copy-link');
+    if (ctxBmCopyLink) {
+      ctxBmCopyLink.addEventListener('click', () => {
+        if (this.activeBmContextItem && this.activeBmContextItem.url) {
+          navigator.clipboard.writeText(this.activeBmContextItem.url);
+          this.showToast('Copied bookmark URL');
+        }
+        if (this.dom.bookmarkContextMenu) this.dom.bookmarkContextMenu.style.display = 'none';
+      });
+    }
+
+    const ctxBmDelete = document.getElementById('ctx-bm-delete');
+    if (ctxBmDelete) {
+      ctxBmDelete.addEventListener('click', () => {
+        if (this.activeBmContextItem) {
+          bookmarkService.deleteBookmark(this.activeBmContextItem.id);
+          this.showToast('Bookmark deleted');
+        }
+        if (this.dom.bookmarkContextMenu) this.dom.bookmarkContextMenu.style.display = 'none';
+      });
+    }
+
+    // Global click dismisses bookmark dropdowns & context menus
+    document.addEventListener('click', (e) => {
+      if (this.dom.bookmarkStarPopover && !this.dom.bookmarkStarPopover.contains(e.target) && !e.target.closest('#btn-bookmark')) {
+        this.closeBookmarkPopover();
+      }
+      if (this.dom.bookmarksBarDropdown && !this.dom.bookmarksBarDropdown.contains(e.target) && !e.target.closest('.bm-bar-item.folder')) {
+        this.dom.bookmarksBarDropdown.style.display = 'none';
+      }
+      if (this.dom.bookmarkContextMenu && !this.dom.bookmarkContextMenu.contains(e.target)) {
+        this.dom.bookmarkContextMenu.style.display = 'none';
+      }
+    });
+
+    // Settings Bookmarks Integration
+    this.initBookmarkSettings();
   }
 
   initSettings() {
@@ -1313,7 +3480,15 @@ class MyNetworkShell {
     const menuItemHistory = document.getElementById('menu-item-history');
     if (menuItemHistory) {
       menuItemHistory.addEventListener('click', () => {
-        this.openSettingsTab('privacy');
+        this.openHistoryTab();
+        if (this.dom.appDropdownMenu) this.dom.appDropdownMenu.classList.remove('active');
+      });
+    }
+
+    const menuItemBookmarks = document.getElementById('menu-item-bookmarks');
+    if (menuItemBookmarks) {
+      menuItemBookmarks.addEventListener('click', () => {
+        this.openBookmarksTab();
         if (this.dom.appDropdownMenu) this.dom.appDropdownMenu.classList.remove('active');
       });
     }
@@ -2064,51 +4239,66 @@ class MyNetworkShell {
       `;
 
       // Reveal / Mask toggle
-      row.querySelector('.btn-reveal-pwd').addEventListener('click', () => {
-        this.ensureVaultUnlocked(() => {
-          if (this.revealedPasswords.has(c.id)) {
-            this.revealedPasswords.delete(c.id);
-          } else {
-            this.revealedPasswords.add(c.id);
-          }
-          this.renderPasswordsList();
+      const btnReveal = row.querySelector('.btn-reveal-pwd');
+      if (btnReveal) {
+        btnReveal.addEventListener('click', () => {
+          this.ensureVaultUnlocked(() => {
+            if (this.revealedPasswords.has(c.id)) {
+              this.revealedPasswords.delete(c.id);
+            } else {
+              this.revealedPasswords.add(c.id);
+            }
+            this.renderPasswordsList();
+          });
         });
-      });
+      }
 
       // Copy password
-      row.querySelector('.btn-copy-pwd').addEventListener('click', () => {
-        this.ensureVaultUnlocked(() => {
-          if (navigator.clipboard && c.password) {
-            navigator.clipboard.writeText(c.password);
-            this.showToast('Password copied to clipboard');
-          }
+      const btnCopy = row.querySelector('.btn-copy-pwd');
+      if (btnCopy) {
+        btnCopy.addEventListener('click', () => {
+          this.ensureVaultUnlocked(() => {
+            if (navigator.clipboard && c.password) {
+              navigator.clipboard.writeText(c.password);
+              this.showToast('Password copied to clipboard');
+            }
+          });
         });
-      });
+      }
 
       // Copy username
-      row.querySelector('.btn-copy-user').addEventListener('click', () => {
-        if (navigator.clipboard && c.username) {
-          navigator.clipboard.writeText(c.username);
-          this.showToast('Username copied to clipboard');
-        }
-      });
-
-      // Edit
-      row.querySelector('.btn-edit-pwd').addEventListener('click', () => {
-        this.openPasswordModal(c);
-      });
-
-      // Delete
-      row.querySelector('.btn-del-pwd').addEventListener('click', () => {
-        this.ensureVaultUnlocked(() => {
-          if (confirm(`Delete password for "${c.title || c.domain || c.username}"?`)) {
-            passwordService.deleteCredential(c.id);
-            this.showToast('Password removed');
-            this.renderPasswordsList();
-            this.renderPasswordHealth();
+      const btnCopyUser = row.querySelector('.btn-copy-user');
+      if (btnCopyUser) {
+        btnCopyUser.addEventListener('click', () => {
+          if (navigator.clipboard && c.username) {
+            navigator.clipboard.writeText(c.username);
+            this.showToast('Username copied to clipboard');
           }
         });
-      });
+      }
+
+      // Edit
+      const btnEdit = row.querySelector('.btn-edit-pwd');
+      if (btnEdit) {
+        btnEdit.addEventListener('click', () => {
+          this.openPasswordModal(c);
+        });
+      }
+
+      // Delete
+      const btnDel = row.querySelector('.btn-del-pwd');
+      if (btnDel) {
+        btnDel.addEventListener('click', () => {
+          this.ensureVaultUnlocked(() => {
+            if (confirm(`Delete password for "${c.title || c.domain || c.username}"?`)) {
+              passwordService.deleteCredential(c.id);
+              this.showToast('Password removed');
+              this.renderPasswordsList();
+              this.renderPasswordHealth();
+            }
+          });
+        });
+      }
 
       this.dom.passwordsListContainer.appendChild(row);
     });

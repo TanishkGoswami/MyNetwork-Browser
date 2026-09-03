@@ -1,14 +1,25 @@
 // Main Electron Process
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, nativeImage } = require('electron');
 const path = require('path');
 
+// Set Application User Model ID for Windows Taskbar grouping and high-res icon display
+if (app && app.setAppUserModelId && process.platform === 'win32') {
+  app.setAppUserModelId('com.mynetwork.browser');
+}
+
 // Disable automatic WebAuthn Conditional UI popups so Windows Security modal does not block typing ID/Password
-app.commandLine.appendSwitch('disable-features', 'WebAuthenticationConditionalUI');
-app.commandLine.appendSwitch('enable-features', 'OverlayScrollbar');
+if (app && app.commandLine) {
+  app.commandLine.appendSwitch('disable-features', 'WebAuthenticationConditionalUI');
+  app.commandLine.appendSwitch('enable-features', 'OverlayScrollbar');
+}
 
 let mainWindow = null;
 
 function createWindow() {
+  const iconPngPath = path.join(__dirname, '../../ui/assets/mynetwork-logo.png');
+  const iconSvgPath = path.join(__dirname, '../../ui/assets/icon.svg');
+  const appIcon = nativeImage.createFromPath(iconPngPath);
+
   mainWindow = new BrowserWindow({
     width: 1320,
     height: 840,
@@ -18,7 +29,7 @@ function createWindow() {
     titleBarStyle: 'hidden',
     backgroundColor: '#ffffff',
     title: 'MyNetwork Browser',
-    icon: path.join(__dirname, '../../ui/assets/icon.svg'),
+    icon: !appIcon.isEmpty() ? appIcon : iconSvgPath,
     autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: true,
@@ -26,6 +37,10 @@ function createWindow() {
       webviewTag: true
     }
   });
+
+  if (!appIcon.isEmpty()) {
+    mainWindow.setIcon(appIcon);
+  }
 
   // Load UI shell
   mainWindow.loadFile(path.join(__dirname, '../../ui/index.html'));
@@ -35,32 +50,36 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(() => {
-  createWindow();
+if (app && app.whenReady) {
+  app.whenReady().then(() => {
+    createWindow();
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
   });
-});
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') app.quit();
+  });
+}
 
 // Window Control IPC Handlers
-ipcMain.on('window-minimize', () => {
-  if (mainWindow) mainWindow.minimize();
-});
+if (ipcMain) {
+  ipcMain.on('window-minimize', () => {
+    if (mainWindow) mainWindow.minimize();
+  });
 
-ipcMain.on('window-maximize-toggle', () => {
-  if (!mainWindow) return;
-  if (mainWindow.isMaximized()) {
-    mainWindow.unmaximize();
-  } else {
-    mainWindow.maximize();
-  }
-});
+  ipcMain.on('window-maximize-toggle', () => {
+    if (!mainWindow) return;
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize();
+    } else {
+      mainWindow.maximize();
+    }
+  });
 
-ipcMain.on('window-close', () => {
-  if (mainWindow) mainWindow.close();
-});
+  ipcMain.on('window-close', () => {
+    if (mainWindow) mainWindow.close();
+  });
+}

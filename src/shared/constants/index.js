@@ -5,6 +5,10 @@ module.exports = {
   LEGACY_NEWTAB_URL: 'zen://newtab',
   SETTINGS_URL: 'mynetwork://settings',
   LEGACY_SETTINGS_URL: 'about:settings',
+  HISTORY_URL: 'mynetwork://history',
+  LEGACY_HISTORY_URL: 'about:history',
+  BOOKMARKS_URL: 'mynetwork://bookmarks',
+  LEGACY_BOOKMARKS_URL: 'about:bookmarks',
   BLANK_URL: 'about:blank',
   
   EVENTS: {
@@ -23,6 +27,8 @@ module.exports = {
     TIMER_TICK: 'timer:tick',
     TIMER_COMPLETED: 'timer:completed',
     HISTORY_UPDATED: 'history:updated',
-    SETTINGS_CHANGED: 'settings:changed'
+    SETTINGS_CHANGED: 'settings:changed',
+    BOOKMARKS_UPDATED: 'bookmarks:updated',
+    WORKSPACE_CHANGED: 'workspace:changed'
   }
 };

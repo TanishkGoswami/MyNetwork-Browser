@@ -42,18 +42,73 @@
       <!-- Center Omnibox -->
       <div class="omnibox-wrapper">
         <div class="omnibox" id="omnibox">
-          <div class="omnibox-logo" id="omnibox-engine-icon">
-            <svg width="14" height="14" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-            </svg>
+          <div class="omnibox-logo" id="omnibox-engine-icon" title="MyNetwork Internal Page">
+            <img src="assets/icon-symbol.svg" width="16" height="16" alt="MyNetwork" style="display: block; object-fit: contain;">
           </div>
           <input type="text" id="url-input" placeholder="Search or type a URL..." autocomplete="off" spellcheck="false">
-          <button id="btn-bookmark" class="omnibox-action-btn" title="Bookmark Page">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <button id="btn-bookmark" class="omnibox-action-btn" title="Bookmark This Tab (Ctrl+D)">
+            <svg id="btn-bookmark-star-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           </button>
+        </div>
+
+        <!-- QUICK BOOKMARK POPOVER (Ctrl+D) -->
+        <div id="bookmark-star-popover" class="mac-bookmark-popover" style="display: none;">
+          <div class="bm-popover-arrow"></div>
+          <div class="bm-popover-header">
+            <div class="bm-popover-title-row">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <span id="bm-popover-heading">Bookmark Added</span>
+            </div>
+            <button id="btn-bm-popover-close" class="bm-popover-close-btn" title="Close">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+
+          <div class="bm-popover-body">
+            <div class="bm-popover-field">
+              <label>Name</label>
+              <input type="text" id="bm-popover-name" placeholder="Page Title" autocomplete="off">
+            </div>
+            <div class="bm-popover-field">
+              <label>URL</label>
+              <input type="text" id="bm-popover-url" placeholder="https://..." autocomplete="off">
+            </div>
+            <div class="bm-popover-field">
+              <label>Folder</label>
+              <div class="bm-popover-folder-select-wrap">
+                <select id="bm-popover-folder-select">
+                  <!-- Dynamically populated folders -->
+                </select>
+                <button type="button" id="btn-bm-popover-new-folder" class="bm-popover-sub-btn" title="Create New Folder">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+              </div>
+              <div id="bm-popover-new-folder-row" class="bm-popover-inline-add" style="display: none; margin-top: 6px; gap: 6px;">
+                <input type="text" id="bm-popover-new-folder-input" placeholder="New folder name..." autocomplete="off" style="flex: 1; font-size: 12px; padding: 5px 8px; border: 1px solid rgba(0,0,0,0.15); border-radius: 6px; background: rgba(255,255,255,0.9);">
+                <button type="button" id="btn-bm-popover-create-folder-confirm" class="mac-btn mac-btn-primary" style="padding: 4px 10px; font-size: 11px; height: 28px;">Add</button>
+                <button type="button" id="btn-bm-popover-create-folder-cancel" class="mac-btn mac-btn-secondary" style="padding: 4px 8px; font-size: 11px; height: 28px;">✕</button>
+              </div>
+            </div>
+            <div class="bm-popover-field">
+              <label>Tags</label>
+              <div class="bm-popover-tags-box" id="bm-popover-tags-box">
+                <input type="text" id="bm-popover-tags-input" placeholder="Type tag & press Enter...">
+              </div>
+            </div>
+            <div class="bm-popover-checkbox-row">
+              <label class="mac-checkbox-label">
+                <input type="checkbox" id="bm-popover-fav-check" checked>
+                <span>Show on Favorites Bar</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="bm-popover-footer">
+            <button id="btn-bm-popover-remove" class="mac-btn mac-btn-danger" style="display: none;">Remove</button>
+            <div style="flex: 1;"></div>
+            <button id="btn-bm-popover-cancel" class="mac-btn mac-btn-secondary">Cancel</button>
+            <button id="btn-bm-popover-save" class="mac-btn mac-btn-primary">Done</button>
+          </div>
         </div>
       </div>
 
@@ -102,8 +157,11 @@
               <kbd>Ctrl+J</kbd>
             </div>
             
-            <div class="dropdown-divider"></div>
-
+            <div class="dropdown-item" id="menu-item-bookmarks">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <span>Bookmarks</span>
+              <kbd>Ctrl+B</kbd>
+            </div>
             <div class="dropdown-item" id="menu-item-history">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               <span>History</span>
@@ -151,6 +209,16 @@
         </div>
       </div>
     </header>
+
+    <!-- TOP FAVORITES / BOOKMARKS BAR (Collapsible Ctrl+Shift+B) -->
+    <div id="bookmarks-bar" class="mac-bookmarks-bar" style="display: none;">
+      <div class="bookmarks-bar-items" id="bookmarks-bar-items">
+        <!-- Pinned favorites bar items and folders -->
+      </div>
+      <button id="btn-bookmarks-bar-add" class="bookmarks-bar-add-btn" title="Add Bookmark (+)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    </div>
 
     <!-- HORIZONTAL TABS BAR (When Tab Layout is Horizontal) -->
     <div class="horizontal-tabs-bar" id="horizontal-tabs-bar" style="display: none;">
@@ -286,6 +354,26 @@
                 </div>
               </section>
 
+              <!-- QUICK BOOKMARKS & SHORTCUTS (Spotlight Mode & Boards Mode) -->
+              <section class="newtab-shortcuts-section" id="newtab-shortcuts-container">
+                <div class="shortcuts-header" id="shortcuts-header" style="display: none;">
+                  <span class="shortcuts-title">Quick Access</span>
+                  <div class="workspace-tabs-row" id="newtab-workspace-tabs">
+                    <!-- Dynamic workspace tabs -->
+                  </div>
+                </div>
+
+                <!-- Mode A: Circular Spotlight Shortcuts Row -->
+                <div class="shortcuts-grid" id="newtab-shortcuts-row">
+                  <!-- Dynamic circular bookmark shortcut chips -->
+                </div>
+
+                <!-- Mode B: Workspace Boards Grid (Hidden by default, enabled in Settings) -->
+                <div class="workspace-boards-grid" id="newtab-workspace-boards" style="display: none;">
+                  <!-- Dynamic folder boards with favicon clusters -->
+                </div>
+              </section>
+
               <!-- DASHBOARD TOOLS & PRODUCTIVITY SUITE -->
               <section class="dash-widgets-grid">
                 
@@ -411,6 +499,12 @@
                   </div>
                   <span>Passwords & Keys</span>
                 </button>
+                <button class="settings-nav-item" data-category="bookmarks">
+                  <div class="settings-icon-badge" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #ffffff;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="#ffffff" stroke="#ffffff" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  </div>
+                  <span>Bookmarks & Spaces</span>
+                </button>
                 <button class="settings-nav-item" data-category="shortcuts">
                   <div class="settings-icon-badge badge-slate">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="8" x2="6" y2="8"/><line x1="10" y1="8" x2="10" y2="8"/><line x1="14" y1="8" x2="14" y2="8"/><line x1="18" y1="8" x2="18" y2="8"/></svg>
@@ -418,11 +512,8 @@
                   <span>Keyboard Shortcuts</span>
                 </button>
                 <button class="settings-nav-item" data-category="about">
-                  <div class="settings-icon-badge badge-sky">
-                    <svg width="13" height="13" viewBox="0 0 100 100">
-                      <path d="M 48 23 Q 54 38 72 48 Q 59 54 53 60 Q 49 48 42 38 Q 43 29 48 23 Z" fill="#ffffff"/>
-                      <path d="M 52 77 Q 46 62 28 52 Q 41 46 47 40 Q 51 52 58 62 Q 57 71 52 77 Z" fill="#ffffff"/>
-                    </svg>
+                  <div class="settings-icon-badge badge-sky" style="background: transparent;">
+                    <img src="assets/icon-symbol.svg" width="14" height="14" alt="" style="display: block; object-fit: contain;">
                   </div>
                   <span>About MyNetwork</span>
                 </button>
@@ -719,7 +810,148 @@
                 </div>
               </section>
 
-              <!-- 6. Keyboard Shortcuts -->
+              <!-- 6. Bookmarks & Workspaces -->
+              <section class="settings-section" id="section-bookmarks" style="display: none;">
+                <div class="settings-section-header">
+                  <h2>Bookmarks & Workspaces</h2>
+                  <p>Configure shortcut shelves, default folders, and New Tab widgets.</p>
+                </div>
+
+                <div class="mac-card-group">
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">Bookmarks Bar Visibility</span>
+                      <span class="setting-desc">Choose when the horizontal favorites shelf is displayed (<kbd>Ctrl+Shift+B</kbd>).</span>
+                    </div>
+                    <div class="setting-control">
+                      <select id="setting-bookmarks-bar-mode" class="mac-select">
+                        <option value="always">Always Show</option>
+                        <option value="newtab">Only on New Tab</option>
+                        <option value="never" selected>Hidden</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">New Tab Bookmarks Layout</span>
+                      <span class="setting-desc">Choose how bookmarks and shortcuts appear on the dashboard.</span>
+                    </div>
+                    <div class="setting-control">
+                      <select id="setting-newtab-bookmarks-layout" class="mac-select">
+                        <option value="spotlight" selected>Spotlight Circular Shortcuts</option>
+                        <option value="boards">Workspace Boards Grid</option>
+                        <option value="minimal">Minimalist (Search Only)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">Default Save Location</span>
+                      <span class="setting-desc">Default target folder when pressing <kbd>Ctrl+D</kbd>.</span>
+                    </div>
+                    <div class="setting-control">
+                      <select id="setting-default-bookmark-folder" class="mac-select">
+                        <option value="root_bar">Favorites Bar</option>
+                        <option value="root_other">Other Bookmarks</option>
+                        <option value="root_reading">Reading List</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">Open Bookmarks In</span>
+                      <span class="setting-desc">Choose target tab behavior when clicking bookmarks.</span>
+                    </div>
+                    <div class="setting-control">
+                      <select id="setting-bookmark-open-target" class="mac-select">
+                        <option value="current" selected>Current Tab</option>
+                        <option value="new">New Foreground Tab</option>
+                        <option value="background">Background Tab</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="settings-sub-header" style="margin-top: 14px; margin-bottom: 6px;">
+                  <h3 style="font-size: 13px; font-weight: 600; color: #64748b;">New Tab Widget Visibility</h3>
+                </div>
+
+                <div class="mac-card-group">
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">Quick Scratchpad</span>
+                      <span class="setting-desc">Show the instant sticky note pad on New Tab.</span>
+                    </div>
+                    <div class="setting-control">
+                      <label class="mac-toggle">
+                        <input type="checkbox" id="setting-toggle-widget-scratchpad" checked>
+                        <span class="slider"></span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">Daily Focus Tasks</span>
+                      <span class="setting-desc">Show the checklist manager widget on New Tab.</span>
+                    </div>
+                    <div class="setting-control">
+                      <label class="mac-toggle">
+                        <input type="checkbox" id="setting-toggle-widget-tasks" checked>
+                        <span class="slider"></span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">Focus Session Timer</span>
+                      <span class="setting-desc">Show Pomodoro focus timer on New Tab.</span>
+                    </div>
+                    <div class="setting-control">
+                      <label class="mac-toggle">
+                        <input type="checkbox" id="setting-toggle-widget-timer" checked>
+                        <span class="slider"></span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">Recently Visited</span>
+                      <span class="setting-desc">Show history quick recents on New Tab.</span>
+                    </div>
+                    <div class="setting-control">
+                      <label class="mac-toggle">
+                        <input type="checkbox" id="setting-toggle-widget-recent" checked>
+                        <span class="slider"></span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="settings-sub-header" style="margin-top: 14px; margin-bottom: 6px;">
+                  <h3 style="font-size: 13px; font-weight: 600; color: #64748b;">Data & Backup</h3>
+                </div>
+
+                <div class="mac-card-group">
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">Import & Export Bookmarks</span>
+                      <span class="setting-desc">Migrate from Chrome, Safari, Edge HTML or download raw backup.</span>
+                    </div>
+                    <div class="setting-control" style="display: flex; gap: 8px;">
+                      <button class="mac-btn-secondary" id="btn-settings-import-bm">Import (HTML)</button>
+                      <button class="mac-btn-secondary" id="btn-settings-export-bm">Export Backup</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 7. Keyboard Shortcuts -->
               <section class="settings-section" id="section-shortcuts" style="display: none;">
                 <div class="settings-section-header">
                   <h2>Keyboard Shortcuts</h2>
@@ -747,11 +979,8 @@
                 </div>
 
                 <div class="mac-about-card">
-                  <div class="about-app-icon">
-                    <svg width="28" height="28" viewBox="0 0 100 100">
-                      <path d="M 48 23 Q 54 38 72 48 Q 59 54 53 60 Q 49 48 42 38 Q 43 29 48 23 Z" fill="currentColor"/>
-                      <path d="M 52 77 Q 46 62 28 52 Q 41 46 47 40 Q 51 52 58 62 Q 57 71 52 77 Z" fill="currentColor"/>
-                    </svg>
+                  <div class="about-app-icon" style="background: transparent; padding: 0; width: 44px; height: 44px;">
+                    <img src="assets/icon.svg" width="44" height="44" alt="MyNetwork Browser" style="display: block; border-radius: 10px; object-fit: contain;">
                   </div>
                   <div class="about-app-details">
                     <h3>MyNetwork Browser</h3>
@@ -762,6 +991,251 @@
               </section>
 
             </main>
+          </div>
+
+          <!-- DEDICATED macOS HISTORY VIEW (mynetwork://history) -->
+          <div class="history-view" id="history-view" style="display: none;">
+            <div class="history-view-container">
+              
+              <!-- macOS History Top Toolbar -->
+              <header class="history-top-bar">
+                <div class="history-title-area">
+                  <button id="btn-history-back" class="mac-nav-back-btn" title="Back to Workspace">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                  </button>
+                  <div class="history-title-wrapper">
+                    <div class="history-icon-badge">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <h2>Browsing History</h2>
+                  </div>
+                </div>
+
+                <!-- Center: macOS Search History Input -->
+                <div class="history-search-wrapper">
+                  <div class="history-search-box">
+                    <svg class="history-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="mac-history-search" placeholder="Search history..." autocomplete="off" spellcheck="false">
+                    <button id="btn-history-clear-search" class="history-search-clear-btn" title="Clear Search" style="display: none;">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Right Toolbar Actions -->
+                <div class="history-top-actions">
+                  <!-- View Dropdown (From Ref 2 & 3) -->
+                  <div class="history-view-dropdown-container">
+                    <button class="mac-history-pill-btn" id="btn-history-view-dropdown" aria-expanded="false" title="Change View Mode">
+                      <span id="history-view-dropdown-label">View</span>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="history-view-menu" id="history-view-menu">
+                      <div class="history-view-menu-item active" data-view="by-date-site">
+                        <svg class="menu-check-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>By Date and Site</span>
+                      </div>
+                      <div class="history-view-menu-item" data-view="by-site">
+                        <svg class="menu-check-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>By Site</span>
+                      </div>
+                      <div class="history-view-menu-item" data-view="by-date">
+                        <svg class="menu-check-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>By Date</span>
+                      </div>
+                      <div class="history-view-menu-item" data-view="most-visited">
+                        <svg class="menu-check-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>By Most Visited</span>
+                      </div>
+                      <div class="history-view-menu-item" data-view="last-visited">
+                        <svg class="menu-check-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>By Last Visited</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button class="mac-btn-secondary mac-btn-history-clear" id="btn-open-clear-history-dialog">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                    <span>Clear Browsing Data</span>
+                  </button>
+                </div>
+              </header>
+
+              <!-- Secondary Navigation: Segmented View Switcher & Selection Bar -->
+              <div class="history-sub-bar">
+                <div class="history-segmented-switch">
+                  <button class="history-segment-btn active" data-mode="date" id="tab-mode-date">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                    <span>By date</span>
+                  </button>
+                  <button class="history-segment-btn" data-mode="group" id="tab-mode-group">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                    <span>By group</span>
+                  </button>
+                  <button class="history-segment-btn" data-mode="tree" id="tab-mode-tree">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    <span>Tree view</span>
+                  </button>
+                </div>
+
+                <!-- Floating / Sticky Selection Bar -->
+                <div class="history-batch-bar" id="history-batch-bar" style="display: none;">
+                  <div class="batch-count-info">
+                    <span id="batch-selected-count">0</span> items selected
+                  </div>
+                  <div class="batch-actions-group">
+                    <button class="mac-btn-secondary" id="btn-batch-cancel">Cancel</button>
+                    <button class="mac-btn-danger" id="btn-batch-delete">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                      <span>Delete Selected</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Main History Content Area -->
+              <div class="history-content-scroll" id="history-content-scroll">
+                <div class="history-main-feed" id="history-main-feed">
+                  <!-- Rendered dynamically -->
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- DEDICATED macOS BOOKMARK MANAGER (mynetwork://bookmarks) -->
+          <div class="bookmarks-view" id="bookmarks-view" style="display: none;">
+            <div class="bookmarks-view-container">
+              
+              <!-- macOS Bookmarks Top Toolbar -->
+              <header class="bookmarks-top-bar">
+                <div class="bookmarks-title-area">
+                  <button id="btn-bookmarks-back" class="mac-nav-back-btn" title="Back to Workspace">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
+                  </button>
+                  <div class="bookmarks-title-wrapper">
+                    <div class="bookmarks-icon-badge">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    </div>
+                    <h2>Bookmarks & Spaces</h2>
+                  </div>
+                </div>
+
+                <!-- Center: macOS Search Bookmarks Input -->
+                <div class="bookmarks-search-wrapper">
+                  <div class="bookmarks-search-box">
+                    <svg class="bookmarks-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="mac-bookmarks-search" placeholder="Search title, url, tags..." autocomplete="off" spellcheck="false">
+                    <button id="btn-bookmarks-clear-search" class="bookmarks-search-clear-btn" title="Clear Search" style="display: none;">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Right Toolbar Actions -->
+                <div class="bookmarks-top-actions">
+                  <button class="mac-pill-action-btn" id="btn-bm-add-new-folder">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+                    <span>New Folder</span>
+                  </button>
+                  <button class="mac-pill-action-btn primary" id="btn-bm-add-new-bookmark">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span>Add Bookmark</span>
+                  </button>
+                  <div class="view-mode-toggle-group">
+                    <button class="view-toggle-btn active" id="btn-bm-view-grid" title="Grid View">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    </button>
+                    <button class="view-toggle-btn" id="btn-bm-view-list" title="List View">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </header>
+
+              <!-- 2-Pane Finder Body -->
+              <div class="bookmarks-main-body">
+                <!-- Left Sidebar Navigation -->
+                <aside class="bookmarks-sidebar">
+                  <!-- Workspaces Section -->
+                  <div class="bm-sidebar-section">
+                    <div class="bm-sidebar-heading">Workspaces</div>
+                    <div class="bm-workspaces-list" id="bm-mgr-workspaces-list">
+                      <!-- Dynamic workspace items -->
+                    </div>
+                  </div>
+
+                  <!-- Collections Section -->
+                  <div class="bm-sidebar-section">
+                    <div class="bm-sidebar-heading">Collections</div>
+                    <div class="bm-nav-item active" data-nav="all">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg>
+                      <span>All Bookmarks</span>
+                      <span class="bm-nav-badge" id="badge-count-all">0</span>
+                    </div>
+                    <div class="bm-nav-item" data-nav="bar">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                      <span>Favorites Bar</span>
+                      <span class="bm-nav-badge" id="badge-count-bar">0</span>
+                    </div>
+                    <div class="bm-nav-item" data-nav="reading">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                      <span>Reading List</span>
+                      <span class="bm-nav-badge" id="badge-count-reading">0</span>
+                    </div>
+                    <div class="bm-nav-item" data-nav="trash">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                      <span>Trash</span>
+                      <span class="bm-nav-badge" id="badge-count-trash">0</span>
+                    </div>
+                  </div>
+
+                  <!-- Hierarchical Folder Tree -->
+                  <div class="bm-sidebar-section">
+                    <div class="bm-sidebar-heading">Folders</div>
+                    <div class="bm-folder-tree" id="bm-mgr-folder-tree">
+                      <!-- Dynamic Folder Tree nodes -->
+                    </div>
+                  </div>
+
+                  <!-- Tags Filter -->
+                  <div class="bm-sidebar-section">
+                    <div class="bm-sidebar-heading">Tags & Clusters</div>
+                    <div class="bm-tags-cloud" id="bm-mgr-tags-cloud">
+                      <!-- Dynamic tag chips -->
+                    </div>
+                  </div>
+                </aside>
+
+                <!-- Right Content Area -->
+                <main class="bookmarks-content-pane">
+                  <!-- Breadcrumbs & Stats bar -->
+                  <div class="bm-breadcrumbs-bar">
+                    <div class="bm-breadcrumbs" id="bm-mgr-breadcrumbs">
+                      <span class="breadcrumb-item active">All Bookmarks</span>
+                    </div>
+                    <div class="bm-header-tools">
+                      <button id="btn-bm-empty-trash" class="mac-btn mac-btn-danger mac-btn-sm" style="display: none;">Empty Trash</button>
+                    </div>
+                  </div>
+
+                  <!-- Items Container (Cards Grid / Table List) -->
+                  <div class="bm-items-container grid-view" id="bm-mgr-items-container">
+                    <!-- Dynamic Bookmarks and Folder Cards -->
+                  </div>
+
+                  <!-- Bottom Status Bar -->
+                  <footer class="bookmarks-status-bar">
+                    <span id="bm-status-text">Loading bookmarks...</span>
+                    <div class="bm-status-actions">
+                      <button class="bm-status-btn" id="btn-bm-import-html">Import HTML</button>
+                      <button class="bm-status-btn" id="btn-bm-export-html">Export Backup</button>
+                    </div>
+                  </footer>
+                </main>
+              </div>
+
+            </div>
           </div>
 
         </div>
@@ -1012,6 +1486,181 @@
     <div class="context-menu-item" id="ctx-close-tabs-right">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
       <span>Close Tabs to the Right</span>
+    </div>
+  </div>
+
+  <!-- CLEAR BROWSING DATA MODAL (macOS Sheet Style) -->
+  <dialog id="clear-history-dialog" class="shortcuts-modal-dialog">
+    <div class="shortcuts-modal-card" style="max-width: 440px;">
+      <div class="shortcuts-modal-header">
+        <div class="shortcuts-header-title">
+          <div class="settings-icon-badge badge-orange" style="width: 22px; height: 22px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+          </div>
+          <h3>Clear Browsing Data</h3>
+        </div>
+        <button id="btn-close-clear-history-dialog" class="shortcuts-modal-close" aria-label="Close">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
+        <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.45;">
+          Select the time range of browsing history, temporary site cache, and navigation entries you wish to remove.
+        </p>
+
+        <div class="mac-form-group">
+          <label class="mac-form-label">Time Range</label>
+          <select id="clear-history-range-select" class="mac-select" style="width: 100%;">
+            <option value="hour">Past hour</option>
+            <option value="today">Today</option>
+            <option value="week">Past 7 days</option>
+            <option value="all" selected>All time</option>
+          </select>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+          <button type="button" id="btn-cancel-clear-history" class="mac-btn-secondary">Cancel</button>
+          <button type="button" id="btn-confirm-clear-history" class="mac-btn-danger">Clear Data</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- HISTORY ITEM CONTEXT MENU / POPUP MENU -->
+  <div id="history-context-menu" class="mac-context-menu" style="display: none;">
+    <div class="context-menu-item" id="ctx-hist-open-tab">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      <span>Open in New Tab</span>
+    </div>
+    <div class="context-menu-item" id="ctx-hist-open-split">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+      <span>Open in Split View</span>
+    </div>
+    <div class="context-menu-item" id="ctx-hist-copy-link">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      <span>Copy Link Address</span>
+    </div>
+    <div class="context-menu-item" id="ctx-hist-filter-domain">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <span>More from this site</span>
+    </div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item dropdown-danger" id="ctx-hist-delete">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+      <span>Delete from History</span>
+    </div>
+  </div>
+
+  <!-- ADD / EDIT NEW TAB SHORTCUT MODAL -->
+  <dialog id="modal-add-shortcut" class="shortcuts-modal-dialog">
+    <div class="shortcuts-modal-card" style="max-width: 440px;">
+      <div class="shortcuts-modal-header">
+        <div class="shortcuts-header-title">
+          <div class="settings-icon-badge" style="background: linear-gradient(135deg, #f59e0b, #d97706); width: 22px; height: 22px; color: #ffffff;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="#ffffff" stroke="#ffffff" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </div>
+          <h3 id="shortcut-modal-title">Add Shortcut</h3>
+        </div>
+        <button id="btn-close-shortcut-modal" class="shortcuts-modal-close" aria-label="Close">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <form id="form-add-shortcut" class="pwd-modal-body">
+        <input type="hidden" id="shortcut-edit-id" value="">
+        <div class="pwd-field-group">
+          <label for="shortcut-input-title">Name</label>
+          <input type="text" id="shortcut-input-title" placeholder="e.g. Supabase, GitHub..." required autocomplete="off">
+        </div>
+        <div class="pwd-field-group">
+          <label for="shortcut-input-url">URL</label>
+          <input type="url" id="shortcut-input-url" placeholder="https://example.com" required autocomplete="off">
+        </div>
+        <div class="pwd-modal-actions">
+          <button type="button" id="btn-delete-shortcut" class="mac-btn mac-btn-danger" style="display: none; margin-right: auto;">Delete</button>
+          <button type="button" id="btn-cancel-shortcut-modal" class="mac-btn mac-btn-secondary">Cancel</button>
+          <button type="submit" id="btn-save-shortcut" class="mac-btn mac-btn-primary">Save Shortcut</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- ADD / EDIT BOOKMARK FOLDER MODAL -->
+  <dialog id="modal-add-bm-folder" class="shortcuts-modal-dialog">
+    <div class="shortcuts-modal-card" style="max-width: 440px;">
+      <div class="shortcuts-modal-header">
+        <div class="shortcuts-header-title">
+          <div class="settings-icon-badge" style="background: #f59e0b; width: 22px; height: 22px; color: #ffffff;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <h3 id="bm-folder-modal-title">New Folder</h3>
+        </div>
+        <button id="btn-close-bm-folder-modal" class="shortcuts-modal-close" aria-label="Close">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <form id="form-add-bm-folder" class="pwd-modal-body">
+        <input type="hidden" id="bm-folder-edit-id" value="">
+        <div class="pwd-field-group">
+          <label for="bm-folder-input-title">Folder Name</label>
+          <input type="text" id="bm-folder-input-title" placeholder="e.g. Work Docs, AI Tools..." required autocomplete="off">
+        </div>
+        <div class="pwd-field-group">
+          <label for="bm-folder-input-parent">Location</label>
+          <select id="bm-folder-input-parent" class="mac-select">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+        <div class="pwd-field-group">
+          <label>Folder Color</label>
+          <div class="folder-color-pickers" id="bm-folder-color-options">
+            <span class="color-dot active" data-color="#f59e0b" style="background: #f59e0b;"></span>
+            <span class="color-dot" data-color="#3b82f6" style="background: #3b82f6;"></span>
+            <span class="color-dot" data-color="#10b981" style="background: #10b981;"></span>
+            <span class="color-dot" data-color="#8b5cf6" style="background: #8b5cf6;"></span>
+            <span class="color-dot" data-color="#ec4899" style="background: #ec4899;"></span>
+            <span class="color-dot" data-color="#64748b" style="background: #64748b;"></span>
+          </div>
+        </div>
+        <div class="pwd-modal-actions">
+          <button type="button" id="btn-cancel-bm-folder-modal" class="mac-btn mac-btn-secondary">Cancel</button>
+          <button type="submit" id="btn-save-bm-folder" class="mac-btn mac-btn-primary">Save Folder</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- BOOKMARKS BAR FOLDER DROPDOWN -->
+  <div id="bookmarks-bar-dropdown" class="mac-bm-bar-dropdown" style="display: none;">
+    <div class="bm-dropdown-content" id="bm-bar-dropdown-content">
+      <!-- Populated dynamically on folder click -->
+    </div>
+  </div>
+
+  <!-- BOOKMARK ITEM CONTEXT MENU / POPUP MENU -->
+  <div id="bookmark-context-menu" class="mac-context-menu" style="display: none;">
+    <div class="context-menu-item" id="ctx-bm-open-tab">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      <span>Open in New Tab</span>
+    </div>
+    <div class="context-menu-item" id="ctx-bm-open-split">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+      <span>Open in Split View</span>
+    </div>
+    <div class="context-menu-item" id="ctx-bm-edit">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      <span>Edit Bookmark...</span>
+    </div>
+    <div class="context-menu-item" id="ctx-bm-copy-link">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      <span>Copy URL</span>
+    </div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item dropdown-danger" id="ctx-bm-delete">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+      <span>Delete Bookmark</span>
     </div>
   </div>
 

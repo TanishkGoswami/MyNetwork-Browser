@@ -115,8 +115,8 @@ class WebviewAdapter {
         }
         tabManager.updateTab(tabId, updates);
 
-        const { historyService } = require('../../infrastructure/storage/history-service');
-        historyService.addRecord(title, url);
+        const { historyService } = require('../../features/history/history-service');
+        historyService.addRecord(title, url, updates.favicon || currentTab?.favicon);
 
         eventBus.emit(EVENTS.NAV_FINISH, { tabId, url, title, favicon: updates.favicon || currentTab?.favicon });
 
@@ -362,17 +362,82 @@ class WebviewAdapter {
             });
           }
 
-          // Trigger suggestion dropdown on focus/click of login inputs
+          function isCredentialInput(el) {
+            if (!el || el.tagName !== 'INPUT') return false;
+
+            const type = (el.type || 'text').toLowerCase();
+            
+            // 1. Password field is ALWAYS a credential field
+            if (type === 'password') return true;
+
+            // 2. Only consider text, email, or tel fields
+            if (type !== 'text' && type !== 'email' && type !== 'tel') return false;
+
+            const name = (el.name || '').toLowerCase();
+            const id = (el.id || '').toLowerCase();
+            const placeholder = (el.placeholder || '').toLowerCase();
+            const role = (el.getAttribute('role') || '').toLowerCase();
+            const ariaLabel = (el.getAttribute('aria-label') || '').toLowerCase();
+            const autocomplete = (el.getAttribute('autocomplete') || '').toLowerCase();
+
+            // 3. Exclude all search, filter, query, and non-auth fields
+            if (type === 'search' || role === 'search' || role === 'searchbox') return false;
+            
+            const searchTerms = ['search', 'filter', 'query', 'find', 'keyword', 'search-box', 'searchinput', 'search_input', 'search_query', 'q', 's'];
+            if (searchTerms.some(term => name === term || id === term || name.includes(term) || id.includes(term) || placeholder.includes(term) || ariaLabel.includes(term))) {
+              return false;
+            }
+
+            // Exclude non-login common inputs (e.g. coupon, promo, zip, postal, captcha, otp, code, amount, title, company, tag)
+            const nonAuthTerms = ['coupon', 'promo', 'zip', 'postal', 'captcha', 'otp', 'amount', 'company', 'address', 'city', 'state', 'country', 'subject', 'message', 'comment', 'title', 'tag'];
+            if (nonAuthTerms.some(term => name.includes(term) || id.includes(term) || placeholder.includes(term))) {
+              return false;
+            }
+
+            // 4. Check for standard auth autocomplete tags
+            if (autocomplete === 'username' || autocomplete === 'email' || autocomplete === 'current-password' || autocomplete === 'webauthn') {
+              return true;
+            }
+
+            // 5. Explicit login keywords on the input itself
+            const authKeywords = ['username', 'user_name', 'userid', 'user_id', 'user-name', 'userlogin', 'user_login', 'login_id', 'loginid', 'account_id', 'accountname', 'account_name', 'email_address', 'login-email', 'login_email', 'auth-email', 'identifier'];
+            const hasAuthAttr = authKeywords.some(k => name === k || id === k || name.includes(k) || id.includes(k) || ariaLabel.includes(k));
+
+            // 6. Form / Container password relationship
+            const form = el.form || el.closest('form');
+            let hasPasswordField = false;
+            if (form) {
+              hasPasswordField = !!form.querySelector('input[type="password"]');
+            } else {
+              const loginContainer = el.closest('div[class*="login"], div[class*="auth"], div[class*="signin"], div[class*="sign-in"], div[id*="login"], div[id*="auth"], div[id*="signin"], form');
+              if (loginContainer) {
+                hasPasswordField = !!loginContainer.querySelector('input[type="password"]');
+              }
+            }
+
+            if (hasPasswordField && (hasAuthAttr || type === 'email' || placeholder.includes('email') || placeholder.includes('username') || placeholder.includes('user name') || placeholder.includes('phone') || placeholder.includes('mobile') || placeholder.includes('login') || placeholder.includes('id') || name.includes('user') || name.includes('email') || name.includes('login'))) {
+              return true;
+            }
+
+            // If it explicitly has a strong login identifier and is not a search box
+            if (hasAuthAttr) return true;
+
+            return false;
+          }
+
+          // Trigger suggestion dropdown ONLY on genuine login / credential inputs
           document.addEventListener('focusin', function(e) {
             const t = e.target;
-            if (t && (t.type === 'password' || t.type === 'text' || t.type === 'email' || t.type === 'tel' || t.name === 'username')) {
+            if (isCredentialInput(t)) {
               showSuggestions(t);
+            } else {
+              removeMenu();
             }
           }, true);
 
           document.addEventListener('click', function(e) {
             const t = e.target;
-            if (t && (t.type === 'password' || t.type === 'text' || t.type === 'email' || t.type === 'tel' || t.name === 'username')) {
+            if (isCredentialInput(t)) {
               showSuggestions(t);
             } else if (!e.target.closest('#mynetwork-autofill-menu')) {
               removeMenu();
@@ -410,22 +475,13 @@ class WebviewAdapter {
           el.dispatchEvent(new Event('change', { bubbles: true }));
         }
 
-        const pwds = document.querySelectorAll('input[type="password"]');
-        if (pwds.length > 0) {
-          pwds.forEach(function(pwd) {
-            const form = pwd.closest('form') || document;
-            const userFields = form.querySelectorAll('input[name="username"], input[type="text"], input[type="email"], input[type="tel"], input:not([type])');
-            if (userFields.length > 0) {
-              setReactValue(userFields[0], u);
-            }
-            setReactValue(pwd, p);
-          });
-        } else {
-          const users = document.querySelectorAll('input[name="username"], input[type="text"], input[type="email"], input[type="tel"]');
-          if (users.length > 0) {
-            setReactValue(users[0], u);
-          }
-        }
+        const activeEl = document.activeElement;
+        const form = (activeEl && (activeEl.form || activeEl.closest('form'))) || document.querySelector('form') || document;
+        const pwd = form.querySelector('input[type="password"]') || document.querySelector('input[type="password"]');
+        const userField = form.querySelector('input[autocomplete="username"], input[autocomplete="email"], input[name*="user"], input[name*="login"], input[name*="email"], input[type="email"], input[type="text"]') || (activeEl && activeEl.type !== 'password' ? activeEl : null);
+
+        if (userField) setReactValue(userField, u);
+        if (pwd) setReactValue(pwd, p);
       })();
     `;
     webview.executeJavaScript(code).catch(() => {});
@@ -456,7 +512,16 @@ class WebviewAdapter {
     const webview = this.webviewMap.get(tabId);
     if (webview) {
       const isInternal = !url || url.startsWith('mynetwork://') || url.startsWith('about:') || url.startsWith('zen://');
-      webview.src = isInternal ? BLANK_URL : url;
+      const target = isInternal ? BLANK_URL : url;
+      try {
+        if (typeof webview.loadURL === 'function') {
+          webview.loadURL(target).catch(() => {});
+        } else {
+          webview.src = target;
+        }
+      } catch (err) {
+        webview.src = target;
+      }
     }
   }
 

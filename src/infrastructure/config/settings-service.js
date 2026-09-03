@@ -24,7 +24,13 @@ const DEFAULT_SETTINGS = {
 
   // Privacy & Security
   trackingProtectionLevel: 'standard', // 'standard' | 'strict'
-  saveBrowsingHistory: true
+  saveBrowsingHistory: true,
+
+  // Bookmarks & Workspaces
+  bookmarksBarMode: 'always', // 'always' | 'newtab' | 'never'
+  newtabBookmarksLayout: 'spotlight', // 'spotlight' | 'boards' | 'minimal'
+  defaultBookmarkFolder: 'root_bar',
+  bookmarkOpenTarget: 'current' // 'current' | 'new' | 'background'
 };
 
 class SettingsService {

@@ -64,7 +64,7 @@ if (app && app.whenReady) {
   });
 }
 
-// Window Control IPC Handlers
+// Window Control & Theme IPC Handlers
 if (ipcMain) {
   ipcMain.on('window-minimize', () => {
     if (mainWindow) mainWindow.minimize();
@@ -81,5 +81,12 @@ if (ipcMain) {
 
   ipcMain.on('window-close', () => {
     if (mainWindow) mainWindow.close();
+  });
+
+  ipcMain.on('set-theme-source', (event, theme) => {
+    const { nativeTheme } = require('electron');
+    if (nativeTheme) {
+      nativeTheme.themeSource = (theme === 'dark' || theme === 'light') ? theme : 'system';
+    }
   });
 }

@@ -271,6 +271,8 @@ class MyNetworkShell {
       bmPopoverNewFolderInput: document.getElementById('bm-popover-new-folder-input'),
       btnBmPopoverCreateFolderConfirm: document.getElementById('btn-bm-popover-create-folder-confirm'),
       btnBmPopoverCreateFolderCancel: document.getElementById('btn-bm-popover-create-folder-cancel'),
+      bmPopoverWsSelect: document.getElementById('bm-popover-ws-select'),
+      bmPopoverDetectedBadge: document.getElementById('bm-popover-detected-badge'),
       bmPopoverTagsBox: document.getElementById('bm-popover-tags-box'),
       bmPopoverTagsInput: document.getElementById('bm-popover-tags-input'),
       bmPopoverFavCheck: document.getElementById('bm-popover-fav-check'),
@@ -294,6 +296,7 @@ class MyNetworkShell {
       shortcutEditId: document.getElementById('shortcut-edit-id'),
       shortcutInputTitle: document.getElementById('shortcut-input-title'),
       shortcutInputUrl: document.getElementById('shortcut-input-url'),
+      shortcutInputWs: document.getElementById('shortcut-input-ws'),
       btnDeleteShortcut: document.getElementById('btn-delete-shortcut'),
       btnCloseShortcutModal: document.getElementById('btn-close-shortcut-modal'),
       btnCancelShortcutModal: document.getElementById('btn-cancel-shortcut-modal'),
@@ -2362,7 +2365,20 @@ class MyNetworkShell {
     const targetFolderId = existing ? existing.parentId : defaultFolder;
     this.populatePopoverFolders(targetFolderId);
 
-    this.popoverActiveTags = (existing && Array.isArray(existing.tags)) ? [...existing.tags] : [];
+    // Smart Workspace Auto-Detection
+    const smartClass = workspaceService.classifyUrl(tabUrl);
+    this.populatePopoverWorkspaces(existing ? existing.workspaceId : smartClass.workspaceId, smartClass);
+
+    if (this.dom.bmPopoverDetectedBadge) {
+      this.dom.bmPopoverDetectedBadge.style.display = 'inline-flex';
+      this.dom.bmPopoverDetectedBadge.textContent = `✨ ${smartClass.workspaceName}`;
+    }
+
+    if (existing && Array.isArray(existing.tags) && existing.tags.length > 0) {
+      this.popoverActiveTags = [...existing.tags];
+    } else {
+      this.popoverActiveTags = smartClass.suggestedTags || [];
+    }
     this.renderPopoverTags();
 
     if (this.dom.bmPopoverFavCheck) {
@@ -2384,6 +2400,22 @@ class MyNetworkShell {
     if (this.dom.bookmarkStarPopover) {
       this.dom.bookmarkStarPopover.style.display = 'none';
     }
+  }
+
+  populatePopoverWorkspaces(selectedId = null, smartClass = null) {
+    if (!this.dom.bmPopoverWsSelect) return;
+    const workspaces = workspaceService.getWorkspaces();
+    this.dom.bmPopoverWsSelect.innerHTML = '';
+
+    workspaces.forEach(ws => {
+      const opt = document.createElement('option');
+      opt.value = ws.id;
+      const wsIcon = ws.icon === 'globe' ? '🌐' : (ws.icon === 'code' ? '💻' : (ws.icon === 'user' ? '👤' : '💼'));
+      const isSmartDetected = smartClass && smartClass.workspaceId === ws.id;
+      opt.textContent = `${wsIcon} ${ws.name}${isSmartDetected ? ' (✨ Detected)' : ''}`;
+      if (ws.id === selectedId) opt.selected = true;
+      this.dom.bmPopoverWsSelect.appendChild(opt);
+    });
   }
 
   populatePopoverFolders(selectedId = 'root_bar') {
@@ -2420,6 +2452,7 @@ class MyNetworkShell {
     const url = this.dom.bmPopoverUrl ? this.dom.bmPopoverUrl.value.trim() : (activeTab ? activeTab.url : '');
     const title = this.dom.bmPopoverName ? this.dom.bmPopoverName.value.trim() : (activeTab ? activeTab.title : 'Untitled');
     const selectedFolder = this.dom.bmPopoverFolderSelect ? this.dom.bmPopoverFolderSelect.value : 'root_bar';
+    const selectedWs = this.dom.bmPopoverWsSelect ? this.dom.bmPopoverWsSelect.value : null;
     const isFav = this.dom.bmPopoverFavCheck ? this.dom.bmPopoverFavCheck.checked : true;
     
     // Target folder is the selected folder, or root_bar if checked for favorites bar
@@ -2436,6 +2469,7 @@ class MyNetworkShell {
         title: title || existing.title,
         url,
         parentId: finalParentId,
+        workspaceId: selectedWs || existing.workspaceId,
         tags: this.popoverActiveTags,
         favicon: (activeTab && activeTab.favicon) ? activeTab.favicon : existing.favicon
       });
@@ -2447,7 +2481,7 @@ class MyNetworkShell {
         parentId: finalParentId,
         tags: this.popoverActiveTags,
         favicon: (activeTab && activeTab.favicon) ? activeTab.favicon : null,
-        workspaceId: workspaceService.getActiveWorkspaceId()
+        workspaceId: selectedWs || workspaceService.detectWorkspaceForUrl(url)
       });
       this.showToast(`Saved "${title}" to Bookmarks ⭐`);
     }
@@ -2713,6 +2747,9 @@ class MyNetworkShell {
     if (this.dom.shortcutEditId) this.dom.shortcutEditId.value = existing ? existing.id : '';
     if (this.dom.shortcutInputTitle) this.dom.shortcutInputTitle.value = defaultTitle;
     if (this.dom.shortcutInputUrl) this.dom.shortcutInputUrl.value = defaultUrl;
+    if (this.dom.shortcutInputWs) {
+      this.dom.shortcutInputWs.value = existing ? (existing.workspaceId || 'auto') : 'auto';
+    }
     if (this.dom.btnDeleteShortcut) this.dom.btnDeleteShortcut.style.display = existing ? 'block' : 'none';
     const titleEl = document.getElementById('shortcut-modal-title');
     if (titleEl) titleEl.textContent = existing ? 'Edit Shortcut' : 'Add Shortcut';
@@ -2918,6 +2955,10 @@ class MyNetworkShell {
     items.forEach(item => {
       if (!item) return;
       const isFolder = item.type === 'folder' || !!item.isFolder;
+      const wsId = item.workspaceId || (item.url ? workspaceService.detectWorkspaceForUrl(item.url) : 'ws_default');
+      const wsObj = workspaceService.getWorkspace(wsId);
+      const wsIcon = wsObj?.icon === 'globe' ? '🌐' : (wsObj?.icon === 'code' ? '💻' : (wsObj?.icon === 'user' ? '👤' : '💼'));
+      const wsBadgeHtml = `<span class="bm-card-ws-badge ws-badge-${wsId}">${wsIcon} ${this.escapeHtml(wsObj?.name || 'General')}</span>`;
 
       if (this.currentBmViewMode === 'grid') {
         const card = document.createElement('div');
@@ -2934,6 +2975,7 @@ class MyNetworkShell {
           <div class="bm-card-header">
             ${faviconHtml}
             <span class="bm-card-title">${this.escapeHtml(item.title)}</span>
+            ${wsBadgeHtml}
           </div>
           ${isFolder ? '' : `<div class="bm-card-url">${this.escapeHtml(item.url || '')}</div>`}
           ${tagsHtml}
@@ -2964,6 +3006,7 @@ class MyNetworkShell {
         row.innerHTML = `
           ${faviconHtml}
           <span class="bm-list-title">${this.escapeHtml(item.title)}</span>
+          ${wsBadgeHtml}
           <span class="bm-list-url">${this.escapeHtml(item.url || (isFolder ? 'Folder' : ''))}</span>
         `;
         row.addEventListener('click', () => {
@@ -3282,17 +3325,20 @@ class MyNetworkShell {
         const id = this.dom.shortcutEditId ? this.dom.shortcutEditId.value : null;
         const title = this.dom.shortcutInputTitle.value.trim();
         const url = this.dom.shortcutInputUrl.value.trim();
+        const wsVal = this.dom.shortcutInputWs ? this.dom.shortcutInputWs.value : 'auto';
         if (!title || !url) return;
 
         if (id) {
-          bookmarkService.updateBookmark(id, { title, url });
+          const updates = { title, url };
+          if (wsVal && wsVal !== 'auto') updates.workspaceId = wsVal;
+          bookmarkService.updateBookmark(id, updates);
           this.showToast(`Updated "${title}"`);
         } else {
           bookmarkService.createBookmark({
             title,
             url,
             parentId: 'root_bar',
-            workspaceId: workspaceService.getActiveWorkspaceId()
+            workspaceId: wsVal
           });
           this.showToast(`Added "${title}" to Shortcuts`);
         }

@@ -90,6 +90,15 @@
               </div>
             </div>
             <div class="bm-popover-field">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <label>Workspace</label>
+                <span id="bm-popover-detected-badge" class="bm-smart-detected-badge" style="display: none;">✨ Auto Space</span>
+              </div>
+              <select id="bm-popover-ws-select" class="mac-select" style="width: 100%;">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div class="bm-popover-field">
               <label>Tags</label>
               <div class="bm-popover-tags-box" id="bm-popover-tags-box">
                 <input type="text" id="bm-popover-tags-input" placeholder="Type tag & press Enter...">
@@ -1576,6 +1585,15 @@
         <div class="pwd-field-group">
           <label for="shortcut-input-url">URL</label>
           <input type="url" id="shortcut-input-url" placeholder="https://example.com" required autocomplete="off">
+        </div>
+        <div class="pwd-field-group">
+          <label for="shortcut-input-ws">Workspace</label>
+          <select id="shortcut-input-ws" class="mac-select">
+            <option value="auto">✨ Auto Detect (Smart Space)</option>
+            <option value="ws_default">🌐 General</option>
+            <option value="ws_work">💻 Work & Dev</option>
+            <option value="ws_personal">👤 Personal</option>
+          </select>
         </div>
         <div class="pwd-modal-actions">
           <button type="button" id="btn-delete-shortcut" class="mac-btn mac-btn-danger" style="display: none; margin-right: auto;">Delete</button>

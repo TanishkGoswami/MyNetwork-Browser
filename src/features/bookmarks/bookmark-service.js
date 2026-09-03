@@ -403,7 +403,16 @@ class BookmarkService {
   }) {
     if (!url || !url.trim()) throw new Error('Bookmark URL is required');
     const trimmedTitle = (title || url).trim();
-    const activeWorkspace = workspaceId || workspaceService.getActiveWorkspaceId();
+    
+    // Smart Workspace Auto-Detection & Tagging
+    const smartClass = workspaceService.classifyUrl(url);
+    const activeWorkspace = (workspaceId && workspaceId !== 'auto')
+      ? workspaceId 
+      : smartClass.workspaceId;
+
+    const finalTags = (Array.isArray(tags) && tags.length > 0)
+      ? Array.from(new Set(tags.map(t => t.trim()).filter(Boolean)))
+      : (smartClass.suggestedTags || []);
 
     const id = `bm_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
     const newBm = {
@@ -414,7 +423,7 @@ class BookmarkService {
       title: trimmedTitle,
       url: url.trim(),
       favicon: favicon || `https://www.google.com/s2/favicons?domain=${this.extractDomain(url)}&sz=64`,
-      tags: Array.isArray(tags) ? tags.map(t => t.trim()).filter(Boolean) : [],
+      tags: finalTags,
       notes: (notes || '').trim(),
       createdAt: Date.now(),
       updatedAt: Date.now(),

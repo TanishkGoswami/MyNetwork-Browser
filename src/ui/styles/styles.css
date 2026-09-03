@@ -4058,7 +4058,7 @@ dialog::backdrop {
 }
 
 /* ==========================================================================
-   DEDICATED macOS BOOKMARKS MANAGER (mynetwork://bookmarks)
+   DEDICATED macOS BOOKMARKS & SPACES MANAGER (mynetwork://bookmarks)
    ========================================================================== */
 
 .bookmarks-view {
@@ -4066,8 +4066,13 @@ dialog::backdrop {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #f8fafc;
+  background: #fbfbfd;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", sans-serif;
   overflow: hidden;
+}
+
+[data-theme="dark"] .bookmarks-view {
+  background: #18181b;
 }
 
 .bookmarks-view-container {
@@ -4077,22 +4082,62 @@ dialog::backdrop {
   flex-direction: column;
 }
 
+/* macOS Top Unified Toolbar */
 .bookmarks-top-bar {
   height: 52px;
-  background: #ffffff;
+  min-height: 52px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
-  gap: 16px;
+  padding: 0 16px;
+  gap: 14px;
   flex-shrink: 0;
+  z-index: 10;
+}
+
+[data-theme="dark"] .bookmarks-top-bar {
+  background: rgba(28, 28, 32, 0.85);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
 .bookmarks-title-area {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+}
+
+.mac-nav-back-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.mac-nav-back-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #0f172a;
+}
+
+[data-theme="dark"] .mac-nav-back-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .mac-nav-back-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
 }
 
 .bookmarks-title-wrapper {
@@ -4102,110 +4147,181 @@ dialog::backdrop {
 }
 
 .bookmarks-title-wrapper h2 {
-  font-size: 15px;
-  font-weight: 600;
-  color: #0f172a;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  color: #1d1d1f;
   margin: 0;
 }
 
+[data-theme="dark"] .bookmarks-title-wrapper h2 {
+  color: #f4f4f5;
+}
+
 .bookmarks-icon-badge {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: #fef3c7;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border: 1px solid rgba(245, 158, 11, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+/* Apple Spotlight Style Search Input */
 .bookmarks-search-wrapper {
   flex: 1;
-  max-width: 420px;
+  max-width: 440px;
 }
 
 .bookmarks-search-box {
   display: flex;
   align-items: center;
-  background: #f1f5f9;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 8px;
   padding: 0 10px;
-  height: 32px;
-  gap: 8px;
+  height: 30px;
+  gap: 7px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 0.15s ease;
 }
+
 .bookmarks-search-box:focus-within {
   background: #ffffff;
+  border-color: #007aff;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.18);
+}
+
+[data-theme="dark"] .bookmarks-search-box {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+[data-theme="dark"] .bookmarks-search-box:focus-within {
+  background: #27272a;
   border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+.bookmarks-search-icon {
+  color: #8e8e93;
+  flex-shrink: 0;
 }
 
 .bookmarks-search-box input {
   border: none;
   background: transparent;
-  font-size: 12.5px;
-  color: #0f172a;
+  font-size: 12px;
+  font-weight: 450;
+  color: #1d1d1f;
   outline: none;
   width: 100%;
 }
 
+[data-theme="dark"] .bookmarks-search-box input {
+  color: #f4f4f5;
+}
+
+.bookmarks-search-clear-btn {
+  background: transparent;
+  border: none;
+  color: #8e8e93;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+/* macOS Top Actions */
 .bookmarks-top-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
 }
 
 .mac-pill-action-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 30px;
-  padding: 0 12px;
-  border-radius: 7px;
-  background: #f1f5f9;
+  gap: 5px;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 6.5px;
+  background: rgba(0, 0, 0, 0.04);
   border: 1px solid rgba(0, 0, 0, 0.08);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 500;
-  color: #334155;
+  color: #1d1d1f;
   cursor: pointer;
+  user-select: none;
   transition: all 0.12s ease;
 }
+
 .mac-pill-action-btn:hover {
-  background: #e2e8f0;
-  color: #0f172a;
-}
-.mac-pill-action-btn.primary {
-  background: #007aff;
-  color: #ffffff;
-  border-color: transparent;
-}
-.mac-pill-action-btn.primary:hover {
-  background: #0062cc;
+  background: rgba(0, 0, 0, 0.08);
 }
 
+[data-theme="dark"] .mac-pill-action-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #e4e4e7;
+}
+
+[data-theme="dark"] .mac-pill-action-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.mac-pill-action-btn.primary {
+  background: linear-gradient(180deg, #0a84ff 0%, #0071e3 100%);
+  border: 1px solid rgba(0, 113, 227, 0.4);
+  color: #ffffff;
+  font-weight: 550;
+  box-shadow: 0 1px 2px rgba(0, 113, 227, 0.25);
+}
+
+.mac-pill-action-btn.primary:hover {
+  background: linear-gradient(180deg, #1f8dff 0%, #0068d1 100%);
+}
+
+/* macOS Segmented Control */
 .view-mode-toggle-group {
   display: flex;
-  background: #f1f5f9;
+  background: rgba(0, 0, 0, 0.06);
   padding: 2px;
   border-radius: 7px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  gap: 1px;
+}
+
+[data-theme="dark"] .view-mode-toggle-group {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .view-toggle-btn {
   width: 26px;
-  height: 26px;
-  border-radius: 5px;
+  height: 24px;
+  border-radius: 5.5px;
   border: none;
   background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: #8e8e93;
   cursor: pointer;
+  transition: all 0.12s ease;
 }
+
 .view-toggle-btn.active {
   background: #ffffff;
-  color: #0f172a;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  color: #1d1d1f;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0.5px 1px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .view-toggle-btn.active {
+  background: #3f3f46;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* 2-Pane Finder Body */
@@ -4215,25 +4331,37 @@ dialog::backdrop {
   overflow: hidden;
 }
 
+/* Frosted Translucent Sidebar */
 .bookmarks-sidebar {
-  width: 240px;
-  background: #ffffff;
-  border-right: 1px solid rgba(0, 0, 0, 0.07);
+  width: 210px;
+  background: rgba(245, 245, 247, 0.85);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
-  padding: 14px 10px;
-  gap: 16px;
+  padding: 12px 8px;
+  gap: 14px;
   overflow-y: auto;
   flex-shrink: 0;
 }
 
+[data-theme="dark"] .bookmarks-sidebar {
+  background: rgba(24, 24, 27, 0.9);
+  border-right-color: rgba(255, 255, 255, 0.08);
+}
+
 .bm-sidebar-heading {
-  font-size: 11px;
-  font-weight: 600;
-  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 700;
+  color: #8e8e93;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 0 8px 4px 8px;
+  letter-spacing: 0.06em;
+  padding: 4px 8px 3px 8px;
+}
+
+[data-theme="dark"] .bm-sidebar-heading {
+  color: #71717a;
 }
 
 .bm-nav-item,
@@ -4241,36 +4369,61 @@ dialog::backdrop {
 .bm-tree-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
+  gap: 7px;
+  height: 28px;
+  padding: 0 8px;
   border-radius: 6px;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 500;
-  color: #334155;
+  color: #1d1d1f;
   cursor: pointer;
   user-select: none;
-  transition: all 0.12s ease;
+  transition: all 0.1s ease;
+}
+
+[data-theme="dark"] .bm-nav-item,
+[data-theme="dark"] .bm-ws-item,
+[data-theme="dark"] .bm-tree-item {
+  color: #e4e4e7;
 }
 
 .bm-nav-item:hover,
 .bm-ws-item:hover,
 .bm-tree-item:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .bm-nav-item:hover,
+[data-theme="dark"] .bm-ws-item:hover,
+[data-theme="dark"] .bm-tree-item:hover {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .bm-nav-item.active,
 .bm-ws-item.active,
 .bm-tree-item.active {
-  background: #e0f2fe;
-  color: #0284c7;
+  background: #007aff;
+  color: #ffffff;
+  font-weight: 550;
+}
+
+.bm-nav-item.active svg,
+.bm-ws-item.active svg,
+.bm-tree-item.active svg {
+  stroke: #ffffff !important;
+  fill: none !important;
 }
 
 .bm-nav-badge {
   margin-left: auto;
-  font-size: 11px;
-  font-weight: 500;
-  color: #94a3b8;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #8e8e93;
+  padding: 0 4px;
+}
+
+.bm-nav-item.active .bm-nav-badge {
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .bm-tags-cloud {
@@ -4281,19 +4434,25 @@ dialog::backdrop {
 }
 
 .bm-tag-pill {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 500;
-  padding: 2px 7px;
-  border-radius: 5px;
-  background: #f1f5f9;
-  color: #475569;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.04);
+  color: #64748b;
   cursor: pointer;
-  transition: all 0.12s ease;
+  transition: all 0.1s ease;
 }
+
 .bm-tag-pill:hover,
 .bm-tag-pill.active {
   background: #007aff;
   color: #ffffff;
+}
+
+[data-theme="dark"] .bm-tag-pill {
+  background: rgba(255, 255, 255, 0.06);
+  color: #a1a1aa;
 }
 
 /* Right Content Area */
@@ -4301,77 +4460,107 @@ dialog::backdrop {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #f8fafc;
+  background: #fbfbfd;
   overflow: hidden;
 }
 
+[data-theme="dark"] .bookmarks-content-pane {
+  background: #18181b;
+}
+
 .bm-breadcrumbs-bar {
-  height: 40px;
-  padding: 0 20px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
+[data-theme="dark"] .bm-breadcrumbs-bar {
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
 .bm-breadcrumbs {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 500;
-  color: #64748b;
+  color: #8e8e93;
 }
 
 .breadcrumb-item.active {
-  color: #0f172a;
+  color: #1d1d1f;
   font-weight: 600;
+}
+
+[data-theme="dark"] .breadcrumb-item.active {
+  color: #f4f4f5;
 }
 
 .bm-items-container {
   flex: 1;
-  padding: 20px;
+  padding: 16px 18px;
   overflow-y: auto;
   box-sizing: border-box;
 }
 
-/* Card Grid View */
+/* Card Grid View (macOS Style) */
 .bm-items-container.grid-view {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 12px;
   align-content: flex-start;
 }
 
 .bm-card {
   background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03), 0 0 0 1px rgba(0, 0, 0, 0.02);
   padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.16s ease, border-color 0.16s ease;
   position: relative;
 }
 
 .bm-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
-  border-color: rgba(0, 0, 0, 0.14);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.07), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 122, 255, 0.3);
+}
+
+[data-theme="dark"] .bm-card {
+  background: #27272a;
+  border-color: rgba(255, 255, 255, 0.07);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .bm-card:hover {
+  background: #2d2d32;
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .bm-card-header {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
 }
 
 .bm-card-favicon {
-  width: 22px;
-  height: 22px;
-  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.02);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   object-fit: contain;
   flex-shrink: 0;
 }
@@ -4379,19 +4568,28 @@ dialog::backdrop {
 .bm-card-title {
   font-size: 13px;
   font-weight: 600;
-  color: #0f172a;
+  color: #1d1d1f;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   flex: 1;
+  letter-spacing: -0.01em;
+}
+
+[data-theme="dark"] .bm-card-title {
+  color: #f4f4f5;
 }
 
 .bm-card-url {
-  font-size: 11.5px;
-  color: #64748b;
+  font-size: 11px;
+  color: #86868b;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+[data-theme="dark"] .bm-card-url {
+  color: #a1a1aa;
 }
 
 .bm-card-tags {
@@ -4401,34 +4599,112 @@ dialog::backdrop {
 }
 
 .bm-card-tag {
-  font-size: 10px;
+  font-size: 9.5px;
+  font-weight: 500;
   padding: 1px 5px;
-  border-radius: 3px;
-  background: #eff6ff;
-  color: #2563eb;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.04);
+  color: #6e6e73;
+}
+
+[data-theme="dark"] .bm-card-tag {
+  background: rgba(255, 255, 255, 0.06);
+  color: #d4d4d8;
+}
+
+/* Smart Workspace Badges */
+.bm-card-ws-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1.5px 6.5px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.bm-card-ws-badge.ws-badge-ws_work {
+  background: rgba(52, 199, 89, 0.12);
+  color: #28a745;
+  border: 1px solid rgba(52, 199, 89, 0.22);
+}
+
+[data-theme="dark"] .bm-card-ws-badge.ws-badge-ws_work {
+  background: rgba(52, 199, 89, 0.2);
+  color: #4ade80;
+  border-color: rgba(52, 199, 89, 0.3);
+}
+
+.bm-card-ws-badge.ws-badge-ws_personal {
+  background: rgba(175, 82, 222, 0.1);
+  color: #af52de;
+  border: 1px solid rgba(175, 82, 222, 0.2);
+}
+
+[data-theme="dark"] .bm-card-ws-badge.ws-badge-ws_personal {
+  background: rgba(175, 82, 222, 0.2);
+  color: #c084fc;
+  border-color: rgba(175, 82, 222, 0.3);
+}
+
+.bm-card-ws-badge.ws-badge-ws_default {
+  background: rgba(0, 122, 255, 0.1);
+  color: #007aff;
+  border: 1px solid rgba(0, 122, 255, 0.2);
+}
+
+[data-theme="dark"] .bm-card-ws-badge.ws-badge-ws_default {
+  background: rgba(0, 122, 255, 0.18);
+  color: #60a5fa;
+  border-color: rgba(0, 122, 255, 0.3);
+}
+
+.bm-smart-detected-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #007aff;
+  background: rgba(0, 122, 255, 0.1);
+  padding: 1px 7px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 122, 255, 0.2);
 }
 
 /* List Table View */
 .bm-items-container.list-view {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 8px;
-  overflow: hidden;
+  gap: 2px;
+  background: transparent;
 }
 
 .bm-list-row {
   display: flex;
   align-items: center;
   padding: 8px 12px;
-  gap: 12px;
+  gap: 10px;
   cursor: pointer;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  border-radius: 7px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.1s ease;
 }
+
 .bm-list-row:hover {
-  background: #f8fafc;
+  background: rgba(0, 122, 255, 0.05);
+  border-color: rgba(0, 122, 255, 0.2);
+}
+
+[data-theme="dark"] .bm-list-row {
+  background: #27272a;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .bm-list-row:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
 }
 
 .bm-list-favicon {
@@ -4440,17 +4716,21 @@ dialog::backdrop {
 
 .bm-list-title {
   font-size: 12.5px;
-  font-weight: 500;
-  color: #0f172a;
-  width: 240px;
+  font-weight: 550;
+  color: #1d1d1f;
+  width: 220px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+[data-theme="dark"] .bm-list-title {
+  color: #f4f4f5;
+}
+
 .bm-list-url {
   font-size: 11.5px;
-  color: #64748b;
+  color: #8e8e93;
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -4459,16 +4739,43 @@ dialog::backdrop {
 
 /* Bottom Status Bar */
 .bookmarks-status-bar {
-  height: 32px;
-  background: #ffffff;
-  border-top: 1px solid rgba(0, 0, 0, 0.07);
+  height: 30px;
+  min-height: 30px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
   font-size: 11px;
-  color: #64748b;
+  color: #8e8e93;
   flex-shrink: 0;
+}
+
+[data-theme="dark"] .bookmarks-status-bar {
+  background: rgba(28, 28, 32, 0.85);
+  border-top-color: rgba(255, 255, 255, 0.06);
+  color: #a1a1aa;
+}
+
+.bm-status-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.bm-status-btn {
+  background: transparent;
+  border: none;
+  font-size: 11px;
+  font-weight: 500;
+  color: #007aff;
+  cursor: pointer;
+}
+
+.bm-status-btn:hover {
+  text-decoration: underline;
 }
 
 .bm-status-actions {

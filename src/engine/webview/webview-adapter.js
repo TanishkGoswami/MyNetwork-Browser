@@ -30,6 +30,14 @@ class WebviewAdapter {
       console.warn('[WebviewAdapter] Container partition resolution skipped:', e);
     }
 
+    try {
+      const path = require('path');
+      const preloadPath = path.resolve(__dirname, 'preload-adblock.js');
+      webview.setAttribute('preload', preloadPath);
+    } catch (e) {
+      console.warn('[WebviewAdapter] Failed to set preload-adblock.js:', e);
+    }
+
     const isInternal = !tab.url || tab.url.startsWith('mynetwork://') || tab.url.startsWith('about:') || tab.url.startsWith('zen://');
     webview.src = isInternal ? BLANK_URL : tab.url;
 
@@ -58,13 +66,13 @@ class WebviewAdapter {
         e.disposition === 'new-window' ||
         (e.options && (e.options.width || e.options.height));
 
-      // If it's a standard link (not an OAuth popup), open in internal new tab
+      // If it's a standard link (not an OAuth popup), open in internal child tab
       if (!isAuthOrPopup) {
         e.preventDefault();
         const { tabManager } = require('../../core/tabs/tab-manager');
-        const { workspaceService } = require('../../features/workspaces/workspace-service');
+        const { workspaceService } = require('../../features/bookmarks/workspace-service');
         const activeWsId = workspaceService.getActiveWorkspaceId();
-        tabManager.createTab(url, 'New Tab', null, activeWsId);
+        tabManager.createTab(url, 'New Tab', null, activeWsId, null, false, tabId);
       }
     });
 
@@ -121,6 +129,18 @@ class WebviewAdapter {
     });
 
     webview.addEventListener('ipc-message', (e) => {
+      if (e.channel === 'ad-blocked-event') {
+        const { adBlockerEngine } = require('../adblock/ad-blocker');
+        adBlockerEngine.recordBlocked(tabId, webview.getURL());
+      }
+      if (e.channel === 'macro-action-captured' && e.args && e.args[0]) {
+        try {
+          const { macroRecorderService } = require('../../features/automation/macro-recorder-service');
+          if (macroRecorderService.isRecording && macroRecorderService.activeRecordingTabId === tabId) {
+            macroRecorderService.addAction(e.args[0]);
+          }
+        } catch (err) {}
+      }
       if (e.channel === 'credential-submitted' && e.args && e.args[0]) {
         eventBus.emit('security:credential-submitted', {
           tabId,
@@ -134,6 +154,36 @@ class WebviewAdapter {
     webview.addEventListener('dom-ready', () => {
       this.injectCredentialObserver(webview);
       this.injectAutofill(webview);
+
+      // Inject Anti-Fingerprinting noise (Canvas/WebGL/Audio/Hardware)
+      try {
+        const { antiFingerprintService } = require('../../engine/privacy/anti-fingerprint');
+        const script = antiFingerprintService.getProtectionInjectionScript();
+        if (script) webview.executeJavaScript(script).catch(() => {});
+      } catch (e) {}
+
+      // Inject Ad & Tracker Blocker Protections (Cosmetic CSS & YouTube Skipper)
+      try {
+        const { adBlockerEngine } = require('../adblock/ad-blocker');
+        if (adBlockerEngine.isEnabled) {
+          const currentUrl = webview.getURL() || '';
+          let domain = '';
+          try { domain = new URL(currentUrl).hostname; } catch(e) {}
+          if (!adBlockerEngine.isWhitelisted(domain)) {
+            webview.insertCSS(adBlockerEngine.getCosmeticAdHidingCss()).catch(() => {});
+            if (currentUrl.includes('youtube.com')) {
+              webview.executeJavaScript(adBlockerEngine.getYouTubeAdSkipperScript()).catch(() => {});
+            }
+          }
+        }
+      } catch (e) {}
+
+      // Apply Custom Site Mods (UserScripts / CSS)
+      try {
+        const { siteModEngine } = require('../../features/site-mods/site-mod-engine');
+        siteModEngine.applyModsToWebview(webview, webview.getURL());
+      } catch (e) {}
+
       eventBus.emit('navigation:state-changed', {
         tabId,
         canGoBack: webview.canGoBack(),
@@ -162,7 +212,8 @@ class WebviewAdapter {
       const { tabManager } = require('../../core/tabs/tab-manager');
       const currentTab = tabManager.getTab(tabId);
 
-      if (url && url !== 'about:blank' && !url.startsWith('mynetwork://')) {
+      // Do not corrupt tab URL if webview loaded internal data: error page
+      if (url && url !== 'about:blank' && !url.startsWith('mynetwork://') && !url.startsWith('data:')) {
         const rawTitle = webview.getTitle();
         const title = (rawTitle && rawTitle !== 'about:blank') ? rawTitle : url;
         
@@ -187,9 +238,15 @@ class WebviewAdapter {
 
         this.injectCredentialObserver(webview);
         this.injectAutofill(webview);
+
+        // Re-apply site mods to ensure dynamic DOM content receives styles
+        try {
+          const { siteModEngine } = require('../../features/site-mods/site-mod-engine');
+          siteModEngine.applyModsToWebview(webview, url);
+        } catch (e) {}
       } else {
         tabManager.updateTab(tabId, { isLoading: false });
-        eventBus.emit(EVENTS.NAV_FINISH, { tabId, url: url || '', title: currentTab?.title || 'New Tab', favicon: null });
+        eventBus.emit(EVENTS.NAV_FINISH, { tabId, url: currentTab?.url || '', title: currentTab?.title || 'New Tab', favicon: null });
       }
 
       eventBus.emit(EVENTS.NAV_PROGRESS, { percentage: 100 });
@@ -206,9 +263,9 @@ class WebviewAdapter {
         return;
       }
       
-      const failedUrl = e.validatedURL || webview.getURL() || tab.url;
+      const failedUrl = e.validatedURL || tab.url || webview.getURL();
       const { tabManager } = require('../../core/tabs/tab-manager');
-      tabManager.updateTab(tabId, { isLoading: false });
+      tabManager.updateTab(tabId, { isLoading: false, url: failedUrl });
       
       eventBus.emit(EVENTS.NAV_FAIL, { tabId, errorCode: e.errorCode, desc: e.errorDescription, url: failedUrl });
       eventBus.emit('navigation:state-changed', {
@@ -217,7 +274,7 @@ class WebviewAdapter {
         canGoForward: webview.canGoForward()
       });
       
-      // Inject friendly macOS recovery page
+      // Inject friendly macOS recovery page with embedded Cyber Runner Game
       this.injectErrorPage(webview, tabId, failedUrl, e.errorCode, e.errorDescription);
     });
   }
@@ -234,7 +291,7 @@ class WebviewAdapter {
       errorHelp = 'Your network configuration changed while loading this page. Please click reload.';
     } else if (errorCode === -106) {
       errorTitle = 'No Internet Connection';
-      errorHelp = 'Your device appears to be offline. Please check your Wi-Fi or network cables.';
+      errorHelp = 'Your device appears to be offline. Check your Wi-Fi or cables, or play Cyber Runner below!';
     }
 
     const cleanQuery = encodeURIComponent(url.replace(/^https?:\/\//i, '').split('/')[0]);
@@ -257,54 +314,101 @@ class WebviewAdapter {
             user-select: none;
           }
           .mac-error-card {
-            background: rgba(255, 255, 255, 0.88);
+            background: rgba(255, 255, 255, 0.92);
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
             border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 18px;
+            border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
-            max-width: 500px;
+            max-width: 580px;
             width: 100%;
-            padding: 36px 32px;
+            padding: 32px 30px;
             text-align: center;
             animation: fadeIn 0.25s ease-out;
           }
           @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
           .mac-error-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 16px;
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
             background: #fee2e2;
             color: #ef4444;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 20px;
+            margin-bottom: 14px;
           }
           .mac-error-title {
-            font-size: 20px;
+            font-size: 19px;
             font-weight: 700;
             color: #0f172a;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             letter-spacing: -0.02em;
           }
           .mac-error-url {
-            font-size: 13px;
-            font-family: "JetBrains Mono", monospace;
+            font-size: 12.5px;
+            font-family: monospace;
             color: #64748b;
             background: #f1f5f9;
-            padding: 6px 12px;
+            padding: 5px 12px;
             border-radius: 8px;
             word-break: break-all;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
             display: inline-block;
           }
           .mac-error-desc {
-            font-size: 13.5px;
+            font-size: 13px;
             color: #475569;
-            line-height: 1.55;
-            margin-bottom: 28px;
+            line-height: 1.5;
+            margin-bottom: 20px;
           }
+          
+          /* Interactive Cyber Runner Canvas Game */
+          .cyber-game-container {
+            position: relative;
+            background: #0f172a;
+            border-radius: 14px;
+            overflow: hidden;
+            margin-bottom: 22px;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.5), 0 4px 14px rgba(15, 23, 42, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+          }
+          #cyber-canvas {
+            display: block;
+            width: 100%;
+            height: 130px;
+            cursor: pointer;
+          }
+          .game-overlay-prompt {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(2px);
+            color: #38bdf8;
+            font-size: 12.5px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+          }
+          .game-overlay-prompt.hidden { display: none; }
+          .game-scores-row {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            display: flex;
+            gap: 12px;
+            font-family: monospace;
+            font-size: 11px;
+            font-weight: 700;
+            color: #94a3b8;
+          }
+          .game-scores-row span b { color: #38bdf8; }
+
           .mac-error-actions {
             display: flex;
             gap: 10px;
@@ -337,20 +441,34 @@ class WebviewAdapter {
           .mac-error-code {
             font-size: 11px;
             color: #94a3b8;
-            margin-top: 24px;
+            margin-top: 18px;
           }
         </style>
       </head>
       <body>
         <div class="mac-error-card">
           <div class="mac-error-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
           </div>
           <div class="mac-error-title">${errorTitle}</div>
           <div class="mac-error-url">${url}</div>
           <p class="mac-error-desc">${errorHelp}</p>
+
+          <!-- CYBER RUNNER 2D CANVAS GAME -->
+          <div class="cyber-game-container" id="game-box">
+            <canvas id="cyber-canvas" width="520" height="130"></canvas>
+            <div class="game-scores-row">
+              <span>HI: <b id="hi-score">0</b></span>
+              <span>SCORE: <b id="curr-score">0</b></span>
+            </div>
+            <div class="game-overlay-prompt" id="game-overlay">
+              <div style="font-size: 18px; margin-bottom: 4px;">🚀 CYBER RUNNER</div>
+              <div>Press <kbd style="background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px; color: #fff;">SPACEBAR</kbd> or Tap to Play</div>
+            </div>
+          </div>
+
           <div class="mac-error-actions">
             <button class="mac-btn mac-btn-primary" onclick="window.location.reload()">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
@@ -360,8 +478,196 @@ class WebviewAdapter {
               Search Google
             </a>
           </div>
-          <div class="mac-error-code">Error Code: ${errorCode} (${errorDescription || 'UNKNOWN_ERROR'})</div>
+          <div class="mac-error-code">Error Code: ${errorCode} (${errorDescription || 'NETWORK_ERROR'})</div>
         </div>
+
+        <script>
+          // Cyber Runner Mini-Game Logic
+          (function() {
+            const canvas = document.getElementById('cyber-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const overlay = document.getElementById('game-overlay');
+            const scoreEl = document.getElementById('curr-score');
+            const hiScoreEl = document.getElementById('hi-score');
+
+            let highScore = parseInt(localStorage.getItem('cyber_runner_hi') || '0', 10);
+            hiScoreEl.textContent = highScore;
+
+            let isRunning = false;
+            let isGameOver = false;
+            let score = 0;
+            let speed = 4.2;
+            let frame = 0;
+
+            const player = {
+              x: 40,
+              y: 86,
+              w: 22,
+              h: 24,
+              vy: 0,
+              gravity: 0.65,
+              jumpPower: -10.5,
+              groundY: 86,
+              isGrounded: true
+            };
+
+            let obstacles = [];
+
+            function jump() {
+              if (!isRunning) {
+                startGame();
+                return;
+              }
+              if (isGameOver) {
+                restartGame();
+                return;
+              }
+              if (player.isGrounded) {
+                player.vy = player.jumpPower;
+                player.isGrounded = false;
+              }
+            }
+
+            function startGame() {
+              isRunning = true;
+              isGameOver = false;
+              score = 0;
+              speed = 4.2;
+              obstacles = [];
+              player.y = player.groundY;
+              player.vy = 0;
+              player.isGrounded = true;
+              overlay.classList.add('hidden');
+              requestAnimationFrame(gameLoop);
+            }
+
+            function restartGame() {
+              startGame();
+            }
+
+            function spawnObstacle() {
+              const types = [
+                { w: 16, h: 22, color: '#f43f5e' },
+                { w: 24, h: 28, color: '#fb7185' },
+                { w: 14, h: 32, color: '#ef4444' }
+              ];
+              const t = types[Math.floor(Math.random() * types.length)];
+              obstacles.push({
+                x: canvas.width + 20,
+                y: canvas.height - 20 - t.h,
+                w: t.w,
+                h: t.h,
+                color: t.color
+              });
+            }
+
+            function gameLoop() {
+              if (!isRunning) return;
+
+              frame++;
+              score += 0.15;
+              scoreEl.textContent = Math.floor(score);
+              if (speed < 9) speed += 0.0012;
+
+              // Physics
+              player.vy += player.gravity;
+              player.y += player.vy;
+              if (player.y >= player.groundY) {
+                player.y = player.groundY;
+                player.vy = 0;
+                player.isGrounded = true;
+              }
+
+              // Spawn
+              if (frame % Math.max(50, Math.floor(100 - speed * 5)) === 0 && Math.random() > 0.3) {
+                spawnObstacle();
+              }
+
+              // Clear
+              ctx.fillStyle = '#0f172a';
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+              // Draw Ground Grid Line
+              ctx.strokeStyle = '#334155';
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.moveTo(0, canvas.height - 20);
+              ctx.lineTo(canvas.width, canvas.height - 20);
+              ctx.stroke();
+
+              // Draw Grid Stars
+              ctx.fillStyle = 'rgba(56, 189, 248, 0.3)';
+              for (let i = 0; i < 6; i++) {
+                ctx.fillRect((frame * 0.5 + i * 90) % canvas.width, 15 + (i * 12) % 60, 2, 2);
+              }
+
+              // Draw Player (Neon Cyan Drone)
+              ctx.shadowColor = '#38bdf8';
+              ctx.shadowBlur = 10;
+              ctx.fillStyle = '#38bdf8';
+              ctx.beginPath();
+              ctx.roundRect(player.x, player.y, player.w, player.h, 6);
+              ctx.fill();
+
+              // Drone Eye
+              ctx.shadowBlur = 0;
+              ctx.fillStyle = '#ffffff';
+              ctx.fillRect(player.x + 12, player.y + 6, 6, 4);
+
+              // Draw Obstacles
+              for (let i = obstacles.length - 1; i >= 0; i--) {
+                const obs = obstacles[i];
+                obs.x -= speed;
+
+                ctx.shadowColor = obs.color;
+                ctx.shadowBlur = 8;
+                ctx.fillStyle = obs.color;
+                ctx.beginPath();
+                ctx.roundRect(obs.x, obs.y, obs.w, obs.h, 4);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // Collision
+                if (
+                  player.x < obs.x + obs.w &&
+                  player.x + player.w > obs.x &&
+                  player.y < obs.y + obs.h &&
+                  player.y + player.h > obs.y
+                ) {
+                  // Game Over
+                  isGameOver = true;
+                  isRunning = false;
+                  if (score > highScore) {
+                    highScore = Math.floor(score);
+                    localStorage.setItem('cyber_runner_hi', highScore);
+                    hiScoreEl.textContent = highScore;
+                  }
+                  overlay.innerHTML = '<div style="font-size: 16px; color: #ef4444; margin-bottom: 4px;">💥 GLITCH CRASH!</div><div>Score: ' + Math.floor(score) + ' — Press SPACE to Retry</div>';
+                  overlay.classList.remove('hidden');
+                  return;
+                }
+
+                if (obs.x + obs.w < -10) {
+                  obstacles.splice(i, 1);
+                }
+              }
+
+              requestAnimationFrame(gameLoop);
+            }
+
+            // Bind Keys
+            window.addEventListener('keydown', function(e) {
+              if (e.code === 'Space' || e.code === 'ArrowUp') {
+                e.preventDefault();
+                jump();
+              }
+            });
+
+            canvas.addEventListener('click', jump);
+            overlay.addEventListener('click', jump);
+          })();
+        </script>
       </body>
       </html>
     `;
@@ -745,8 +1051,34 @@ class WebviewAdapter {
     }
   }
 
-  navigate(tabId, url) {
+  hibernateWebview(tabId) {
     const webview = this.webviewMap.get(tabId);
+    if (webview) {
+      if (webview.parentNode) {
+        webview.parentNode.removeChild(webview);
+      }
+      this.webviewMap.delete(tabId);
+    }
+  }
+
+  wakeWebview(tab) {
+    if (!tab) return null;
+    let webview = this.webviewMap.get(tab.id);
+    if (!webview) {
+      webview = this.createWebview(tab);
+    }
+    return webview;
+  }
+
+  navigate(tabId, url) {
+    let webview = this.webviewMap.get(tabId);
+    if (!webview) {
+      const { tabManager } = require('../../core/tabs/tab-manager');
+      const tab = tabManager.getTab(tabId);
+      if (tab) {
+        webview = this.wakeWebview(tab);
+      }
+    }
     if (webview) {
       const isInternal = !url || url.startsWith('mynetwork://') || url.startsWith('about:') || url.startsWith('zen://');
       const target = isInternal ? BLANK_URL : url;
@@ -779,3 +1111,4 @@ class WebviewAdapter {
 }
 
 module.exports = { WebviewAdapter };
+

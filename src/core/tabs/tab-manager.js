@@ -8,7 +8,7 @@ class TabManager {
     this.activeTabId = null;
   }
 
-  createTab(url = DEFAULT_NEWTAB_URL, title = 'New Tab', favicon = null, workspaceId = null, containerId = null, isGhost = false) {
+  createTab(url = DEFAULT_NEWTAB_URL, title = 'New Tab', favicon = null, workspaceId = null, containerId = null, isGhost = false, parentId = null) {
     const tabId = 'tab_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
     
     // Normalize new tab scheme or invalid undefined
@@ -27,11 +27,24 @@ class TabManager {
       }
     }
 
+    // Calculate depth if parent exists
+    let depth = 0;
+    if (parentId) {
+      const parentTab = this.tabs.find(t => t.id === parentId);
+      if (parentTab) {
+        depth = Math.min((parentTab.depth || 0) + 1, 4); // Max 4 levels of nesting
+      }
+    }
+
     const tab = {
       id: tabId,
       workspaceId: wsId,
       containerId: containerId || null,
+      parentId: parentId || null,
+      depth: depth,
+      isCollapsed: false,
       isGhost: !!isGhost,
+      isHibernated: false,
       url: url,
       title: isGhost && title === 'New Tab' ? 'Ghost Tab' : title,
       favicon: favicon,
@@ -41,10 +54,26 @@ class TabManager {
       isPinned: false,
       isAudible: false,
       isMuted: false,
+      lastActiveAt: Date.now(),
       createdAt: Date.now()
     };
 
-    this.tabs.push(tab);
+    // If parent exists, insert tab right after parent or its last descendant
+    if (parentId) {
+      const parentIdx = this.tabs.findIndex(t => t.id === parentId);
+      if (parentIdx !== -1) {
+        let insertIdx = parentIdx + 1;
+        while (insertIdx < this.tabs.length && this.tabs[insertIdx].depth > (this.tabs[parentIdx].depth || 0)) {
+          insertIdx++;
+        }
+        this.tabs.splice(insertIdx, 0, tab);
+      } else {
+        this.tabs.push(tab);
+      }
+    } else {
+      this.tabs.push(tab);
+    }
+
     eventBus.emit(EVENTS.TAB_CREATED, { tab });
     
     // Activate newly created tab
@@ -207,6 +236,59 @@ class TabManager {
     eventBus.emit(EVENTS.TAB_UPDATED, { tabId: sourceTabId, tab: movedTab });
   }
 
+  // --- Tree Tab Hierarchy Methods ---
+  getChildTabs(parentId) {
+    return this.tabs.filter(t => t.parentId === parentId);
+  }
+
+  hasChildTabs(tabId) {
+    return this.tabs.some(t => t.parentId === tabId);
+  }
+
+  getSubtreeTabs(tabId) {
+    const results = [];
+    const collect = (pId) => {
+      const children = this.getChildTabs(pId);
+      for (const child of children) {
+        results.push(child);
+        collect(child.id);
+      }
+    };
+    collect(tabId);
+    return results;
+  }
+
+  toggleCollapseBranch(tabId) {
+    const tab = this.tabs.find(t => t.id === tabId);
+    if (!tab) return;
+    tab.isCollapsed = !tab.isCollapsed;
+    eventBus.emit(EVENTS.TAB_UPDATED, { tabId, updates: { isCollapsed: tab.isCollapsed }, tab });
+  }
+
+  closeSubtree(tabId) {
+    const descendants = this.getSubtreeTabs(tabId);
+    descendants.forEach(d => this.closeTab(d.id));
+    this.closeTab(tabId);
+  }
+
+  // --- Tab Hibernation State ---
+  hibernateTab(tabId) {
+    const tab = this.tabs.find(t => t.id === tabId);
+    if (!tab || tab.isHibernated || tab.id === this.activeTabId) return;
+    tab.isHibernated = true;
+    eventBus.emit(EVENTS.TAB_UPDATED, { tabId, updates: { isHibernated: true }, tab });
+    eventBus.emit('tab-hibernated', { tabId, tab });
+  }
+
+  wakeTab(tabId) {
+    const tab = this.tabs.find(t => t.id === tabId);
+    if (!tab || !tab.isHibernated) return;
+    tab.isHibernated = false;
+    tab.lastActiveAt = Date.now();
+    eventBus.emit(EVENTS.TAB_UPDATED, { tabId, updates: { isHibernated: false }, tab });
+    eventBus.emit('tab-woken', { tabId, tab });
+  }
+
   getActiveTab() {
     return this.tabs.find(t => t.id === this.activeTabId);
   }
@@ -231,3 +313,4 @@ class TabManager {
 const tabManager = new TabManager();
 
 module.exports = { TabManager, tabManager };
+

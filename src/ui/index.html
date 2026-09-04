@@ -46,6 +46,10 @@
             <img src="assets/icon-symbol.svg" width="16" height="16" alt="MyNetwork" style="display: block; object-fit: contain;">
           </div>
           <input type="text" id="url-input" placeholder="Search, @tabs, @history, > commands (Ctrl+K)..." autocomplete="off" spellcheck="false">
+          <button id="btn-adblock-shield" class="omnibox-action-btn" title="Ad & Tracker Protection Shield">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span id="shield-blocked-badge" class="shield-counter-badge" style="display: none;">0</span>
+          </button>
           <button id="btn-bookmark" class="omnibox-action-btn" title="Bookmark This Tab (Ctrl+D)">
             <svg id="btn-bookmark-star-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           </button>
@@ -132,6 +136,72 @@
             <button id="btn-bm-popover-save" class="mac-btn mac-btn-primary">Done</button>
           </div>
         </div>
+
+        <!-- CLEAN MACOS SHIELD POPOVER (Anchored Dropdown) -->
+        <div id="brave-shield-popover" class="mac-shield-popover" style="display: none;">
+          <div class="shield-popover-arrow"></div>
+          
+          <!-- Header: Site Favicon + Hostname + Clean Status + Big iOS Switch -->
+          <div class="shield-popover-header">
+            <div class="shield-site-info">
+              <div class="shield-site-icon" id="shield-site-favicon">
+                <img src="assets/icon-symbol.svg" width="20" height="20" alt="">
+              </div>
+              <div class="shield-site-texts">
+                <span class="shield-site-domain" id="shield-header-domain">youtube.com</span>
+                <span class="shield-site-status" id="shield-header-status-text">
+                  <span class="shield-status-dot active" id="shield-status-dot"></span>
+                  <span id="shield-status-label">Shields Active</span>
+                </span>
+              </div>
+            </div>
+            <label class="brave-switch" title="Toggle Protection for this site">
+              <input type="checkbox" id="brave-shield-toggle" checked>
+              <span class="brave-slider"></span>
+            </label>
+          </div>
+
+          <!-- Hero Blocked Stat Card -->
+          <div class="shield-hero-card">
+            <div class="shield-hero-left">
+              <span class="shield-hero-number" id="brave-shield-blocked-count">0</span>
+              <span class="shield-hero-caption">Ads & Trackers Blocked</span>
+            </div>
+            <div class="shield-hero-tag" id="shield-hero-speed-tag">⚡ Fast & Clean</div>
+          </div>
+
+          <!-- macOS Quick Controls List -->
+          <div class="shield-controls-list">
+            <div class="shield-control-row">
+              <div class="shield-control-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span>Ad & Video Ad Blocking</span>
+              </div>
+              <label class="mac-mini-switch">
+                <input type="checkbox" id="shield-toggle-ads-sub" checked>
+                <span class="mac-mini-slider"></span>
+              </label>
+            </div>
+            <div class="shield-control-row">
+              <div class="shield-control-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span>Tracker & Script Shield</span>
+              </div>
+              <label class="mac-mini-switch">
+                <input type="checkbox" id="shield-toggle-fingerprint-sub" checked>
+                <span class="mac-mini-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Clean Footer Link -->
+          <div class="shield-popover-footer-clean">
+            <button type="button" class="shield-clean-settings-btn" id="btn-shield-global-settings">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              <span>Protection Settings</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Right Actions -->
@@ -141,19 +211,19 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
         </button>
 
-        <!-- Ask Gemini Pill -->
-        <button id="btn-toggle-ai" class="ask-gemini-btn" title="Gemini AI Copilot (Ctrl+J)">
-          <svg class="gemini-sparkle" width="14" height="14" viewBox="0 0 24 24">
+        <!-- Ask Claude Copilot Pill -->
+        <button id="btn-toggle-ai" class="ask-claude-btn" title="Claude AI Copilot (Ctrl+J)">
+          <svg class="claude-sparkle" width="14" height="14" viewBox="0 0 24 24">
             <defs>
-              <linearGradient id="geminiGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#4285f4"/>
-                <stop offset="50%" stop-color="#9b72cb"/>
-                <stop offset="100%" stop-color="#d96570"/>
+              <linearGradient id="claudeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#ea580c"/>
+                <stop offset="50%" stop-color="#d97706"/>
+                <stop offset="100%" stop-color="#b45309"/>
               </linearGradient>
             </defs>
-            <path fill="url(#geminiGrad)" d="m12 2.5 1.8 6.2c.4 1.5 1.6 2.7 3.1 3.1l6.2 1.8-6.2 1.8c-1.5.4-2.7 1.6-3.1 3.1L12 22.5l-1.8-6.2c-.4-1.5-1.6-2.7-3.1-3.1L.9 11.4l6.2-1.8c1.5-.4 2.7-1.6 3.1-3.1L12 2.5z"/>
+            <path fill="url(#claudeGrad)" d="m12 2.5 1.8 6.2c.4 1.5 1.6 2.7 3.1 3.1l6.2 1.8-6.2 1.8c-1.5.4-2.7 1.6-3.1 3.1L12 22.5l-1.8-6.2c-.4-1.5-1.6-2.7-3.1-3.1L.9 11.4l6.2-1.8c1.5-.4 2.7-1.6 3.1-3.1L12 2.5z"/>
           </svg>
-          <span>Gemini</span>
+          <span>Claude</span>
         </button>
 
         <!-- 3-Dots Menu Button & Dropdown -->
@@ -198,6 +268,27 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="8" x2="6" y2="8"/><line x1="10" y1="8" x2="10" y2="8"/><line x1="14" y1="8" x2="14" y2="8"/><line x1="18" y1="8" x2="18" y2="8"/></svg>
               <span>Keyboard Shortcuts</span>
               <kbd>Ctrl+/</kbd>
+            </div>
+
+            <div class="dropdown-item" id="menu-item-github-hub">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+              <span>GitHub Developer Hub</span>
+              <kbd>Ctrl+G</kbd>
+            </div>
+            <div class="dropdown-item" id="menu-item-mock-server">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+              <span>API Mock Server</span>
+              <kbd>Ctrl+M</kbd>
+            </div>
+            <div class="dropdown-item" id="menu-item-workspace-vault">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <span>Workspace Secrets (.env)</span>
+              <kbd>Ctrl+Shift+E</kbd>
+            </div>
+            <div class="dropdown-item" id="menu-item-macros">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <span>Automation Macros</span>
+              <kbd>Ctrl+Shift+R</kbd>
             </div>
 
             <div class="dropdown-divider"></div>
@@ -332,14 +423,14 @@
         <!-- Tab Actions Row -->
         <div class="sidebar-tab-actions-row">
           <button id="btn-add-tab" class="add-tab-btn" title="New Tab (Ctrl+T)">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"/>
               <line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
             <span>New Tab</span>
           </button>
           <button id="btn-add-ghost-tab" class="ghost-tab-btn" title="New Disposable Ghost Tab (Ctrl+Shift+G) - Auto-destructs on close">
-            <span style="font-size: 13px;">👻</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 10h.01"/><path d="M15 10h.01"/><path d="M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/></svg>
             <span>Ghost</span>
           </button>
         </div>
@@ -347,8 +438,29 @@
         <!-- Bottom Sidebar Tools -->
         <div class="sidebar-bottom-tools">
           <button class="sidebar-footer-btn" id="btn-split-toggle" title="Split View Mode">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
             <span class="footer-btn-label">Split View</span>
+          </button>
+          
+          <button class="sidebar-footer-btn" id="btn-sidebar-github" title="GitHub Developer Hub (Ctrl+G)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            <span class="footer-btn-label">GitHub</span>
+            <span class="sidebar-glance-badge" id="sidebar-github-badge" style="display: none;">0</span>
+          </button>
+
+          <button class="sidebar-footer-btn" id="btn-sidebar-mock-server" title="API Mock Server (Ctrl+M)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+            <span class="footer-btn-label">Mock API</span>
+          </button>
+
+          <button class="sidebar-footer-btn" id="btn-sidebar-vault" title="Workspace Secrets & .env (Ctrl+Shift+E)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span class="footer-btn-label">Vault</span>
+          </button>
+
+          <button class="sidebar-footer-btn" id="btn-sidebar-macros" title="Automation & Macros (Ctrl+Shift+R)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span class="footer-btn-label">Macros</span>
           </button>
         </div>
       </aside>
@@ -408,11 +520,11 @@
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   </div>
                   <input type="text" id="dash-search-input" placeholder="Search the web or enter URL..." autocomplete="off" spellcheck="false">
-                  <button class="dash-ai-btn" id="dash-ai-btn" title="Ask Gemini AI">
+                  <button class="dash-ai-btn" id="dash-ai-btn" title="Ask Claude AI">
                     <svg width="14" height="14" viewBox="0 0 24 24">
                       <path fill="currentColor" d="m12 2.5 1.8 6.2c.4 1.5 1.6 2.7 3.1 3.1l6.2 1.8-6.2 1.8c-1.5.4-2.7 1.6-3.1 3.1L12 22.5l-1.8-6.2c-.4-1.5-1.6-2.7-3.1-3.1L.9 11.4l6.2-1.8c1.5-.4 2.7-1.6 3.1-3.1L12 2.5z"/>
                     </svg>
-                    <span>AI Mode</span>
+                    <span>Claude AI</span>
                   </button>
                 </div>
               </section>
@@ -1378,49 +1490,68 @@
         </div>
       </main>
 
-      <!-- ASK GEMINI AI ASSISTANT DRAWER -->
+      <!-- ASK CLAUDE AI ASSISTANT DRAWER -->
       <aside class="ai-drawer" id="ai-drawer">
         <div class="drawer-header">
           <div class="drawer-title-group">
-            <div class="ai-icon-orb">
-              <svg width="16" height="16" viewBox="0 0 24 24">
+            <div class="ai-icon-orb claude-orb">
+              <svg width="15" height="15" viewBox="0 0 24 24">
                 <path fill="#ffffff" d="m12 2.5 1.8 6.2c.4 1.5 1.6 2.7 3.1 3.1l6.2 1.8-6.2 1.8c-1.5.4-2.7 1.6-3.1 3.1L12 22.5l-1.8-6.2c-.4-1.5-1.6-2.7-3.1-3.1L.9 11.4l6.2-1.8c1.5-.4 2.7-1.6 3.1-3.1L12 2.5z"/>
               </svg>
             </div>
             <div>
-              <h3>Gemini Assistant</h3>
-              <p>Smart Web Intelligence</p>
+              <h3>Claude Copilot</h3>
+              <p id="claude-model-badge">Anthropic Intelligence</p>
             </div>
           </div>
-          <button id="btn-close-ai" class="drawer-close-btn" title="Close">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <button id="btn-claude-clear" class="drawer-header-btn" title="Clear Conversation">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+            <button id="btn-claude-settings" class="drawer-header-btn" title="Claude API & Model Settings">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+            <button id="btn-close-ai" class="drawer-close-btn" title="Close">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
         </div>
 
+        <!-- Live Active Context Indicator -->
+        <div class="claude-context-bar" id="claude-context-bar">
+          <span class="claude-context-dot"></span>
+          <span class="claude-context-label" id="claude-context-label">Page Context: Focus Dashboard</span>
+        </div>
+
+        <!-- Action Chips -->
         <div class="ai-quick-actions">
           <button class="ai-chip" data-action="summarize">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="3" y2="18"/></svg>
-            <span>Summarize Page</span>
+            <span>Summarize</span>
           </button>
           <button class="ai-chip" data-action="keypoints">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
             <span>Key Takeaways</span>
           </button>
-          <button class="ai-chip" data-action="explain">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            <span>Explain Topic</span>
+          <button class="ai-chip" data-action="codereview">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            <span>Code Review</span>
+          </button>
+          <button class="ai-chip" data-action="savetomemo">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            <span>Save to Notes</span>
           </button>
         </div>
 
         <div class="ai-messages" id="ai-messages-container">
           <div class="ai-msg bot">
-            <p>Hello! I am your built-in Gemini copilot. Ask me questions about the active web page, request instant summaries, or research any topic.</p>
+            <p>Hello! I am your built-in <strong>Claude Copilot</strong>. I have real-time access to your active web page content, open tabs, and workspace notes. Ask me anything, request deep summaries, or debug code on this page!</p>
           </div>
         </div>
 
         <div class="ai-input-wrapper">
-          <input type="text" id="ai-user-input" placeholder="Ask Gemini about this page..." autocomplete="off">
-          <button id="btn-send-ai" title="Send Query">
+          <input type="text" id="ai-user-input" placeholder="Ask Claude about this page or research anything..." autocomplete="off">
+          <button id="btn-send-ai" title="Send to Claude">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
         </div>
@@ -1898,8 +2029,16 @@
     </div>
   </div>
 
-  <!-- TAB CONTEXT MENU (macOS Style with Move to Project Submenu) -->
+  <!-- TAB CONTEXT MENU (macOS Style with Tree & Power Actions) -->
   <div id="tab-context-menu" class="mac-context-menu" style="display: none;">
+    <div class="context-menu-item" id="ctx-add-child-tab">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>Add Nested Child Tab</span>
+    </div>
+    <div class="context-menu-item" id="ctx-collapse-branch">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      <span id="ctx-collapse-branch-label">Collapse Branch</span>
+    </div>
     <div class="context-menu-item" id="ctx-pin-tab">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.89A2 2 0 0 1 15 10.77V6h1a1 1 0 0 0 0-2H8a1 1 0 0 0 0 2h1v4.77a2 2 0 0 1-1.11 1.79l-1.78.89A2 2 0 0 0 5 15.24V17z"/></svg>
       <span id="ctx-pin-label">Pin Tab</span>
@@ -1932,9 +2071,17 @@
         <!-- Dynamically populated container list -->
       </div>
     </div>
+    <div class="context-menu-item" id="ctx-hibernate-tab">
+      <span style="font-size: 12px;">❄️</span>
+      <span id="ctx-hibernate-label">Hibernate Tab (Free RAM)</span>
+    </div>
     <div class="context-menu-item" id="ctx-reopen-ghost-tab">
-      <span style="font-size: 13px;">👻</span>
+      <span style="font-size: 12px;">👻</span>
       <span>Reopen in Ghost Tab</span>
+    </div>
+    <div class="context-menu-item" id="ctx-phone-sync">
+      <span style="font-size: 12px;">📱</span>
+      <span>Push to Phone (QR Code)</span>
     </div>
     <div class="context-menu-separator"></div>
     <div class="context-menu-item" id="ctx-close-other-tabs">
@@ -1943,6 +2090,9 @@
     <div class="context-menu-item" id="ctx-close-tabs-right">
       <span>Close Tabs to the Right</span>
     </div>
+    <div class="context-menu-item" id="ctx-close-subtree">
+      <span>Close Branch / Subtree</span>
+    </div>
     <div class="context-menu-separator"></div>
     <div class="context-menu-item dropdown-danger" id="ctx-close-tab">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1950,6 +2100,191 @@
       <kbd>Ctrl+W</kbd>
     </div>
   </div>
+
+  <!-- AD & TRACKER BLOCKER SHIELD POPOVER -->
+  <dialog id="modal-shield-popover" class="shortcuts-modal-dialog">
+    <div class="shortcuts-modal-card" style="max-width: 420px;">
+      <div class="shortcuts-modal-header">
+        <div class="shortcuts-header-title">
+          <div class="settings-icon-badge" style="background: linear-gradient(135deg, #10b981, #059669); width: 22px; height: 22px; color: #ffffff;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3>Privacy & Shield Protection</h3>
+        </div>
+        <button id="btn-close-shield-modal" class="shortcuts-modal-close" aria-label="Close">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="pwd-modal-body" style="padding: 16px 20px;">
+        <div class="shield-status-card" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; background: rgba(16, 185, 129, 0.08); border-radius: 12px; margin-bottom: 16px; border: 1px solid rgba(16, 185, 129, 0.2);">
+          <div>
+            <div style="font-weight: 700; font-size: 14px; color: #047857;">Shield Protection Active</div>
+            <div style="font-size: 12px; color: #065f46; margin-top: 2px;" id="shield-summary-text">Blocking invasive ads, analytics & telemetry</div>
+          </div>
+          <span style="font-size: 24px;">🛡️</span>
+        </div>
+
+        <div style="display: flex; justify-content: space-around; background: var(--bg-tertiary, #f1f5f9); padding: 12px; border-radius: 10px; margin-bottom: 16px; text-align: center;">
+          <div>
+            <div style="font-size: 20px; font-weight: 800; color: #007aff;" id="shield-blocked-site-count">0</div>
+            <div style="font-size: 11px; color: #64748b;">On this site</div>
+          </div>
+          <div style="width: 1px; background: rgba(0,0,0,0.08);"></div>
+          <div>
+            <div style="font-size: 20px; font-weight: 800; color: #10b981;" id="shield-blocked-total-count">0</div>
+            <div style="font-size: 11px; color: #64748b;">Total blocked</div>
+          </div>
+        </div>
+
+        <div class="pref-toggle-row" style="padding: 10px 0; border-bottom: 1px solid var(--border-color, #e2e8f0);">
+          <div>
+            <div style="font-weight: 600; font-size: 13px;">Anti-Fingerprinting</div>
+            <div style="font-size: 11.5px; color: #64748b;">Mask Canvas, WebGL, Audio & Hardware</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="shield-toggle-antifingerprint" checked>
+            <span class="slider round"></span>
+          </label>
+        </div>
+
+        <div class="pref-toggle-row" style="padding: 10px 0;">
+          <div>
+            <div style="font-weight: 600; font-size: 13px;">Block Ads on This Site</div>
+            <div style="font-size: 11.5px; color: #64748b;" id="shield-current-domain-label">Current Domain</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="shield-toggle-site-active" checked>
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- DEVELOPER TOOLBOX MODAL (REST Client, JWT, Regex, JSON) -->
+  <dialog id="modal-dev-toolbox" class="shortcuts-modal-dialog">
+    <div class="shortcuts-modal-card" style="max-width: 760px; width: 90vw;">
+      <div class="shortcuts-modal-header">
+        <div class="shortcuts-header-title">
+          <div class="settings-icon-badge" style="background: linear-gradient(135deg, #6366f1, #4f46e5); width: 22px; height: 22px; color: #ffffff;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          </div>
+          <h3>Developer Toolbox</h3>
+        </div>
+        <button id="btn-close-dev-toolbox" class="shortcuts-modal-close" aria-label="Close">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Toolbox Navigation Tabs -->
+      <div class="dev-toolbox-tabs" style="display: flex; gap: 8px; padding: 8px 20px; border-bottom: 1px solid var(--border-color, #e2e8f0); background: var(--bg-secondary, #f8fafc);">
+        <button class="dev-tab-btn active" data-tab="rest" style="padding: 6px 14px; border-radius: 8px; border: none; font-size: 12.5px; font-weight: 600; cursor: pointer; background: #007aff; color: #fff;">🚀 REST Client</button>
+        <button class="dev-tab-btn" data-tab="jwt" style="padding: 6px 14px; border-radius: 8px; border: none; font-size: 12.5px; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-secondary, #64748b);">🔑 JWT Decoder</button>
+        <button class="dev-tab-btn" data-tab="regex" style="padding: 6px 14px; border-radius: 8px; border: none; font-size: 12.5px; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-secondary, #64748b);">🔍 Regex Tester</button>
+        <button class="dev-tab-btn" data-tab="json" style="padding: 6px 14px; border-radius: 8px; border: none; font-size: 12.5px; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-secondary, #64748b);">📋 JSON Formatter</button>
+      </div>
+
+      <div class="pwd-modal-body" style="padding: 20px; max-height: 520px; overflow-y: auto;">
+        <!-- 1. REST Client Section -->
+        <div class="dev-section-pane" id="dev-pane-rest">
+          <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <select id="dev-rest-method" style="width: 100px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color, #cbd5e1); font-weight: 700;">
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+              <option value="PUT">PUT</option>
+              <option value="DELETE">DELETE</option>
+              <option value="PATCH">PATCH</option>
+            </select>
+            <input type="text" id="dev-rest-url" placeholder="https://api.github.com/users/octocat" style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color, #cbd5e1);" value="https://api.github.com/users/octocat">
+            <button id="dev-rest-send" class="mac-btn mac-btn-primary" style="padding: 8px 18px;">Send</button>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">Request Body (JSON for POST/PUT)</label>
+            <textarea id="dev-rest-body" rows="3" placeholder='{"key": "value"}' style="width: 100%; font-family: monospace; font-size: 12px; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color, #cbd5e1); resize: vertical;"></textarea>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label style="font-size: 12px; font-weight: 600;">Response</label>
+              <span id="dev-rest-status-badge" style="font-size: 11px; font-weight: 700; color: #10b981;"></span>
+            </div>
+            <pre id="dev-rest-response" style="background: var(--bg-tertiary, #0f172a); color: #38bdf8; padding: 12px; border-radius: 8px; font-size: 12px; font-family: monospace; max-height: 220px; overflow-y: auto; white-space: pre-wrap; word-break: break-all;">Click Send to execute request...</pre>
+          </div>
+        </div>
+
+        <!-- 2. JWT Decoder Section -->
+        <div class="dev-section-pane" id="dev-pane-jwt" style="display: none;">
+          <div style="margin-bottom: 12px;">
+            <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">Paste JWT Token</label>
+            <textarea id="dev-jwt-input" rows="3" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." style="width: 100%; font-family: monospace; font-size: 12px; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color, #cbd5e1);"></textarea>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div>
+              <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">Header</label>
+              <pre id="dev-jwt-header" style="background: #1e293b; color: #f43f5e; padding: 10px; border-radius: 8px; font-size: 11.5px; font-family: monospace; min-height: 140px; overflow-y: auto;">{}</pre>
+            </div>
+            <div>
+              <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">Payload</label>
+              <pre id="dev-jwt-payload" style="background: #1e293b; color: #a855f7; padding: 10px; border-radius: 8px; font-size: 11.5px; font-family: monospace; min-height: 140px; overflow-y: auto;">{}</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Regex Tester Section -->
+        <div class="dev-section-pane" id="dev-pane-regex" style="display: none;">
+          <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <input type="text" id="dev-regex-pattern" placeholder="Pattern (e.g. [a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})" style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color, #cbd5e1); font-family: monospace;">
+            <input type="text" id="dev-regex-flags" value="g" placeholder="flags (g, i, m)" style="width: 80px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color, #cbd5e1); font-family: monospace;">
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">Test String</label>
+            <textarea id="dev-regex-test-str" rows="4" placeholder="Type or paste sample text here to test regex matches..." style="width: 100%; font-family: monospace; font-size: 12px; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color, #cbd5e1);">Contact us at support@mynetwork.app or info@google.com for queries.</textarea>
+          </div>
+          <div>
+            <div style="font-size: 12px; font-weight: 600; margin-bottom: 4px;" id="dev-regex-match-count">Matches (0)</div>
+            <div id="dev-regex-results" style="background: #1e293b; color: #4ade80; padding: 10px; border-radius: 8px; font-size: 12px; font-family: monospace; max-height: 140px; overflow-y: auto;"></div>
+          </div>
+        </div>
+
+        <!-- 4. JSON Formatter Section -->
+        <div class="dev-section-pane" id="dev-pane-json" style="display: none;">
+          <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+            <button id="dev-json-format-btn" class="mac-btn mac-btn-primary" style="font-size: 12px;">Beautify (2 Spaces)</button>
+            <button id="dev-json-minify-btn" class="mac-btn mac-btn-secondary" style="font-size: 12px;">Minify</button>
+          </div>
+          <textarea id="dev-json-textarea" rows="9" placeholder='Paste messy JSON here...' style="width: 100%; font-family: monospace; font-size: 12px; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color, #cbd5e1);"></textarea>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- BROWSER-TO-PHONE CONTINUITY MODAL (QR Code) -->
+  <dialog id="modal-continuity-sync" class="shortcuts-modal-dialog">
+    <div class="shortcuts-modal-card" style="max-width: 400px; text-align: center;">
+      <div class="shortcuts-modal-header">
+        <div class="shortcuts-header-title">
+          <div class="settings-icon-badge" style="background: linear-gradient(135deg, #0284c7, #0369a1); width: 22px; height: 22px; color: #ffffff;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          </div>
+          <h3>Push to Phone (Continuity)</h3>
+        </div>
+        <button id="btn-close-continuity-modal" class="shortcuts-modal-close" aria-label="Close">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="pwd-modal-body" style="padding: 24px 20px;">
+        <div style="font-size: 13px; color: #64748b; margin-bottom: 16px;">Scan with your iPhone or Android Camera to instantly open this tab on mobile:</div>
+        
+        <div style="display: inline-block; padding: 12px; background: #ffffff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; margin-bottom: 16px;">
+          <img id="continuity-qr-img" src="" width="200" height="200" alt="QR Code" style="display: block; border-radius: 8px;">
+        </div>
+
+        <div style="font-size: 12px; font-weight: 700; color: #0f172a; word-break: break-all; margin-bottom: 6px;" id="continuity-tab-title">Tab Title</div>
+        <div style="font-size: 11px; color: #007aff; word-break: break-all;" id="continuity-tab-url">https://example.com</div>
+      </div>
+    </div>
+  </dialog>
 
   <!-- macOS NATIVE ALERT & CONFIRMATION DIALOG (Replaces ugly browser confirm popups) -->
   <dialog id="modal-mac-confirm" class="mac-alert-dialog">
@@ -1995,12 +2330,12 @@
         <div class="pwd-field-group">
           <label>Project Icon</label>
           <div class="project-icon-selector" id="workspace-icon-selector">
-            <button type="button" class="project-icon-choice active" data-icon="globe">🌐 Globe</button>
-            <button type="button" class="project-icon-choice" data-icon="code">💻 Code</button>
-            <button type="button" class="project-icon-choice" data-icon="user">👤 Personal</button>
-            <button type="button" class="project-icon-choice" data-icon="briefcase">💼 Work</button>
-            <button type="button" class="project-icon-choice" data-icon="rocket">🚀 Launch</button>
-            <button type="button" class="project-icon-choice" data-icon="star">⭐ Focus</button>
+            <button type="button" class="project-icon-choice active" data-icon="globe">Globe</button>
+            <button type="button" class="project-icon-choice" data-icon="code">Code</button>
+            <button type="button" class="project-icon-choice" data-icon="user">Personal</button>
+            <button type="button" class="project-icon-choice" data-icon="briefcase">Work</button>
+            <button type="button" class="project-icon-choice" data-icon="rocket">Launch</button>
+            <button type="button" class="project-icon-choice" data-icon="star">Focus</button>
           </div>
         </div>
 
@@ -2034,6 +2369,323 @@
           <button type="submit" id="btn-save-workspace" class="mac-btn mac-btn-primary">Save Project</button>
         </div>
       </form>
+    </div>
+  </dialog>
+
+  <!-- =========================================================================
+       FLOATING MACRO AUTOMATION HUD
+       ========================================================================= -->
+  <div id="macro-recording-hud" class="mac-recording-hud" style="display: none;">
+    <div class="macro-hud-status">
+      <span class="macro-rec-dot"></span>
+      <span class="macro-rec-label">REC</span>
+    </div>
+    <div class="macro-hud-timer" id="macro-hud-timer">00:00</div>
+    <div class="macro-hud-actions-badge" id="macro-hud-actions-count">0 actions</div>
+    <button type="button" class="macro-hud-stop-btn" id="btn-macro-hud-stop">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><rect width="24" height="24" rx="3"/></svg>
+      <span>Stop & Save</span>
+    </button>
+    <button type="button" class="macro-hud-cancel-btn" id="btn-macro-hud-cancel" title="Cancel Recording">✕</button>
+  </div>
+
+  <!-- =========================================================================
+       1. GITHUB DEVELOPER HUB & GLANCE BAR MODAL
+       ========================================================================= -->
+  <dialog id="modal-github-hub" class="shortcuts-modal-dialog">
+    <div class="shortcuts-modal-card" style="width: 620px; height: 490px;">
+      <div class="shortcuts-modal-header">
+        <div class="shortcuts-header-title">
+          <div class="settings-icon-badge" style="background: #24292f; color: #ffffff;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          </div>
+          <h3>GitHub Developer Hub</h3>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button id="btn-github-refresh" class="mac-btn-sub" title="Refresh GitHub Data">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+          </button>
+          <button id="btn-close-github-modal" class="shortcuts-modal-close" aria-label="Close">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- GitHub Sub Tabs -->
+      <div class="github-sub-tabs">
+        <button class="github-tab-btn active" data-tab="prs">Pull Requests (<span id="gh-badge-prs">0</span>)</button>
+        <button class="github-tab-btn" data-tab="issues">Issues (<span id="gh-badge-issues">0</span>)</button>
+        <button class="github-tab-btn" data-tab="repos">Repositories</button>
+        <button class="github-tab-btn" data-tab="gist">Create Gist</button>
+        <button class="github-tab-btn" data-tab="auth">Connect Token</button>
+      </div>
+
+      <!-- Tab Content: PRs -->
+      <div class="github-tab-pane active" id="gh-pane-prs">
+        <div class="github-items-list" id="gh-prs-list">
+          <div class="empty-state-muted">Connect your GitHub Personal Access Token to see your open Pull Requests.</div>
+        </div>
+      </div>
+
+      <!-- Tab Content: Issues -->
+      <div class="github-tab-pane" id="gh-pane-issues">
+        <div class="github-items-list" id="gh-issues-list">
+          <div class="empty-state-muted">No assigned issues found.</div>
+        </div>
+      </div>
+
+      <!-- Tab Content: Repos -->
+      <div class="github-tab-pane" id="gh-pane-repos">
+        <div class="github-items-list" id="gh-repos-list">
+          <div class="empty-state-muted">Connect GitHub to browse your repositories.</div>
+        </div>
+      </div>
+
+      <!-- Tab Content: Gist Creator -->
+      <div class="github-tab-pane" id="gh-pane-gist">
+        <div class="github-gist-form">
+          <div class="pwd-field-group">
+            <label>Gist Description</label>
+            <input type="text" id="gh-gist-desc" placeholder="e.g. Utility Helper Snippet" autocomplete="off">
+          </div>
+          <div class="pwd-field-group">
+            <label>Filename</label>
+            <input type="text" id="gh-gist-filename" placeholder="snippet.js" value="snippet.js" autocomplete="off">
+          </div>
+          <div class="pwd-field-group" style="flex: 1; display: flex; flex-direction: column;">
+            <label>Code Content</label>
+            <textarea id="gh-gist-code" placeholder="Paste your code snippet here..." style="flex: 1; font-family: monospace; font-size: 11.5px; resize: none;"></textarea>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px;">
+            <button type="button" id="btn-gh-create-gist" class="mac-btn mac-btn-primary">Create & Copy Gist URL</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Content: Auth / Settings -->
+      <div class="github-tab-pane" id="gh-pane-auth">
+        <div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 12px;">
+          <div class="pwd-field-group">
+            <label>GitHub Personal Access Token (PAT)</label>
+            <input type="password" id="gh-input-pat" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+            <div style="font-size: 11px; color: #8e8e93; margin-top: 2px;">Requires <code>repo</code>, <code>read:user</code>, and <code>gist</code> scopes.</div>
+          </div>
+          <div class="pwd-field-group">
+            <label>Or Public GitHub Username (Read-Only)</label>
+            <input type="text" id="gh-input-username" placeholder="e.g. torvalds" autocomplete="off">
+          </div>
+          <div style="display: flex; gap: 8px; margin-top: 6px;">
+            <button type="button" id="btn-gh-save-auth" class="mac-btn mac-btn-primary">Save & Connect</button>
+            <button type="button" id="btn-gh-disconnect" class="mac-btn mac-btn-danger">Disconnect</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- =========================================================================
+       2. DEVELOPER API MOCK SERVER MODAL
+       ========================================================================= -->
+  <dialog id="modal-mock-server" class="shortcuts-modal-dialog">
+    <div class="shortcuts-modal-card" style="width: 660px; height: 500px;">
+      <div class="shortcuts-modal-header">
+        <div class="shortcuts-header-title">
+          <div class="settings-icon-badge" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: #ffffff;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <h3>API Mock Server & Interceptor</h3>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <label class="brave-switch" title="Master Mock Server Toggle">
+            <input type="checkbox" id="mock-server-master-toggle">
+            <span class="brave-slider"></span>
+          </label>
+          <button id="btn-close-mock-modal" class="shortcuts-modal-close" aria-label="Close">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mock Server Content: Rules List & Add Form -->
+      <div class="mock-modal-body" style="display: flex; flex: 1; min-height: 0; overflow: hidden;">
+        <!-- Left: Rule List -->
+        <div class="mock-rules-sidebar">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <span>Endpoints</span>
+            <button type="button" id="btn-mock-new-rule" class="mac-btn-sub primary">+ Add Rule</button>
+          </div>
+          <div class="mock-rules-list" id="mock-rules-list">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Right: Rule Editor -->
+        <div class="mock-rule-editor" id="mock-rule-editor">
+          <input type="hidden" id="mock-edit-id" value="">
+          <div class="pwd-field-group">
+            <label>Rule Name</label>
+            <input type="text" id="mock-edit-name" placeholder="e.g. Mock Users List" autocomplete="off">
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <div class="pwd-field-group" style="width: 100px;">
+              <label>Method</label>
+              <select id="mock-edit-method" class="mac-select">
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="DELETE">DELETE</option>
+                <option value="ALL">ALL</option>
+              </select>
+            </div>
+            <div class="pwd-field-group" style="flex: 1;">
+              <label>URL Pattern (Contains)</label>
+              <input type="text" id="mock-edit-url" placeholder="/api/v1/users" autocomplete="off">
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <div class="pwd-field-group" style="width: 100px;">
+              <label>Status</label>
+              <input type="number" id="mock-edit-status" value="200" autocomplete="off">
+            </div>
+            <div class="pwd-field-group" style="flex: 1;">
+              <label>Simulated Delay (ms)</label>
+              <input type="number" id="mock-edit-delay" value="0" placeholder="0" autocomplete="off">
+            </div>
+          </div>
+          <div class="pwd-field-group" style="flex: 1; display: flex; flex-direction: column;">
+            <label>Response JSON Body</label>
+            <textarea id="mock-edit-body" style="flex: 1; font-family: monospace; font-size: 11.5px; resize: none;" placeholder='{"success": true}'></textarea>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+            <button type="button" id="btn-mock-delete-rule" class="mac-btn mac-btn-danger" style="display: none;">Delete</button>
+            <div style="display: flex; gap: 8px; margin-left: auto;">
+              <button type="button" id="btn-mock-save-rule" class="mac-btn mac-btn-primary">Save Rule</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- =========================================================================
+       3. WORKSPACE SECRETS & .ENV VAULT MODAL
+       ========================================================================= -->
+  <dialog id="modal-workspace-vault" class="shortcuts-modal-dialog">
+    <div class="shortcuts-modal-card" style="width: 580px; height: 480px;">
+      <div class="shortcuts-modal-header">
+        <div class="shortcuts-header-title">
+          <div class="settings-icon-badge" style="background: linear-gradient(135deg, #059669, #047857); color: #ffffff;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <h3>Workspace Secrets Vault (.env)</h3>
+        </div>
+        <button id="btn-close-vault-modal" class="shortcuts-modal-close" aria-label="Close">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div style="padding: 10px 16px; border-bottom: 1px solid rgba(0,0,0,0.06); display: flex; align-items: center; justify-content: space-between; gap: 10px; background: rgba(0,0,0,0.015);">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 11.5px; font-weight: 500; color: #515154;">Project Space:</span>
+          <select id="vault-ws-select" class="mac-select" style="min-width: 130px;"></select>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <button type="button" id="btn-vault-export-env" class="mac-btn-sub">Export .env</button>
+          <button type="button" id="btn-vault-import-env" class="mac-btn-sub">Import .env</button>
+        </div>
+      </div>
+
+      <!-- Add Secret Bar -->
+      <div style="padding: 10px 16px; display: flex; gap: 6px; border-bottom: 1px solid rgba(0,0,0,0.06); background: rgba(0,0,0,0.01);">
+        <input type="text" id="vault-add-key" placeholder="KEY_NAME" style="flex: 1; font-family: monospace; font-size: 11.5px; text-transform: uppercase;">
+        <input type="text" id="vault-add-value" placeholder="Secret Value..." style="flex: 1.4; font-family: monospace; font-size: 11.5px;">
+        <button type="button" id="btn-vault-add-secret" class="mac-btn mac-btn-primary" style="height: 28px; padding: 0 10px; font-size: 11.5px;">+ Add</button>
+      </div>
+
+      <!-- Secret Keys List -->
+      <div class="vault-secrets-list" id="vault-secrets-list" style="flex: 1; overflow-y: auto; padding: 10px 16px;">
+        <!-- Dynamically rendered -->
+      </div>
+    </div>
+  </dialog>
+
+  <!-- =========================================================================
+       4. AUTOMATION & SAVED MACROS MODAL
+       ========================================================================= -->
+  <dialog id="modal-macro-library" class="shortcuts-modal-dialog">
+    <div class="shortcuts-modal-card" style="width: 520px; min-height: 320px; max-height: 460px;">
+      <div class="shortcuts-modal-header">
+        <div class="shortcuts-header-title">
+          <div class="settings-icon-badge" style="background: linear-gradient(135deg, #e11d48, #be123c); color: #ffffff;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="#ffffff"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </div>
+          <h3>Browser Automation Macros</h3>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button id="btn-macro-start-rec" class="mac-btn mac-btn-danger" style="height: 24px; font-size: 11.5px; padding: 0 10px;">
+            <span style="width: 6px; height: 6px; border-radius: 50%; background: #ffffff; display: inline-block;"></span>
+            <span>Record Macro</span>
+          </button>
+          <button id="btn-close-macro-modal" class="shortcuts-modal-close" aria-label="Close">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+
+  <!-- =========================================================================
+       5. CLAUDE INTELLIGENCE & API SETTINGS MODAL
+       ========================================================================= -->
+  <dialog id="modal-claude-settings" class="shortcuts-modal-dialog">
+    <div class="shortcuts-modal-card" style="width: 520px;">
+      <div class="shortcuts-modal-header">
+        <div class="shortcuts-header-title">
+          <div class="settings-icon-badge" style="background: linear-gradient(135deg, #ea580c, #c2410c); color: #ffffff;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2.5 1.8 6.2c.4 1.5 1.6 2.7 3.1 3.1l6.2 1.8-6.2 1.8c-1.5.4-2.7 1.6-3.1 3.1L12 22.5l-1.8-6.2c-.4-1.5-1.6-2.7-3.1-3.1L.9 11.4l6.2-1.8c1.5-.4 2.7-1.6 3.1-3.1L12 2.5z"/></svg>
+          </div>
+          <h3>Claude Copilot Settings</h3>
+        </div>
+        <button id="btn-close-claude-modal" class="shortcuts-modal-close" aria-label="Close">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div style="padding: 18px 20px; display: flex; flex-direction: column; gap: 14px;">
+        <div class="pwd-field-group">
+          <label>API Key (Anthropic or OpenRouter)</label>
+          <div style="display: flex; gap: 6px;">
+            <input type="password" id="claude-input-api-key" placeholder="sk-or-v1-... or sk-ant-..." autocomplete="off" style="font-family: monospace; font-size: 11.5px; flex: 1;">
+            <button type="button" id="btn-toggle-key-visibility" class="mac-btn-sub" title="Toggle visibility">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <div style="font-size: 11px; color: #8e8e93; margin-top: 3px; display: flex; justify-content: space-between; align-items: center;">
+            <span>Universal AI gateway support (OpenRouter & Anthropic Direct).</span>
+            <a href="#" id="link-get-claude-key" style="color: #ea580c; text-decoration: none; font-weight: 500;">OpenRouter Console ↗</a>
+          </div>
+        </div>
+
+        <div class="pwd-field-group">
+          <label>Intelligence Model</label>
+          <select id="claude-select-model" class="mac-select" style="width: 100%; height: 30px; font-size: 12px;">
+            <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet (Recommended - Most Intelligent & Accurate)</option>
+            <option value="anthropic/claude-3.5-haiku">Claude 3.5 Haiku (Ultra Fast & Efficient)</option>
+            <option value="openai/gpt-4o">OpenAI GPT-4o (Multimodal Intelligence)</option>
+            <option value="deepseek/deepseek-chat">DeepSeek V3 (High Performance Reasoning)</option>
+          </select>
+        </div>
+
+        <div class="pwd-field-group">
+          <label>Custom Instructions / Persona (Optional)</label>
+          <textarea id="claude-input-prompt" placeholder="e.g. You are assisting a senior full-stack engineer. Be extremely direct and provide production-ready code..." style="height: 60px; font-size: 11.5px; resize: none;"></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.06);">
+          <button type="button" id="btn-claude-clear-key" class="mac-btn mac-btn-danger">Clear Key</button>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" id="btn-claude-save-settings" class="mac-btn mac-btn-primary" style="background: #ea580c;">Save Settings</button>
+          </div>
+        </div>
+      </div>
     </div>
   </dialog>
 

@@ -92,6 +92,18 @@ Better: Workspace → Proxy, Example:
 
 Personal → Direct
 Dev → Direct
-Testing → Proxy A
-
 20. Smart Download Manager
+
+21. -GitHub Developer Hub & Live Glance Bar:
+- Pull Request & Assigned Issues live notification badge in sidebar
+- 1-Click checkout / GitHub repository quick switcher
+- GitHub Actions workflow build status watcher
+- Fast Gist creator & clipboard share
+
+22. -Developer Network Mock Server & Payload Interceptor:
+- Mock API responses (simulate 200, 404, 500, delay) for testing frontends
+- Cookie & LocalStorage quick editor drawer
+- Environment Variables & API Secrets vault per workspace
+
+23. -Interactive Standby Offline Runner Game:
+- When network connection is lost or site is unreachable, browser shows a clean developer offline standby screen with an interactive playable Cyber Runner 2D canvas game (Spacebar / Arrow keys) instead of a boring error page.

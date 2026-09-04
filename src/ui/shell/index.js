@@ -18,6 +18,11 @@ const { sessionService } = require('../../features/session/session-service');
 const { bookmarkService, workspaceService } = require('../../features/bookmarks');
 const { containerService } = require('../../features/containers');
 const { omniboxService } = require('../../features/omnibox');
+const { githubHubService } = require('../../features/github-hub/github-hub-service');
+const { mockServerService } = require('../../features/mock-server/mock-server-service');
+const { workspaceVaultService } = require('../../features/vault/workspace-vault-service');
+const { macroRecorderService } = require('../../features/automation/macro-recorder-service');
+const { claudeService } = require('../../features/intelligence/claude-service');
 
 class MyNetworkShell {
   constructor() {
@@ -56,6 +61,15 @@ class MyNetworkShell {
     this.initTabContextMenu();
     this.initSmartOmnibox();
     this.initClockAndGreeting();
+    this.initShieldController();
+    this.initDevToolboxController();
+    this.initContinuityController();
+    this.initDownloadIpcListeners();
+    this.initGitHubHubController();
+    this.initMockServerController();
+    this.initWorkspaceVaultController();
+    this.initMacroAutomationController();
+    this.initClaudeCopilotController();
 
     // Initial feature data population
     this.renderTasks();
@@ -117,6 +131,20 @@ class MyNetworkShell {
       aiDrawer: document.getElementById('ai-drawer'),
       aiMessages: document.getElementById('ai-messages-container'),
       aiInput: document.getElementById('ai-user-input'),
+      claudeContextBar: document.getElementById('claude-context-bar'),
+      claudeContextLabel: document.getElementById('claude-context-label'),
+      claudeModelBadge: document.getElementById('claude-model-badge'),
+      btnClaudeClear: document.getElementById('btn-claude-clear'),
+      btnClaudeSettings: document.getElementById('btn-claude-settings'),
+      modalClaudeSettings: document.getElementById('modal-claude-settings'),
+      btnCloseClaudeModal: document.getElementById('btn-close-claude-modal'),
+      claudeInputApiKey: document.getElementById('claude-input-api-key'),
+      btnToggleKeyVisibility: document.getElementById('btn-toggle-key-visibility'),
+      linkGetClaudeKey: document.getElementById('link-get-claude-key'),
+      claudeSelectModel: document.getElementById('claude-select-model'),
+      claudeInputPrompt: document.getElementById('claude-input-prompt'),
+      btnClaudeClearKey: document.getElementById('btn-claude-clear-key'),
+      btnClaudeSaveSettings: document.getElementById('btn-claude-save-settings'),
       sidebarToggleBtn: document.getElementById('sidebar-toggle-btn'),
       btnAddTab: document.getElementById('btn-add-tab'),
 
@@ -270,17 +298,69 @@ class MyNetworkShell {
       btnNeverSavePwd: document.getElementById('btn-never-save-pwd'),
       btnConfirmSavePwd: document.getElementById('btn-confirm-save-pwd'),
 
-      // Tab Context Menu
+      // Tab Context Menu Items
       tabContextMenu: document.getElementById('tab-context-menu'),
+      ctxAddChildTab: document.getElementById('ctx-add-child-tab'),
+      ctxCollapseBranch: document.getElementById('ctx-collapse-branch'),
+      ctxCollapseBranchLabel: document.getElementById('ctx-collapse-branch-label'),
       ctxPinTab: document.getElementById('ctx-pin-tab'),
       ctxPinLabel: document.getElementById('ctx-pin-label'),
       ctxDuplicateTab: document.getElementById('ctx-duplicate-tab'),
       ctxReloadTab: document.getElementById('ctx-reload-tab'),
       ctxMuteTab: document.getElementById('ctx-mute-tab'),
       ctxMuteLabel: document.getElementById('ctx-mute-label'),
+      ctxHibernateTab: document.getElementById('ctx-hibernate-tab'),
+      ctxHibernateLabel: document.getElementById('ctx-hibernate-label'),
+      ctxReopenGhostTab: document.getElementById('ctx-reopen-ghost-tab'),
+      ctxPhoneSync: document.getElementById('ctx-phone-sync'),
+      ctxCloseSubtree: document.getElementById('ctx-close-subtree'),
       ctxCloseTab: document.getElementById('ctx-close-tab'),
       ctxCloseOtherTabs: document.getElementById('ctx-close-other-tabs'),
       ctxCloseTabsRight: document.getElementById('ctx-close-tabs-right'),
+
+      // Brave-Grade AdBlock & Tracker Shield Popover
+      btnAdblockShield: document.getElementById('btn-adblock-shield'),
+      shieldBlockedBadge: document.getElementById('shield-blocked-badge'),
+      braveShieldPopover: document.getElementById('brave-shield-popover'),
+      braveShieldToggle: document.getElementById('brave-shield-toggle'),
+      shieldHeaderDomain: document.getElementById('shield-header-domain'),
+      shieldHeaderStatusText: document.getElementById('shield-header-status-text'),
+      shieldSiteFavicon: document.getElementById('shield-site-favicon'),
+      braveShieldBlockedCount: document.getElementById('brave-shield-blocked-count'),
+      btnShieldFeedbackGood: document.getElementById('btn-shield-feedback-good'),
+      btnShieldFeedbackReport: document.getElementById('btn-shield-feedback-report'),
+      btnShieldFilterLists: document.getElementById('btn-shield-filter-lists'),
+      btnShieldGlobalSettings: document.getElementById('btn-shield-global-settings'),
+
+      // Developer Toolbox Modal
+      modalDevToolbox: document.getElementById('modal-dev-toolbox'),
+      btnCloseDevToolbox: document.getElementById('btn-close-dev-toolbox'),
+      devTabBtns: document.querySelectorAll('.dev-tab-btn'),
+      devSectionPanes: document.querySelectorAll('.dev-section-pane'),
+      devRestMethod: document.getElementById('dev-rest-method'),
+      devRestUrl: document.getElementById('dev-rest-url'),
+      devRestBody: document.getElementById('dev-rest-body'),
+      devRestSend: document.getElementById('dev-rest-send'),
+      devRestResponse: document.getElementById('dev-rest-response'),
+      devRestStatusBadge: document.getElementById('dev-rest-status-badge'),
+      devJwtInput: document.getElementById('dev-jwt-input'),
+      devJwtHeader: document.getElementById('dev-jwt-header'),
+      devJwtPayload: document.getElementById('dev-jwt-payload'),
+      devRegexPattern: document.getElementById('dev-regex-pattern'),
+      devRegexFlags: document.getElementById('dev-regex-flags'),
+      devRegexTestStr: document.getElementById('dev-regex-test-str'),
+      devRegexMatchCount: document.getElementById('dev-regex-match-count'),
+      devRegexResults: document.getElementById('dev-regex-results'),
+      devJsonTextarea: document.getElementById('dev-json-textarea'),
+      devJsonFormatBtn: document.getElementById('dev-json-format-btn'),
+      devJsonMinifyBtn: document.getElementById('dev-json-minify-btn'),
+
+      // Phone Continuity Modal
+      modalContinuitySync: document.getElementById('modal-continuity-sync'),
+      btnCloseContinuityModal: document.getElementById('btn-close-continuity-modal'),
+      continuityQrImg: document.getElementById('continuity-qr-img'),
+      continuityTabTitle: document.getElementById('continuity-tab-title'),
+      continuityTabUrl: document.getElementById('continuity-tab-url'),
 
       // Bookmarks & Workspaces DOM
       btnBookmark: document.getElementById('btn-bookmark'),
@@ -419,7 +499,89 @@ class MyNetworkShell {
       ctxMoveWorkspaceItem: document.getElementById('ctx-move-workspace-item'),
       ctxContainerSubmenu: document.getElementById('ctx-container-submenu'),
       ctxReopenGhostTab: document.getElementById('ctx-reopen-ghost-tab'),
-      btnAddGhostTab: document.getElementById('btn-add-ghost-tab')
+      btnAddGhostTab: document.getElementById('btn-add-ghost-tab'),
+
+      // Clean macOS Shield Dropdown DOM
+      btnAdblockShield: document.getElementById('btn-adblock-shield'),
+      shieldBlockedBadge: document.getElementById('shield-blocked-badge'),
+      braveShieldPopover: document.getElementById('brave-shield-popover'),
+      shieldHeaderDomain: document.getElementById('shield-header-domain'),
+      shieldHeaderStatusText: document.getElementById('shield-header-status-text'),
+      shieldStatusDot: document.getElementById('shield-status-dot'),
+      shieldStatusLabel: document.getElementById('shield-status-label'),
+      shieldSiteFavicon: document.getElementById('shield-site-favicon'),
+      braveShieldToggle: document.getElementById('brave-shield-toggle'),
+      braveShieldBlockedCount: document.getElementById('brave-shield-blocked-count'),
+      shieldToggleAdsSub: document.getElementById('shield-toggle-ads-sub'),
+      shieldToggleFingerprintSub: document.getElementById('shield-toggle-fingerprint-sub'),
+      btnShieldGlobalSettings: document.getElementById('btn-shield-global-settings'),
+
+      // Developer Power Suite DOM
+      btnSidebarGithub: document.getElementById('btn-sidebar-github'),
+      sidebarGithubBadge: document.getElementById('sidebar-github-badge'),
+      modalGithubHub: document.getElementById('modal-github-hub'),
+      btnCloseGithubModal: document.getElementById('btn-close-github-modal'),
+      btnGithubRefresh: document.getElementById('btn-github-refresh'),
+      ghBadgePrs: document.getElementById('gh-badge-prs'),
+      ghBadgeIssues: document.getElementById('gh-badge-issues'),
+      ghPrsList: document.getElementById('gh-prs-list'),
+      ghIssuesList: document.getElementById('gh-issues-list'),
+      ghReposList: document.getElementById('gh-repos-list'),
+      ghGistDesc: document.getElementById('gh-gist-desc'),
+      ghGistFilename: document.getElementById('gh-gist-filename'),
+      ghGistCode: document.getElementById('gh-gist-code'),
+      btnGhCreateGist: document.getElementById('btn-gh-create-gist'),
+      ghInputPat: document.getElementById('gh-input-pat'),
+      ghInputUsername: document.getElementById('gh-input-username'),
+      btnGhSaveAuth: document.getElementById('btn-gh-save-auth'),
+      btnGhDisconnect: document.getElementById('btn-gh-disconnect'),
+
+      // Mock Server DOM
+      btnSidebarMockServer: document.getElementById('btn-sidebar-mock-server'),
+      modalMockServer: document.getElementById('modal-mock-server'),
+      btnCloseMockModal: document.getElementById('btn-close-mock-modal'),
+      mockServerMasterToggle: document.getElementById('mock-server-master-toggle'),
+      mockRulesList: document.getElementById('mock-rules-list'),
+      btnMockNewRule: document.getElementById('btn-mock-new-rule'),
+      mockEditId: document.getElementById('mock-edit-id'),
+      mockEditName: document.getElementById('mock-edit-name'),
+      mockEditMethod: document.getElementById('mock-edit-method'),
+      mockEditUrl: document.getElementById('mock-edit-url'),
+      mockEditStatus: document.getElementById('mock-edit-status'),
+      mockEditDelay: document.getElementById('mock-edit-delay'),
+      mockEditBody: document.getElementById('mock-edit-body'),
+      btnMockSaveRule: document.getElementById('btn-mock-save-rule'),
+      btnMockDeleteRule: document.getElementById('btn-mock-delete-rule'),
+
+      // Workspace Vault DOM
+      btnSidebarVault: document.getElementById('btn-sidebar-vault'),
+      modalWorkspaceVault: document.getElementById('modal-workspace-vault'),
+      btnCloseVaultModal: document.getElementById('btn-close-vault-modal'),
+      vaultWsSelect: document.getElementById('vault-ws-select'),
+      btnVaultExportEnv: document.getElementById('btn-vault-export-env'),
+      btnVaultImportEnv: document.getElementById('btn-vault-import-env'),
+      vaultAddKey: document.getElementById('vault-add-key'),
+      vaultAddValue: document.getElementById('vault-add-value'),
+      btnVaultAddSecret: document.getElementById('btn-vault-add-secret'),
+      vaultSecretsList: document.getElementById('vault-secrets-list'),
+
+      // Automation & Macros DOM
+      btnSidebarMacros: document.getElementById('btn-sidebar-macros'),
+      macroRecordingHud: document.getElementById('macro-recording-hud'),
+      macroHudTimer: document.getElementById('macro-hud-timer'),
+      macroHudActionsCount: document.getElementById('macro-hud-actions-count'),
+      btnMacroHudStop: document.getElementById('btn-macro-hud-stop'),
+      btnMacroHudCancel: document.getElementById('btn-macro-hud-cancel'),
+      modalMacroLibrary: document.getElementById('modal-macro-library'),
+      btnCloseMacroModal: document.getElementById('btn-close-macro-modal'),
+      btnMacroStartRec: document.getElementById('btn-macro-start-rec'),
+      macroLibraryList: document.getElementById('macro-library-list'),
+
+      // Menu Dropdown items
+      menuItemGithubHub: document.getElementById('menu-item-github-hub'),
+      menuItemMockServer: document.getElementById('menu-item-mock-server'),
+      menuItemWorkspaceVault: document.getElementById('menu-item-workspace-vault'),
+      menuItemMacros: document.getElementById('menu-item-macros')
     };
   }
 
@@ -444,6 +606,8 @@ class MyNetworkShell {
         workspaceService.setActiveWorkspace(activeTab.workspaceId);
       }
       this.updateActiveTabUi(tabId, activeTab);
+      const { adBlockerEngine } = require('../../engine/adblock/ad-blocker');
+      this.updateShieldBadge(adBlockerEngine.getBlockedCountForTab(tabId));
       sessionService.saveSession(tabManager.getAllTabs(), tabId, workspaceService.getActiveWorkspaceId());
     });
 
@@ -493,6 +657,8 @@ class MyNetworkShell {
       if (activeTab && activeTab.id === tabId) {
         this.updateOmniboxStarState(activeTab);
         this.updateNavButtonsState(tabId);
+        const { adBlockerEngine } = require('../../engine/adblock/ad-blocker');
+        this.updateShieldBadge(adBlockerEngine.getBlockedCountForTab(tabId));
       }
     });
 
@@ -572,6 +738,10 @@ class MyNetworkShell {
     eventBus.on('ui:ai-drawer-toggled', ({ isOpen }) => {
       if (this.dom.aiDrawer) {
         this.dom.aiDrawer.classList.toggle('open', isOpen);
+        if (isOpen) {
+          this.updateClaudeContextBadge();
+          if (this.dom.aiInput) setTimeout(() => this.dom.aiInput.focus(), 150);
+        }
       }
     });
 
@@ -811,9 +981,19 @@ class MyNetworkShell {
       .replace(/'/g, '&#039;');
   }
 
-  /* ==========================================================================
+  /* =========================================================================  /* ==========================================================================
      TAB RENDERING & NAVIGATION LOGIC
      ========================================================================== */
+  isTabHiddenByCollapsedParent(tab) {
+    let current = tab;
+    while (current && current.parentId) {
+      const parent = tabManager.getTab(current.parentId);
+      if (parent && parent.isCollapsed) return true;
+      current = parent;
+    }
+    return false;
+  }
+
   renderWorkspaceTabs() {
     if (this.dom.tabsList) this.dom.tabsList.innerHTML = '';
     if (this.dom.horizontalTabsList) this.dom.horizontalTabsList.innerHTML = '';
@@ -827,7 +1007,10 @@ class MyNetworkShell {
     }
 
     tabs.forEach(tab => {
-      this.renderTabPill(tab);
+      // If any parent branch is collapsed, skip child from visible DOM
+      if (!this.isTabHiddenByCollapsedParent(tab)) {
+        this.renderTabPill(tab);
+      }
     });
 
     const activeTab = tabManager.getActiveTab();
@@ -841,9 +1024,15 @@ class MyNetworkShell {
   renderTabPill(tab) {
     const createPillEl = (prefix) => {
       const el = document.createElement('div');
-      el.className = `tab-item ${tab.isPinned ? 'pinned' : ''}`;
+      el.className = `tab-item ${tab.isPinned ? 'pinned' : ''} ${tab.isHibernated ? 'tab-hibernated' : ''}`;
       el.id = `${prefix}-${tab.id}`;
       
+      // Apply tree indentation for vertical sidebar
+      if (prefix === 'tab-pill' && tab.depth > 0) {
+        el.style.paddingLeft = `${Math.min(tab.depth * 14 + 10, 56)}px`;
+        el.classList.add('tree-child-tab');
+      }
+
       const url = tab.url || '';
       const isNewTab = !url || url === BLANK_URL || url === DEFAULT_NEWTAB_URL || url === LEGACY_NEWTAB_URL;
       const isSettings = url === SETTINGS_URL || url === LEGACY_SETTINGS_URL || url.toLowerCase() === 'mynetwork://settings' || url.toLowerCase() === 'about:settings';
@@ -861,11 +1050,11 @@ class MyNetworkShell {
       else displayTitle = (tab.title && tab.title !== 'about:blank') ? tab.title : (url || 'New Tab');
 
       const faviconHtml = (tab.favicon && !isInternal)
-        ? `<img src="${tab.favicon}" alt="" width="14" height="14" class="tab-favicon-img" onerror="this.outerHTML='<svg width=\\'13\\' height=\\'13\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><circle cx=\\'12\\' cy=\\'12\\' r=\\'10\\'/><line x1=\\'2\\' y1=\\'12\\' x2=\\'22\\' y2=\\'12\\'/><path d=\\'M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z\\'/></svg>'">`
+        ? `<img src="${tab.favicon}" alt="" width="14" height="14" class="tab-favicon-img" onerror="this.outerHTML='<svg width=\\'13\\' height=\\'13\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><circle cx=\\'12\\' cy=\\'12\\' r=\\'10\\'/><line x1=\\'12\\' y1=\\'12\\' x2=\\'22\\' y2=\\'12\\'/><path d=\\'M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z\\'/></svg>'">`
         : (isInternal
           ? `<img src="assets/icon-symbol.svg" alt="" width="14" height="14" class="tab-favicon-img" style="object-fit: contain;">`
           : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="12" x2="22" y2="12"/>
               <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
             </svg>`
         );
@@ -882,15 +1071,36 @@ class MyNetworkShell {
         }
       }
 
+      // Check if tab has children for tree chevron
+      const hasChildren = tabManager.hasChildTabs(tab.id);
+      const chevronHtml = (hasChildren && prefix === 'tab-pill') ? `
+        <button class="tab-tree-chevron ${tab.isCollapsed ? 'collapsed' : ''}" title="${tab.isCollapsed ? 'Expand sub-branch' : 'Collapse sub-branch'}">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+      ` : '';
+
+      const hibernateBadgeHtml = tab.isHibernated ? `<span class="tab-hibernate-badge" title="Suspended to free RAM (Click to wake)">💤</span>` : '';
+
       el.innerHTML = `
+        ${chevronHtml}
         <div class="tab-favicon">${faviconHtml}</div>
         <span class="tab-title" title="${displayTitle}">${displayTitle}</span>
+        ${hibernateBadgeHtml}
         ${containerBadgeHtml}
         ${tab.isPinned ? `<span class="tab-pin-indicator" title="Pinned Tab"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.89A2 2 0 0 1 15 10.77V6h1a1 1 0 0 0 0-2H8a1 1 0 0 0 0 2h1v4.77a2 2 0 0 1-1.11 1.79l-1.78.89A2 2 0 0 0 5 15.24V17z"/></svg></span>` : ''}
         <button class="tab-close-btn" title="Close Tab">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       `;
+
+      const treeChevronBtn = el.querySelector('.tab-tree-chevron');
+      if (treeChevronBtn) {
+        treeChevronBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          tabManager.toggleCollapseBranch(tab.id);
+          this.renderWorkspaceTabs();
+        });
+      }
 
       el.setAttribute('draggable', 'true');
 
@@ -941,7 +1151,12 @@ class MyNetworkShell {
       });
 
       el.addEventListener('click', (e) => {
-        if (e.target.closest('.tab-close-btn')) return;
+        if (e.target.closest('.tab-close-btn') || e.target.closest('.tab-tree-chevron')) return;
+
+        if (tab.isHibernated) {
+          const { tabHibernateService } = require('../../features/performance/tab-hibernate');
+          tabHibernateService.wakeTab(tab.id);
+        }
 
         // Ctrl + Click (or Cmd + Click on macOS) toggles Split Screen Grouping
         if (e.ctrlKey || e.metaKey) {
@@ -1449,53 +1664,268 @@ class MyNetworkShell {
   }
 
   /* ==========================================================================
-     AI COPILOT & PROGRESS BAR
+     CLAUDE AI COPILOT & INTELLIGENCE CONTROLLER
      ========================================================================== */
-  handleAiSubmit() {
-    const text = this.dom.aiInput.value.trim();
-    if (!text) return;
+  initClaudeCopilotController() {
+    this.updateClaudeConfigUi();
 
-    this.appendAiMessage('user', text);
-    this.dom.aiInput.value = '';
+    if (this.dom.btnClaudeSettings) {
+      this.dom.btnClaudeSettings.addEventListener('click', () => {
+        if (this.dom.modalClaudeSettings) {
+          if (this.dom.claudeInputApiKey) this.dom.claudeInputApiKey.value = claudeService.apiKey;
+          if (this.dom.claudeSelectModel) this.dom.claudeSelectModel.value = claudeService.model;
+          if (this.dom.claudeInputPrompt) this.dom.claudeInputPrompt.value = claudeService.customSystemPrompt;
+          this.dom.modalClaudeSettings.showModal();
+        }
+      });
+    }
 
-    setTimeout(() => {
-      let response = `I have analyzed "${text}". As your MyNetwork assistant, I can synthesize information, draft notes, or organize your research tabs.`;
-      if (text.toLowerCase().includes('hello') || text.toLowerCase().includes('hi')) {
-        response = "Hello! How can I assist your browsing and research in MyNetwork today?";
-      }
-      this.appendAiMessage('bot', response);
-    }, 500);
+    if (this.dom.btnCloseClaudeModal) {
+      this.dom.btnCloseClaudeModal.addEventListener('click', () => {
+        if (this.dom.modalClaudeSettings) this.dom.modalClaudeSettings.close();
+      });
+    }
+
+    if (this.dom.btnToggleKeyVisibility) {
+      this.dom.btnToggleKeyVisibility.addEventListener('click', () => {
+        if (this.dom.claudeInputApiKey) {
+          const isPass = this.dom.claudeInputApiKey.type === 'password';
+          this.dom.claudeInputApiKey.type = isPass ? 'text' : 'password';
+        }
+      });
+    }
+
+    if (this.dom.linkGetClaudeKey) {
+      this.dom.linkGetClaudeKey.addEventListener('click', (e) => {
+        e.preventDefault();
+        const activeWsId = workspaceService.getActiveWorkspaceId();
+        tabManager.createTab('https://console.anthropic.com/settings/keys', 'Anthropic Console', null, activeWsId);
+        if (this.dom.modalClaudeSettings) this.dom.modalClaudeSettings.close();
+      });
+    }
+
+    if (this.dom.btnClaudeSaveSettings) {
+      this.dom.btnClaudeSaveSettings.addEventListener('click', () => {
+        const key = this.dom.claudeInputApiKey ? this.dom.claudeInputApiKey.value.trim() : '';
+        const model = this.dom.claudeSelectModel ? this.dom.claudeSelectModel.value : 'claude-3-5-sonnet-20241022';
+        const prompt = this.dom.claudeInputPrompt ? this.dom.claudeInputPrompt.value.trim() : '';
+
+        claudeService.setApiKey(key);
+        claudeService.setModel(model);
+        claudeService.setCustomPrompt(prompt);
+
+        this.updateClaudeConfigUi();
+        this.showToast('Claude settings & API key saved successfully.');
+        if (this.dom.modalClaudeSettings) this.dom.modalClaudeSettings.close();
+      });
+    }
+
+    if (this.dom.btnClaudeClearKey) {
+      this.dom.btnClaudeClearKey.addEventListener('click', () => {
+        claudeService.setApiKey('');
+        if (this.dom.claudeInputApiKey) this.dom.claudeInputApiKey.value = '';
+        this.updateClaudeConfigUi();
+        this.showToast('Claude API key cleared.');
+      });
+    }
+
+    if (this.dom.btnClaudeClear) {
+      this.dom.btnClaudeClear.addEventListener('click', () => {
+        claudeService.clearHistory();
+        if (this.dom.aiMessages) {
+          this.dom.aiMessages.innerHTML = `
+            <div class="ai-msg bot">
+              <p>Conversation cleared. Hello! I am your built-in <strong>Claude Copilot</strong>. Ask me anything about your active page or workspace!</p>
+            </div>
+          `;
+        }
+        this.showToast('Claude conversation reset.');
+      });
+    }
+
+    eventBus.on('claude:config-updated', () => this.updateClaudeConfigUi());
+    eventBus.on('tabs:activated', () => this.updateClaudeContextBadge());
+    eventBus.on('tab:loaded', () => this.updateClaudeContextBadge());
   }
 
-  handleAiQuickAction(action) {
-    const activeTab = tabManager.getActiveTab();
-    const title = activeTab ? activeTab.title : 'Current Page';
-    const url = activeTab ? activeTab.url : DEFAULT_NEWTAB_URL;
-
-    if (action === 'summarize') {
-      this.appendAiMessage('user', `Summarize "${title}"`);
-      setTimeout(() => {
-        this.appendAiMessage('bot', `### Summary of ${title}\n- **Core Topic**: Primary analysis of ${url}.\n- **Key Highlights**: Streamlined information synthesis generated by Gemini AI.\n- **Conclusion**: Ready for review and quick actions.`);
-      }, 400);
-    } else if (action === 'keypoints') {
-      this.appendAiMessage('user', `Key Takeaways for "${title}"`);
-      setTimeout(() => {
-        this.appendAiMessage('bot', `### Key Takeaways:\n1. Structured overview of relevant concepts.\n2. Actionable insights extracted from ${title}.\n3. High-priority focus points for deep analysis.`);
-      }, 400);
-    } else if (action === 'explain') {
-      this.appendAiMessage('user', `Explain concepts on this page`);
-      setTimeout(() => {
-        this.appendAiMessage('bot', `### Conceptual Breakdown\nThis page covers essential frameworks related to **${title}**. Ask me if you need specific technical or research explanations.`);
-      }, 400);
+  updateClaudeConfigUi() {
+    if (this.dom.claudeModelBadge) {
+      if (claudeService.apiKey) {
+        const friendlyName = claudeService.model.includes('haiku') ? 'Claude 3.5 Haiku' : claudeService.model.includes('opus') ? 'Claude 3 Opus' : 'Claude 3.5 Sonnet';
+        this.dom.claudeModelBadge.textContent = `${friendlyName} • Active`;
+        this.dom.claudeModelBadge.style.color = '#10b981';
+      } else {
+        this.dom.claudeModelBadge.textContent = 'Smart Local Mode (No API Key)';
+        this.dom.claudeModelBadge.style.color = '#8e8e93';
+      }
     }
   }
 
+  updateClaudeContextBadge() {
+    const activeTab = tabManager.getActiveTab();
+    if (!this.dom.claudeContextLabel) return;
+    if (!activeTab || activeTab.url === DEFAULT_NEWTAB_URL || activeTab.url.startsWith('mynetwork://')) {
+      this.dom.claudeContextLabel.textContent = 'Page Context: Focus Dashboard';
+    } else {
+      let domain = '';
+      try {
+        domain = new URL(activeTab.url).hostname.replace(/^www\./, '');
+      } catch (e) {
+        domain = activeTab.url;
+      }
+      this.dom.claudeContextLabel.textContent = `Page Context: ${activeTab.title || 'Web Page'} (${domain})`;
+    }
+  }
+
+  async getActiveWebviewElement() {
+    const activeTabId = tabManager.activeTabId;
+    if (!activeTabId) return null;
+    return this.engineAdapter?.webviewMap?.get(activeTabId) || null;
+  }
+
+  async handleAiSubmit() {
+    const text = this.dom.aiInput ? this.dom.aiInput.value.trim() : '';
+    if (!text) return;
+
+    this.appendAiMessage('user', text);
+    if (this.dom.aiInput) this.dom.aiInput.value = '';
+
+    // Append typing indicator
+    const typingId = this.showClaudeTyping();
+
+    try {
+      const webview = await this.getActiveWebviewElement();
+      const pageContext = await claudeService.extractActivePageContext(webview);
+      const response = await claudeService.sendMessage(text, pageContext);
+      this.removeClaudeTyping(typingId);
+      this.appendAiMessage('bot', response);
+    } catch (err) {
+      this.removeClaudeTyping(typingId);
+      this.appendAiMessage('bot', `⚠️ Error connecting to Claude: ${err.message}`);
+    }
+  }
+
+  async handleAiQuickAction(action) {
+    const activeTab = tabManager.getActiveTab();
+    const title = activeTab ? activeTab.title : 'Current Page';
+    const webview = await this.getActiveWebviewElement();
+    const pageContext = await claudeService.extractActivePageContext(webview);
+
+    if (action === 'summarize') {
+      this.appendAiMessage('user', `Summarize this page: "${title}"`);
+      const typingId = this.showClaudeTyping();
+      const res = await claudeService.sendMessage(`Please generate a structured, executive summary of this page (${title}). Include Core Purpose, Key Highlights, and Conclusions.`, pageContext);
+      this.removeClaudeTyping(typingId);
+      this.appendAiMessage('bot', res);
+    } else if (action === 'keypoints') {
+      this.appendAiMessage('user', `Key Takeaways for "${title}"`);
+      const typingId = this.showClaudeTyping();
+      const res = await claudeService.sendMessage(`Extract the top 5 most actionable key takeaways, facts, and insights from this webpage (${title}).`, pageContext);
+      this.removeClaudeTyping(typingId);
+      this.appendAiMessage('bot', res);
+    } else if (action === 'codereview') {
+      this.appendAiMessage('user', `Code Review / Technical Analysis`);
+      const typingId = this.showClaudeTyping();
+      const res = await claudeService.sendMessage(`Analyze the code blocks and technical architectural concepts on this page (${title}). Explain key logic, highlight optimizations, and provide clean code snippets.`, pageContext);
+      this.removeClaudeTyping(typingId);
+      this.appendAiMessage('bot', res);
+    } else if (action === 'savetomemo') {
+      // Save last assistant message or summary to scratchpad
+      const lastMsg = claudeService.history.filter(m => m.role === 'assistant').slice(-1)[0];
+      const contentToSave = lastMsg ? lastMsg.content : `Note from ${title} (${pageContext.url}):\n${pageContext.bodyText ? pageContext.bodyText.substring(0, 500) : ''}`;
+      const currentNotes = scratchpadService.getContent();
+      const updatedNotes = currentNotes ? `${currentNotes}\n\n--- Claude Notes (${new Date().toLocaleTimeString()}) ---\n${contentToSave}` : `--- Claude Notes (${new Date().toLocaleTimeString()}) ---\n${contentToSave}`;
+      scratchpadService.save(updatedNotes);
+      if (this.dom.scratchpadTextarea) this.dom.scratchpadTextarea.value = updatedNotes;
+      this.showToast('Saved Claude notes directly into Dashboard Scratchpad!');
+    }
+  }
+
+  showClaudeTyping() {
+    const id = 'typing-' + Date.now();
+    const msgEl = document.createElement('div');
+    msgEl.className = 'ai-msg bot';
+    msgEl.id = id;
+    msgEl.innerHTML = `
+      <div class="claude-typing-dots">
+        <span></span><span></span><span></span>
+      </div>
+    `;
+    if (this.dom.aiMessages) {
+      this.dom.aiMessages.appendChild(msgEl);
+      this.dom.aiMessages.scrollTop = this.dom.aiMessages.scrollHeight;
+    }
+    return id;
+  }
+
+  removeClaudeTyping(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  }
+
   appendAiMessage(sender, text) {
+    if (!this.dom.aiMessages) return;
     const msgEl = document.createElement('div');
     msgEl.className = `ai-msg ${sender}`;
-    msgEl.innerHTML = `<p>${text.replace(/\n/g, '<br>')}</p>`;
+
+    if (sender === 'user') {
+      msgEl.textContent = text;
+    } else {
+      msgEl.innerHTML = this.formatClaudeMarkdown(text);
+    }
+
     this.dom.aiMessages.appendChild(msgEl);
     this.dom.aiMessages.scrollTop = this.dom.aiMessages.scrollHeight;
+  }
+
+  formatClaudeMarkdown(text) {
+    if (!text) return '';
+    let html = text;
+
+    // 1. Code blocks with copy button
+    html = html.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (match, lang, code) => {
+      const safeCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const encodedCode = encodeURIComponent(code);
+      return `
+        <div class="code-block-wrapper">
+          <div class="code-header">
+            <span>${lang || 'code'}</span>
+            <button class="copy-code-btn" onclick="navigator.clipboard.writeText(decodeURIComponent('${encodedCode}')); this.innerText = '✓ Copied!'; setTimeout(() => this.innerText = 'Copy Code', 2000);">
+              Copy Code
+            </button>
+          </div>
+          <pre><code>${safeCode}</code></pre>
+        </div>
+      `;
+    });
+
+    // 2. Inline code
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    // 3. Headers
+    html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+    html = html.replace(/^## (.*$)/gim, '<h3>$1</h3>');
+    html = html.replace(/^# (.*$)/gim, '<h3>$1</h3>');
+
+    // 4. Bold and Italics
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+    // 5. Blockquotes
+    html = html.replace(/^\> (.*$)/gim, '<blockquote>$1</blockquote>');
+
+    // 6. Bullet lists
+    html = html.replace(/^- (.*$)/gim, '<li>$1</li>');
+    html = html.replace(/^([0-9]+)\. (.*$)/gim, '<li><strong>$1.</strong> $2</li>');
+
+    // Wrap list items
+    html = html.replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>');
+    html = html.replace(/<\/ul>\s*<ul>/g, '');
+
+    // 7. Line breaks
+    html = html.replace(/\n\n/g, '<br><br>');
+
+    return html;
   }
 
   updateNavButtonsState(tabId) {
@@ -5657,6 +6087,72 @@ class MyNetworkShell {
       }
     });
 
+    if (this.dom.ctxAddChildTab) {
+      this.dom.ctxAddChildTab.addEventListener('click', () => {
+        if (this.currentContextTabId) {
+          const parentTab = tabManager.getTab(this.currentContextTabId);
+          if (parentTab) {
+            tabManager.createTab(DEFAULT_NEWTAB_URL, 'New Tab', null, parentTab.workspaceId, parentTab.containerId, false, parentTab.id);
+            this.renderWorkspaceTabs();
+            this.showToast('🌿 Created Nested Child Tab');
+          }
+        }
+        this.closeTabContextMenu();
+      });
+    }
+
+    if (this.dom.ctxCollapseBranch) {
+      this.dom.ctxCollapseBranch.addEventListener('click', () => {
+        if (this.currentContextTabId) {
+          tabManager.toggleCollapseBranch(this.currentContextTabId);
+          this.renderWorkspaceTabs();
+        }
+        this.closeTabContextMenu();
+      });
+    }
+
+    if (this.dom.ctxHibernateTab) {
+      this.dom.ctxHibernateTab.addEventListener('click', () => {
+        if (this.currentContextTabId) {
+          const tab = tabManager.getTab(this.currentContextTabId);
+          if (tab) {
+            if (tab.isHibernated) {
+              const { tabHibernateService } = require('../../features/performance/tab-hibernate');
+              tabHibernateService.wakeTab(tab.id);
+              this.showToast('⚡ Tab Woken');
+            } else {
+              const { tabHibernateService } = require('../../features/performance/tab-hibernate');
+              tabHibernateService.hibernateTab(tab.id);
+              this.engineAdapter.hibernateWebview(tab.id);
+              this.showToast('❄️ Tab Hibernated (RAM released)');
+            }
+            this.renderWorkspaceTabs();
+          }
+        }
+        this.closeTabContextMenu();
+      });
+    }
+
+    if (this.dom.ctxPhoneSync) {
+      this.dom.ctxPhoneSync.addEventListener('click', () => {
+        if (this.currentContextTabId) {
+          this.openContinuityModal(this.currentContextTabId);
+        }
+        this.closeTabContextMenu();
+      });
+    }
+
+    if (this.dom.ctxCloseSubtree) {
+      this.dom.ctxCloseSubtree.addEventListener('click', () => {
+        if (this.currentContextTabId) {
+          tabManager.closeSubtree(this.currentContextTabId);
+          this.renderWorkspaceTabs();
+          this.showToast('Subtree closed');
+        }
+        this.closeTabContextMenu();
+      });
+    }
+
     if (this.dom.ctxPinTab) {
       this.dom.ctxPinTab.addEventListener('click', () => {
         if (this.currentContextTabId) {
@@ -5747,6 +6243,22 @@ class MyNetworkShell {
 
     if (this.dom.ctxMuteLabel) {
       this.dom.ctxMuteLabel.textContent = tab.isMuted ? 'Unmute Tab' : 'Mute Tab';
+    }
+
+    if (this.dom.ctxHibernateLabel) {
+      this.dom.ctxHibernateLabel.textContent = tab.isHibernated ? 'Wake Tab (Restore Memory)' : 'Hibernate Tab (Free RAM)';
+    }
+
+    if (this.dom.ctxCollapseBranch) {
+      const hasChildren = tabManager.hasChildTabs(tabId);
+      this.dom.ctxCollapseBranch.style.display = hasChildren ? 'flex' : 'none';
+      if (this.dom.ctxCollapseBranchLabel) {
+        this.dom.ctxCollapseBranchLabel.textContent = tab.isCollapsed ? 'Expand Branch' : 'Collapse Branch';
+      }
+    }
+
+    if (this.dom.ctxCloseSubtree) {
+      this.dom.ctxCloseSubtree.style.display = tabManager.hasChildTabs(tabId) ? 'flex' : 'none';
     }
 
     // Populate Move to Project Submenu
@@ -6043,9 +6555,9 @@ class MyNetworkShell {
 
       let iconHtml = '';
       if (res.isFaviconUrl) {
-        iconHtml = `<img src="${res.icon}" width="14" height="14" style="border-radius: 3px;" onerror="this.outerHTML='<span>🌐</span>'">`;
+        iconHtml = `<img src="${res.icon}" width="14" height="14" style="border-radius: 3px;" onerror="this.outerHTML='<svg width=\\'14\\' height=\\'14\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><circle cx=\\'12\\' cy=\\'12\\' r=\\'10\\'/><path d=\\'M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z\\'/></svg>'">`;
       } else {
-        iconHtml = `<span>${res.icon || '🔍'}</span>`;
+        iconHtml = res.icon || '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
       }
 
       let badgeHtml = '';
@@ -6190,6 +6702,939 @@ class MyNetworkShell {
         };
       }
     }
+  }
+
+  /* ==========================================================================
+     PRIVACY & BRAVE-GRADE AD/TRACKER SHIELD CONTROLLER
+     ========================================================================== */
+  initShieldController() {
+    const { adBlockerEngine } = require('../../engine/adblock/ad-blocker');
+
+    if (this.dom.btnAdblockShield) {
+      this.dom.btnAdblockShield.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleShieldPopover();
+      });
+    }
+
+    // Close on click outside
+    document.addEventListener('click', (e) => {
+      if (this.dom.braveShieldPopover && this.dom.braveShieldPopover.style.display !== 'none') {
+        if (!this.dom.braveShieldPopover.contains(e.target) && !this.dom.btnAdblockShield.contains(e.target)) {
+          this.dom.braveShieldPopover.style.display = 'none';
+        }
+      }
+    });
+
+    // Toggle Site Whitelist / Shield On-Off
+    if (this.dom.braveShieldToggle) {
+      this.dom.braveShieldToggle.addEventListener('change', (e) => {
+        const activeTab = tabManager.getActiveTab();
+        if (!activeTab || !activeTab.url) return;
+        try {
+          const parsed = new URL(activeTab.url);
+          const domain = parsed.hostname;
+          const isWhitelisted = adBlockerEngine.toggleWhitelist(domain);
+          const isUp = !isWhitelisted && adBlockerEngine.isEnabled;
+
+          this.updateShieldStatusUi(isUp, domain);
+          this.showToast(isUp ? `🛡️ Shields Active for ${domain}` : `⚠️ Shields Paused for ${domain}`);
+        } catch (err) {}
+      });
+    }
+
+    // Sub Toggles
+    if (this.dom.shieldToggleAdsSub) {
+      this.dom.shieldToggleAdsSub.addEventListener('change', (e) => {
+        adBlockerEngine.isEnabled = e.target.checked;
+        adBlockerEngine.saveSettings();
+        this.showToast(e.target.checked ? '🛡️ Ad Blocking Enabled' : '⚠️ Ad Blocking Paused');
+      });
+    }
+
+    if (this.dom.shieldToggleFingerprintSub) {
+      this.dom.shieldToggleFingerprintSub.addEventListener('change', (e) => {
+        try {
+          const { antiFingerprintService } = require('../../engine/privacy/anti-fingerprint');
+          antiFingerprintService.toggleEnabled();
+          this.showToast(e.target.checked ? '🔒 Tracker Shield Active' : '🔓 Tracker Shield Paused');
+        } catch(err) {}
+      });
+    }
+
+    if (this.dom.btnShieldGlobalSettings) {
+      this.dom.btnShieldGlobalSettings.addEventListener('click', () => {
+        if (this.dom.braveShieldPopover) this.dom.braveShieldPopover.style.display = 'none';
+        this.openSettingsModal();
+      });
+    }
+
+    // Live EventBus blocked counter listener
+    eventBus.on('adblock:request-blocked', ({ tabId, count }) => {
+      const activeTab = tabManager.getActiveTab();
+      if (activeTab && activeTab.id === tabId) {
+        this.updateShieldBadge(count);
+        if (this.dom.braveShieldBlockedCount) {
+          this.dom.braveShieldBlockedCount.textContent = count;
+        }
+      }
+    });
+
+    // Main Process Blocked Network Requests IPC
+    const { ipcRenderer } = require('electron');
+    if (ipcRenderer) {
+      ipcRenderer.on('adblock-blocked', (event, { url, webContentsId }) => {
+        const activeTab = tabManager.getActiveTab();
+        if (!activeTab) return;
+        const count = adBlockerEngine.getBlockedCountForTab(activeTab.id);
+        this.updateShieldBadge(count);
+        if (this.dom.braveShieldBlockedCount) {
+          this.dom.braveShieldBlockedCount.textContent = count;
+        }
+      });
+    }
+  }
+
+  toggleShieldPopover() {
+    if (!this.dom.braveShieldPopover) return;
+    const isCurrentlyOpen = this.dom.braveShieldPopover.style.display === 'block';
+    if (isCurrentlyOpen) {
+      this.dom.braveShieldPopover.style.display = 'none';
+    } else {
+      this.openShieldModal();
+    }
+  }
+
+  updateShieldStatusUi(isUp, domain = '') {
+    if (this.dom.shieldStatusDot) {
+      this.dom.shieldStatusDot.className = `shield-status-dot ${isUp ? 'active' : ''}`;
+    }
+    if (this.dom.shieldStatusLabel) {
+      this.dom.shieldStatusLabel.textContent = isUp ? 'Shields Active' : 'Shields Paused';
+      this.dom.shieldStatusLabel.style.color = isUp ? '#10b981' : '#94a3b8';
+    }
+    if (this.dom.braveShieldToggle) {
+      this.dom.braveShieldToggle.checked = isUp;
+    }
+  }
+
+  openShieldModal() {
+    if (!this.dom.braveShieldPopover) return;
+    const activeTab = tabManager.getActiveTab();
+    const { adBlockerEngine } = require('../../engine/adblock/ad-blocker');
+
+    let domain = 'Current Page';
+    let isWhitelisted = false;
+    let faviconUrl = '';
+
+    if (activeTab && activeTab.url && !activeTab.url.startsWith('mynetwork://') && !activeTab.url.startsWith('data:')) {
+      try {
+        const parsed = new URL(activeTab.url);
+        domain = parsed.hostname;
+        isWhitelisted = adBlockerEngine.isWhitelisted(domain);
+        faviconUrl = activeTab.favicon || `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+      } catch (e) {}
+    }
+
+    const isUp = !isWhitelisted && adBlockerEngine.isEnabled;
+
+    if (this.dom.shieldHeaderDomain) {
+      this.dom.shieldHeaderDomain.textContent = domain;
+    }
+    this.updateShieldStatusUi(isUp, domain);
+
+    if (this.dom.shieldSiteFavicon) {
+      if (faviconUrl) {
+        this.dom.shieldSiteFavicon.innerHTML = `<img src="${faviconUrl}" width="18" height="18" style="border-radius: 4px; object-fit: contain;" onerror="this.src='assets/icon-symbol.svg'">`;
+      } else {
+        this.dom.shieldSiteFavicon.innerHTML = `<img src="assets/icon-symbol.svg" width="18" height="18" alt="">`;
+      }
+    }
+
+    if (this.dom.shieldToggleAdsSub) {
+      this.dom.shieldToggleAdsSub.checked = adBlockerEngine.isEnabled;
+    }
+
+    const blockedCount = activeTab ? adBlockerEngine.getBlockedCountForTab(activeTab.id) : 0;
+    if (this.dom.braveShieldBlockedCount) {
+      this.dom.braveShieldBlockedCount.textContent = blockedCount;
+    }
+    this.updateShieldBadge(blockedCount);
+
+    this.dom.braveShieldPopover.style.display = 'block';
+  }
+
+  updateShieldBadge(count) {
+    if (!this.dom.shieldBlockedBadge) return;
+    if (count > 0) {
+      this.dom.shieldBlockedBadge.textContent = count > 99 ? '99+' : count;
+      this.dom.shieldBlockedBadge.style.display = 'inline-flex';
+    } else {
+      this.dom.shieldBlockedBadge.style.display = 'none';
+    }
+  }
+
+  /* ==========================================================================
+     DEVELOPER TOOLBOX CONTROLLER
+     ========================================================================== */
+  initDevToolboxController() {
+    if (this.dom.btnCloseDevToolbox) {
+      this.dom.btnCloseDevToolbox.addEventListener('click', () => {
+        if (this.dom.modalDevToolbox) this.dom.modalDevToolbox.close();
+      });
+    }
+
+    // Dev Tab Navigation
+    if (this.dom.devTabBtns) {
+      this.dom.devTabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const targetTab = btn.getAttribute('data-tab');
+          this.dom.devTabBtns.forEach(b => {
+            b.classList.remove('active');
+            b.style.background = 'transparent';
+            b.style.color = 'var(--text-secondary, #64748b)';
+          });
+          btn.classList.add('active');
+          btn.style.background = '#007aff';
+          btn.style.color = '#ffffff';
+
+          this.dom.devSectionPanes.forEach(pane => {
+            pane.style.display = (pane.id === `dev-pane-${targetTab}`) ? 'block' : 'none';
+          });
+        });
+      });
+    }
+
+    // 1. REST Client Send
+    if (this.dom.devRestSend) {
+      this.dom.devRestSend.addEventListener('click', async () => {
+        const method = this.dom.devRestMethod.value;
+        const url = this.dom.devRestUrl.value.trim();
+        let body = null;
+        if (['POST', 'PUT', 'PATCH'].includes(method) && this.dom.devRestBody.value.trim()) {
+          try {
+            body = JSON.parse(this.dom.devRestBody.value);
+          } catch(e) {
+            this.showToast('Invalid JSON in Request Body');
+            return;
+          }
+        }
+
+        this.dom.devRestResponse.textContent = 'Sending request...';
+        this.dom.devRestStatusBadge.textContent = 'PENDING';
+        this.dom.devRestStatusBadge.style.color = '#f59e0b';
+
+        const { devToolboxService } = require('../../features/dev-toolbox/dev-toolbox');
+        const res = await devToolboxService.sendRequest({ method, url, body });
+
+        if (res.success) {
+          this.dom.devRestStatusBadge.textContent = `${res.status} ${res.statusText} (${res.durationMs}ms)`;
+          this.dom.devRestStatusBadge.style.color = res.status < 400 ? '#10b981' : '#ef4444';
+          this.dom.devRestResponse.textContent = typeof res.data === 'object' ? JSON.stringify(res.data, null, 2) : res.data;
+        } else {
+          this.dom.devRestStatusBadge.textContent = `ERROR (${res.durationMs}ms)`;
+          this.dom.devRestStatusBadge.style.color = '#ef4444';
+          this.dom.devRestResponse.textContent = res.error;
+        }
+      });
+    }
+
+    // 2. JWT Decoder live input
+    if (this.dom.devJwtInput) {
+      this.dom.devJwtInput.addEventListener('input', () => {
+        const token = this.dom.devJwtInput.value.trim();
+        const { devToolboxService } = require('../../features/dev-toolbox/dev-toolbox');
+        const decoded = devToolboxService.decodeJwt(token);
+
+        if (decoded.valid) {
+          this.dom.devJwtHeader.textContent = JSON.stringify(decoded.header, null, 2);
+          this.dom.devJwtPayload.textContent = JSON.stringify(decoded.payload, null, 2);
+        } else {
+          this.dom.devJwtHeader.textContent = '{}';
+          this.dom.devJwtPayload.textContent = decoded.error || '{}';
+        }
+      });
+    }
+
+    // 3. Regex Playground live input
+    const runRegexTest = () => {
+      const pattern = this.dom.devRegexPattern?.value || '';
+      const flags = this.dom.devRegexFlags?.value || 'g';
+      const testStr = this.dom.devRegexTestStr?.value || '';
+
+      const { devToolboxService } = require('../../features/dev-toolbox/dev-toolbox');
+      const res = devToolboxService.testRegex(pattern, flags, testStr);
+
+      if (this.dom.devRegexMatchCount) {
+        this.dom.devRegexMatchCount.textContent = res.valid ? `Matches (${res.matchCount})` : 'Invalid Regex Pattern';
+      }
+      if (this.dom.devRegexResults) {
+        if (res.valid && res.matches.length > 0) {
+          this.dom.devRegexResults.innerHTML = res.matches.map((m, i) => `<div><b>#${i+1} [Index ${m.index}]:</b> ${this.escapeHtml(m.text)}</div>`).join('');
+        } else {
+          this.dom.devRegexResults.textContent = res.valid ? 'No matches found in test string' : res.error;
+        }
+      }
+    };
+
+    if (this.dom.devRegexPattern) this.dom.devRegexPattern.addEventListener('input', runRegexTest);
+    if (this.dom.devRegexFlags) this.dom.devRegexFlags.addEventListener('input', runRegexTest);
+    if (this.dom.devRegexTestStr) this.dom.devRegexTestStr.addEventListener('input', runRegexTest);
+
+    // 4. JSON Formatter
+    if (this.dom.devJsonFormatBtn) {
+      this.dom.devJsonFormatBtn.addEventListener('click', () => {
+        const raw = this.dom.devJsonTextarea?.value || '';
+        const { devToolboxService } = require('../../features/dev-toolbox/dev-toolbox');
+        const res = devToolboxService.formatJson(raw, 2);
+        if (res.valid) {
+          this.dom.devJsonTextarea.value = res.formatted;
+        } else {
+          this.showToast('Invalid JSON: ' + res.error);
+        }
+      });
+    }
+
+    if (this.dom.devJsonMinifyBtn) {
+      this.dom.devJsonMinifyBtn.addEventListener('click', () => {
+        const raw = this.dom.devJsonTextarea?.value || '';
+        const { devToolboxService } = require('../../features/dev-toolbox/dev-toolbox');
+        const res = devToolboxService.formatJson(raw);
+        if (res.valid) {
+          this.dom.devJsonTextarea.value = res.minified;
+        } else {
+          this.showToast('Invalid JSON: ' + res.error);
+        }
+      });
+    }
+  }
+
+  openDevToolboxModal() {
+    if (!this.dom.modalDevToolbox) return;
+    this.dom.modalDevToolbox.showModal();
+  }
+
+  /* ==========================================================================
+     PHONE CONTINUITY (QR CODE PUSH)
+     ========================================================================== */
+  initContinuityController() {
+    if (this.dom.btnCloseContinuityModal) {
+      this.dom.btnCloseContinuityModal.addEventListener('click', () => {
+        if (this.dom.modalContinuitySync) this.dom.modalContinuitySync.close();
+      });
+    }
+  }
+
+  openContinuityModal(tabId = null) {
+    if (!this.dom.modalContinuitySync) return;
+    const targetTab = tabId ? tabManager.getTab(tabId) : tabManager.getActiveTab();
+    if (!targetTab) return;
+
+    const { continuityService } = require('../../features/continuity/continuity-service');
+    const payload = continuityService.generateContinuityPayload(targetTab);
+
+    if (this.dom.continuityQrImg) {
+      this.dom.continuityQrImg.src = payload.qrCodeUrl;
+    }
+    if (this.dom.continuityTabTitle) {
+      this.dom.continuityTabTitle.textContent = payload.title || 'Tab';
+    }
+    if (this.dom.continuityTabUrl) {
+      this.dom.continuityTabUrl.textContent = payload.url;
+    }
+
+    this.dom.modalContinuitySync.showModal();
+  }
+
+  /* ==========================================================================
+     SMART DOWNLOAD MANAGER IPC INTERCEPTOR
+     ========================================================================== */
+  initDownloadIpcListeners() {
+    const { ipcRenderer } = require('electron');
+    if (!ipcRenderer) return;
+
+    const { downloadManager } = require('../../features/downloads/download-manager');
+
+    ipcRenderer.on('download-will-start', (event, data) => {
+      downloadManager.registerDownload(data);
+      this.showToast(`⬇️ Download Started: ${data.filename}`);
+    });
+
+    ipcRenderer.on('download-progress-update', (event, data) => {
+      downloadManager.updateProgress(data.id, data);
+    });
+
+    ipcRenderer.on('download-completed', (event, data) => {
+      downloadManager.updateProgress(data.id, data);
+      if (data.state === 'completed') {
+        this.showToast(`✅ Download Complete: ${data.id}`);
+      }
+    });
+  }
+
+  /* ==========================================================================
+     1. GITHUB DEVELOPER HUB CONTROLLER
+     ========================================================================== */
+  initGitHubHubController() {
+    if (this.dom.btnSidebarGithub) {
+      this.dom.btnSidebarGithub.addEventListener('click', () => this.openGitHubHubModal());
+    }
+    if (this.dom.menuItemGithubHub) {
+      this.dom.menuItemGithubHub.addEventListener('click', () => this.openGitHubHubModal());
+    }
+    if (this.dom.btnCloseGithubModal) {
+      this.dom.btnCloseGithubModal.addEventListener('click', () => {
+        if (this.dom.modalGithubHub) this.dom.modalGithubHub.close();
+      });
+    }
+    if (this.dom.btnGithubRefresh) {
+      this.dom.btnGithubRefresh.addEventListener('click', () => {
+        githubHubService.fetchData();
+        this.showToast('🔄 Refreshing GitHub Data...');
+      });
+    }
+
+    // Sub Tabs Navigation
+    document.querySelectorAll('.github-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.github-tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.github-tab-pane').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        const tabId = btn.getAttribute('data-tab');
+        const pane = document.getElementById(`gh-pane-${tabId}`);
+        if (pane) pane.classList.add('active');
+      });
+    });
+
+    // Save PAT / Username Auth
+    if (this.dom.btnGhSaveAuth) {
+      this.dom.btnGhSaveAuth.addEventListener('click', () => {
+        const pat = this.dom.ghInputPat ? this.dom.ghInputPat.value.trim() : '';
+        const user = this.dom.ghInputUsername ? this.dom.ghInputUsername.value.trim() : '';
+        if (!pat && !user) {
+          this.showToast('Please enter a GitHub PAT or Username.');
+          return;
+        }
+        githubHubService.setCredentials(pat, user);
+        this.showToast('✅ GitHub credentials saved & syncing...');
+      });
+    }
+
+    if (this.dom.btnGhDisconnect) {
+      this.dom.btnGhDisconnect.addEventListener('click', () => {
+        githubHubService.clearCredentials();
+        if (this.dom.ghInputPat) this.dom.ghInputPat.value = '';
+        if (this.dom.ghInputUsername) this.dom.ghInputUsername.value = '';
+        this.showToast('GitHub disconnected.');
+      });
+    }
+
+    // Create Gist
+    if (this.dom.btnGhCreateGist) {
+      this.dom.btnGhCreateGist.addEventListener('click', async () => {
+        const desc = this.dom.ghGistDesc ? this.dom.ghGistDesc.value.trim() : '';
+        const filename = this.dom.ghGistFilename ? this.dom.ghGistFilename.value.trim() : 'snippet.js';
+        const code = this.dom.ghGistCode ? this.dom.ghGistCode.value : '';
+
+        if (!code) {
+          this.showToast('Please enter code content for the Gist.');
+          return;
+        }
+
+        try {
+          this.showToast('⏳ Creating Gist on GitHub...');
+          const res = await githubHubService.createGist(desc, filename, code, false);
+          if (res && res.html_url) {
+            navigator.clipboard.writeText(res.html_url);
+            this.showToast(`✅ Gist Created! Copied URL: ${res.html_url}`);
+            if (this.dom.ghGistCode) this.dom.ghGistCode.value = '';
+          }
+        } catch (err) {
+          this.showToast(`Error: ${err.message}`);
+        }
+      });
+    }
+
+    // Event Listeners
+    eventBus.on('github:data-updated', (data) => {
+      this.renderGitHubHubUi(data);
+    });
+
+    eventBus.on('github:loading-state', ({ isLoading }) => {
+      if (this.dom.btnGithubRefresh) {
+        this.dom.btnGithubRefresh.style.opacity = isLoading ? '0.5' : '1';
+      }
+    });
+
+    // Populate initial state
+    this.renderGitHubHubUi(githubHubService.getSummary());
+  }
+
+  openGitHubHubModal() {
+    if (!this.dom.modalGithubHub) return;
+    if (this.dom.ghInputPat) this.dom.ghInputPat.value = githubHubService.token;
+    if (this.dom.ghInputUsername) this.dom.ghInputUsername.value = githubHubService.username;
+    this.dom.modalGithubHub.showModal();
+  }
+
+  renderGitHubHubUi(data) {
+    const totalBadges = (data.prCount || 0) + (data.issueCount || 0);
+    if (this.dom.sidebarGithubBadge) {
+      if (totalBadges > 0) {
+        this.dom.sidebarGithubBadge.textContent = totalBadges;
+        this.dom.sidebarGithubBadge.style.display = 'inline-flex';
+      } else {
+        this.dom.sidebarGithubBadge.style.display = 'none';
+      }
+    }
+
+    if (this.dom.ghBadgePrs) this.dom.ghBadgePrs.textContent = data.prCount || 0;
+    if (this.dom.ghBadgeIssues) this.dom.ghBadgeIssues.textContent = data.issueCount || 0;
+
+    // Render PRs
+    if (this.dom.ghPrsList) {
+      if (!data.prs || data.prs.length === 0) {
+        this.dom.ghPrsList.innerHTML = `<div class="empty-state-muted">No open pull requests found.</div>`;
+      } else {
+        this.dom.ghPrsList.innerHTML = data.prs.map(pr => `
+          <div class="github-item-card" onclick="window.myNetworkApp.openExternalUrl('${pr.html_url}')">
+            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+              <span style="font-size: 12.5px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${pr.title}</span>
+              <span style="font-size: 11px; color: #64748b;">#${pr.number} by @${pr.user.login}</span>
+            </div>
+            <span style="font-size: 10px; font-weight: 700; background: rgba(16, 185, 129, 0.12); color: #10b981; padding: 2px 7px; border-radius: 8px;">OPEN PR</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Render Issues
+    if (this.dom.ghIssuesList) {
+      if (!data.issues || data.issues.length === 0) {
+        this.dom.ghIssuesList.innerHTML = `<div class="empty-state-muted">No assigned issues found.</div>`;
+      } else {
+        this.dom.ghIssuesList.innerHTML = data.issues.map(issue => `
+          <div class="github-item-card" onclick="window.myNetworkApp.openExternalUrl('${issue.html_url}')">
+            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+              <span style="font-size: 12.5px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${issue.title}</span>
+              <span style="font-size: 11px; color: #64748b;">#${issue.number} in ${issue.repository_url ? issue.repository_url.split('/').slice(-1)[0] : 'Repo'}</span>
+            </div>
+            <span style="font-size: 10px; font-weight: 700; background: rgba(2, 132, 199, 0.12); color: #0284c7; padding: 2px 7px; border-radius: 8px;">ISSUE</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Render Repos
+    if (this.dom.ghReposList) {
+      if (!data.repos || data.repos.length === 0) {
+        this.dom.ghReposList.innerHTML = `<div class="empty-state-muted">No repositories found.</div>`;
+      } else {
+        this.dom.ghReposList.innerHTML = data.repos.map(repo => `
+          <div class="github-item-card" onclick="window.myNetworkApp.openExternalUrl('${repo.html_url}')">
+            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+              <span style="font-size: 12.5px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${repo.name}</span>
+              <span style="font-size: 11px; color: #64748b;">${repo.stagger_count || repo.stargazers_count || 0} stars • ${repo.language || 'Code'}</span>
+            </div>
+            <span style="font-size: 11px; color: #007aff;">Open ↗</span>
+          </div>
+        `).join('');
+      }
+    }
+  }
+
+  openExternalUrl(url) {
+    if (!url) return;
+    const activeWsId = workspaceService.getActiveWorkspaceId();
+    tabManager.createTab(url, 'GitHub', null, activeWsId);
+    if (this.dom.modalGithubHub) this.dom.modalGithubHub.close();
+  }
+
+  /* ==========================================================================
+     2. DEVELOPER API MOCK SERVER CONTROLLER
+     ========================================================================== */
+  initMockServerController() {
+    if (this.dom.btnSidebarMockServer) {
+      this.dom.btnSidebarMockServer.addEventListener('click', () => this.openMockServerModal());
+    }
+    if (this.dom.menuItemMockServer) {
+      this.dom.menuItemMockServer.addEventListener('click', () => this.openMockServerModal());
+    }
+    if (this.dom.btnCloseMockModal) {
+      this.dom.btnCloseMockModal.addEventListener('click', () => {
+        if (this.dom.modalMockServer) this.dom.modalMockServer.close();
+      });
+    }
+
+    if (this.dom.mockServerMasterToggle) {
+      this.dom.mockServerMasterToggle.checked = mockServerService.isEnabled;
+      this.dom.mockServerMasterToggle.addEventListener('change', (e) => {
+        mockServerService.toggleMaster(e.target.checked);
+        this.showToast(e.target.checked ? 'API Mock Server active' : 'API Mock Server paused');
+      });
+    }
+
+    if (this.dom.btnMockNewRule) {
+      this.dom.btnMockNewRule.addEventListener('click', () => {
+        this.populateMockRuleEditor({
+          id: '',
+          name: 'New Mock Rule',
+          method: 'GET',
+          urlPattern: '/api/example',
+          statusCode: 200,
+          delay: 0,
+          responseBody: JSON.stringify({ message: 'Hello from mock server' }, null, 2)
+        });
+      });
+    }
+
+    if (this.dom.btnMockSaveRule) {
+      this.dom.btnMockSaveRule.addEventListener('click', () => {
+        const id = this.dom.mockEditId ? this.dom.mockEditId.value : '';
+        const ruleData = {
+          name: this.dom.mockEditName?.value || 'Untitled Rule',
+          method: this.dom.mockEditMethod?.value || 'GET',
+          urlPattern: this.dom.mockEditUrl?.value || '/api/',
+          statusCode: parseInt(this.dom.mockEditStatus?.value, 10) || 200,
+          delay: parseInt(this.dom.mockEditDelay?.value, 10) || 0,
+          responseBody: this.dom.mockEditBody?.value || '{}'
+        };
+
+        if (id) {
+          mockServerService.updateRule(id, ruleData);
+          this.showToast(`Rule "${ruleData.name}" updated`);
+        } else {
+          mockServerService.addRule(ruleData);
+          this.showToast(`Rule "${ruleData.name}" created`);
+        }
+        this.renderMockRulesList();
+      });
+    }
+
+    if (this.dom.btnMockDeleteRule) {
+      this.dom.btnMockDeleteRule.addEventListener('click', () => {
+        const id = this.dom.mockEditId ? this.dom.mockEditId.value : '';
+        if (id) {
+          mockServerService.deleteRule(id);
+          this.showToast('Rule deleted');
+          this.renderMockRulesList();
+        }
+      });
+    }
+
+    eventBus.on('mock-server:rules-updated', () => {
+      this.renderMockRulesList();
+    });
+
+    this.renderMockRulesList();
+  }
+
+  openMockServerModal() {
+    if (!this.dom.modalMockServer) return;
+    if (this.dom.mockServerMasterToggle) {
+      this.dom.mockServerMasterToggle.checked = mockServerService.isEnabled;
+    }
+    this.renderMockRulesList();
+    this.dom.modalMockServer.showModal();
+  }
+
+  renderMockRulesList() {
+    if (!this.dom.mockRulesList) return;
+    const rules = mockServerService.rules;
+    if (rules.length === 0) {
+      this.dom.mockRulesList.innerHTML = `<div style="font-size: 11px; color: #94a3b8; padding: 12px; text-align: center;">No rules yet. Click + Add Rule.</div>`;
+      return;
+    }
+
+    this.dom.mockRulesList.innerHTML = rules.map(r => `
+      <div class="mock-rule-item" data-id="${r.id}">
+        <div style="display: flex; align-items: center; gap: 6px; min-width: 0;">
+          <span style="font-size: 9.5px; font-weight: 800; color: ${r.method === 'GET' ? '#007aff' : r.method === 'POST' ? '#10b981' : '#f59e0b'};">${r.method}</span>
+          <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;">${r.name}</span>
+        </div>
+        <input type="checkbox" class="mock-rule-toggle-check" data-id="${r.id}" ${r.enabled ? 'checked' : ''} onclick="event.stopPropagation(); window.myNetworkApp.toggleMockRule('${r.id}')">
+      </div>
+    `).join('');
+
+    // Click on item to edit
+    this.dom.mockRulesList.querySelectorAll('.mock-rule-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.getAttribute('data-id');
+        const rule = rules.find(r => r.id === id);
+        if (rule) this.populateMockRuleEditor(rule);
+      });
+    });
+
+    if (rules[0]) this.populateMockRuleEditor(rules[0]);
+  }
+
+  populateMockRuleEditor(rule) {
+    if (this.dom.mockEditId) this.dom.mockEditId.value = rule.id || '';
+    if (this.dom.mockEditName) this.dom.mockEditName.value = rule.name || '';
+    if (this.dom.mockEditMethod) this.dom.mockEditMethod.value = rule.method || 'GET';
+    if (this.dom.mockEditUrl) this.dom.mockEditUrl.value = rule.urlPattern || '';
+    if (this.dom.mockEditStatus) this.dom.mockEditStatus.value = rule.statusCode || 200;
+    if (this.dom.mockEditDelay) this.dom.mockEditDelay.value = rule.delay || 0;
+    if (this.dom.mockEditBody) this.dom.mockEditBody.value = rule.responseBody || '{}';
+    if (this.dom.btnMockDeleteRule) {
+      this.dom.btnMockDeleteRule.style.display = rule.id ? 'inline-flex' : 'none';
+    }
+  }
+
+  toggleMockRule(ruleId) {
+    mockServerService.toggleRule(ruleId);
+  }
+
+  /* ==========================================================================
+     3. WORKSPACE SECRETS & .ENV VAULT CONTROLLER
+     ========================================================================= */
+  initWorkspaceVaultController() {
+    if (this.dom.btnSidebarVault) {
+      this.dom.btnSidebarVault.addEventListener('click', () => this.openWorkspaceVaultModal());
+    }
+    if (this.dom.menuItemWorkspaceVault) {
+      this.dom.menuItemWorkspaceVault.addEventListener('click', () => this.openWorkspaceVaultModal());
+    }
+    if (this.dom.btnCloseVaultModal) {
+      this.dom.btnCloseVaultModal.addEventListener('click', () => {
+        if (this.dom.modalWorkspaceVault) this.dom.modalWorkspaceVault.close();
+      });
+    }
+
+    if (this.dom.vaultWsSelect) {
+      this.dom.vaultWsSelect.addEventListener('change', () => {
+        this.renderVaultSecrets();
+      });
+    }
+
+    if (this.dom.btnVaultAddSecret) {
+      this.dom.btnVaultAddSecret.addEventListener('click', () => {
+        const wsId = this.dom.vaultWsSelect?.value || workspaceService.getActiveWorkspaceId();
+        const key = this.dom.vaultAddKey ? this.dom.vaultAddKey.value.trim() : '';
+        const val = this.dom.vaultAddValue ? this.dom.vaultAddValue.value : '';
+
+        if (!key) {
+          this.showToast('Please enter a secret KEY name.');
+          return;
+        }
+
+        workspaceVaultService.addSecret(wsId, key, val);
+        if (this.dom.vaultAddKey) this.dom.vaultAddKey.value = '';
+        if (this.dom.vaultAddValue) this.dom.vaultAddValue.value = '';
+        this.showToast(`Saved secret "${key}"`);
+        this.renderVaultSecrets();
+      });
+    }
+
+    if (this.dom.btnVaultExportEnv) {
+      this.dom.btnVaultExportEnv.addEventListener('click', () => {
+        const wsId = this.dom.vaultWsSelect?.value || workspaceService.getActiveWorkspaceId();
+        const envText = workspaceVaultService.exportEnvFormat(wsId);
+        navigator.clipboard.writeText(envText);
+        this.showToast('Copied .env contents to clipboard');
+      });
+    }
+
+    if (this.dom.btnVaultImportEnv) {
+      this.dom.btnVaultImportEnv.addEventListener('click', () => {
+        const envText = prompt('Paste your .env file contents (e.g. KEY=VALUE):');
+        if (envText) {
+          const wsId = this.dom.vaultWsSelect?.value || workspaceService.getActiveWorkspaceId();
+          const count = workspaceVaultService.importEnvFormat(wsId, envText);
+          this.showToast(`Imported ${count} secrets into workspace vault.`);
+          this.renderVaultSecrets();
+        }
+      });
+    }
+
+    eventBus.on('vault:secrets-updated', () => {
+      this.renderVaultSecrets();
+    });
+  }
+
+  openWorkspaceVaultModal() {
+    if (!this.dom.modalWorkspaceVault) return;
+    // Populate workspaces in dropdown
+    if (this.dom.vaultWsSelect) {
+      const workspaces = workspaceService.getAllWorkspaces();
+      const activeWs = workspaceService.getActiveWorkspaceId();
+      this.dom.vaultWsSelect.innerHTML = workspaces.map(ws => `
+        <option value="${ws.id}" ${ws.id === activeWs ? 'selected' : ''}>${ws.name}</option>
+      `).join('');
+    }
+    this.renderVaultSecrets();
+    this.dom.modalWorkspaceVault.showModal();
+  }
+
+  renderVaultSecrets() {
+    if (!this.dom.vaultSecretsList) return;
+    const wsId = this.dom.vaultWsSelect?.value || workspaceService.getActiveWorkspaceId();
+    const secrets = workspaceVaultService.getSecretsForWorkspace(wsId);
+
+    if (secrets.length === 0) {
+      this.dom.vaultSecretsList.innerHTML = `<div class="empty-state-muted">No environment secrets saved for this project workspace yet.</div>`;
+      return;
+    }
+
+    this.dom.vaultSecretsList.innerHTML = secrets.map(s => `
+      <div class="vault-secret-item">
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span class="vault-key-name">${s.key}</span>
+          <span style="font-family: monospace; font-size: 11px; color: #64748b;">${'•'.repeat(Math.min(s.value.length, 16)) || 'Empty'}</span>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <button type="button" class="mac-btn-sub" onclick="navigator.clipboard.writeText('${s.value}'); window.myNetworkApp.showToast('Copied ${s.key}');">Copy</button>
+          <button type="button" class="mac-btn-sub" style="color: #ef4444;" onclick="window.myNetworkApp.deleteVaultSecret('${wsId}', '${s.id}')">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  deleteVaultSecret(wsId, secretId) {
+    workspaceVaultService.deleteSecret(wsId, secretId);
+    this.renderVaultSecrets();
+  }
+
+  /* ==========================================================================
+     4. BROWSER AUTOMATION & MACRO RECORDER CONTROLLER
+     ========================================================================== */
+  initMacroAutomationController() {
+    if (this.dom.btnSidebarMacros) {
+      this.dom.btnSidebarMacros.addEventListener('click', () => this.openMacroLibraryModal());
+    }
+    if (this.dom.menuItemMacros) {
+      this.dom.menuItemMacros.addEventListener('click', () => this.openMacroLibraryModal());
+    }
+    if (this.dom.btnCloseMacroModal) {
+      this.dom.btnCloseMacroModal.addEventListener('click', () => {
+        if (this.dom.modalMacroLibrary) this.dom.modalMacroLibrary.close();
+      });
+    }
+
+    if (this.dom.btnMacroStartRec) {
+      this.dom.btnMacroStartRec.addEventListener('click', () => {
+        if (this.dom.modalMacroLibrary) this.dom.modalMacroLibrary.close();
+        this.startMacroRecording();
+      });
+    }
+
+    if (this.dom.btnMacroHudStop) {
+      this.dom.btnMacroHudStop.addEventListener('click', () => {
+        const actions = macroRecorderService.stopRecording();
+        if (this.dom.macroRecordingHud) this.dom.macroRecordingHud.style.display = 'none';
+        
+        const name = prompt('Enter a name for this recorded macro:', `Macro ${new Date().toLocaleTimeString()}`);
+        if (name) {
+          const wsId = workspaceService.getActiveWorkspaceId();
+          macroRecorderService.saveMacro(name, '', wsId, actions);
+          this.showToast(`Saved macro "${name}" with ${actions.length} actions.`);
+        }
+      });
+    }
+
+    if (this.dom.btnMacroHudCancel) {
+      this.dom.btnMacroHudCancel.addEventListener('click', () => {
+        macroRecorderService.stopRecording();
+        if (this.dom.macroRecordingHud) this.dom.macroRecordingHud.style.display = 'none';
+        this.showToast('Macro recording cancelled.');
+      });
+    }
+
+    // Live Macro event listeners
+    eventBus.on('macro:action-recorded', ({ count }) => {
+      if (this.dom.macroHudActionsCount) {
+        this.dom.macroHudActionsCount.textContent = `${count} action${count === 1 ? '' : 's'}`;
+      }
+    });
+
+    eventBus.on('macro:list-updated', () => {
+      this.renderMacroLibraryList();
+    });
+
+    // Global keyboard shortcut triggers
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'g') {
+        e.preventDefault();
+        this.openGitHubHubModal();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        this.openMockServerModal();
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'e') {
+        e.preventDefault();
+        this.openWorkspaceVaultModal();
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        this.openMacroLibraryModal();
+      }
+    });
+  }
+
+  startMacroRecording() {
+    const activeTab = tabManager.getActiveTab();
+    if (!activeTab) return;
+
+    macroRecorderService.startRecording(activeTab.id);
+    if (this.dom.macroRecordingHud) {
+      this.dom.macroRecordingHud.style.display = 'flex';
+      if (this.dom.macroHudActionsCount) this.dom.macroHudActionsCount.textContent = '0 actions';
+    }
+    this.showToast('Recording macro... Click & type on the web page.');
+  }
+
+  openMacroLibraryModal() {
+    if (!this.dom.modalMacroLibrary) return;
+    this.renderMacroLibraryList();
+    this.dom.modalMacroLibrary.showModal();
+  }
+
+  renderMacroLibraryList() {
+    if (!this.dom.macroLibraryList) return;
+    const macros = macroRecorderService.savedMacros;
+
+    if (macros.length === 0) {
+      this.dom.macroLibraryList.innerHTML = `<div class="empty-state-muted">No macros saved yet. Click Record Macro to capture actions.</div>`;
+      return;
+    }
+
+    this.dom.macroLibraryList.innerHTML = macros.map(m => `
+      <div class="macro-card-item">
+        <div style="display: flex; flex-direction: column; gap: 3px;">
+          <span style="font-size: 13px; font-weight: 700; color: #0f172a;">${m.name}</span>
+          <span style="font-size: 11px; color: #64748b;">${m.actions.length} steps • ${new Date(m.createdAt).toLocaleDateString()}</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="mac-btn mac-btn-primary" style="padding: 4px 12px; font-size: 11.5px;" onclick="window.myNetworkApp.playMacro('${m.id}')">Run</button>
+          <button type="button" class="mac-btn-sub" style="color: #ef4444;" onclick="window.myNetworkApp.deleteMacro('${m.id}')">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  playMacro(macroId) {
+    const macro = macroRecorderService.savedMacros.find(m => m.id === macroId);
+    if (!macro) return;
+
+    const activeTab = tabManager.getActiveTab();
+    if (!activeTab) {
+      this.showToast('Please open a tab first to run this macro.');
+      return;
+    }
+
+    const webview = this.engineAdapter.getWebview(activeTab.id);
+    if (!webview) return;
+
+    const script = macroRecorderService.getMacroScriptForInjection(macro);
+    webview.executeJavaScript(script).catch(err => {
+      console.error('[MacroRunner] Execution error:', err);
+    });
+
+    if (this.dom.modalMacroLibrary) this.dom.modalMacroLibrary.close();
+    this.showToast(`Executing "${macro.name}" on active tab...`);
+  }
+
+  deleteMacro(macroId) {
+    macroRecorderService.deleteMacro(macroId);
+    this.renderMacroLibraryList();
   }
 }
 

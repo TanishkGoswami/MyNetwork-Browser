@@ -143,6 +143,126 @@ if (app && app.whenReady) {
       });
     });
 
+    // Network-level Ad & Tracker Blocker Interception
+    const adTrackerRegexList = [
+      /doubleclick\.net/i,
+      /google-analytics\.com/i,
+      /googlesyndication\.com/i,
+      /googletagservices\.com/i,
+      /googletagmanager\.com/i,
+      /googleads\.g\.doubleclick\.net/i,
+      /pagead2\.googlesyndication\.com/i,
+      /adservice\.google\./i,
+      /static\.doubleclick\.net/i,
+      /youtube\.com\/api\/stats\/ads/i,
+      /youtube\.com\/pagead\//i,
+      /youtube\.com\/ptracking/i,
+      /youtube\.com\/get_midroll_info/i,
+      /adnxs\.com/i,
+      /amazon-adsystem\.com/i,
+      /criteo\.(com|net)/i,
+      /scorecardresearch\.com/i,
+      /quantserve\.com/i,
+      /outbrain\.com/i,
+      /taboola\.com/i,
+      /moatads\.com/i,
+      /adroll\.com/i,
+      /rubiconproject\.com/i,
+      /facebook\.com\/tr\//i,
+      /connect\.facebook\.net\/.*\/fbevents\.js/i,
+      /analytics\.twitter\.com/i,
+      /ads-twitter\.com/i,
+      /hotjar\.com/i,
+      /clarity\.ms/i,
+      /yandex\.ru\/metrika/i,
+      /mixpanel\.com/i,
+      /segment\.io/i,
+      /popads\.net/i,
+      /popcash\.net/i,
+      /propellerads\.com/i,
+      /zedo\.com/i,
+      /adcolony\.com/i,
+      /applovin\.com/i,
+      /unityads\.unity3d\.com/i,
+      /exponential\.com/i,
+      /openx\.net/i,
+      /pubmatic\.com/i,
+      /casalemedia\.com/i,
+      /smartadserver\.com/i,
+      /advertising\.com/i,
+      /bidswitch\.net/i,
+      /contextweb\.com/i,
+      /infolinks\.com/i,
+      /mgid\.com/i,
+      /revcontent\.com/i,
+      /adblade\.com/i,
+      /admob\.com/i
+    ];
+
+    const attachSessionFilters = (targetSession) => {
+      if (!targetSession || !targetSession.webRequest) return;
+      try {
+        targetSession.webRequest.onBeforeRequest({ urls: ['*://*/*'] }, (details, callback) => {
+          const url = details.url || '';
+          const isBlocked = adTrackerRegexList.some(r => r.test(url));
+          if (isBlocked) {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send('adblock-blocked', { url, webContentsId: details.webContentsId });
+            }
+            callback({ cancel: true });
+          } else {
+            callback({ cancel: false });
+          }
+        });
+      } catch (e) {}
+    };
+
+    if (session && session.defaultSession) {
+      attachSessionFilters(session.defaultSession);
+    }
+    app.on('session-created', (sess) => {
+      attachSessionFilters(sess);
+    });
+
+    if (session && session.defaultSession) {
+      // Smart Download Manager hook
+      session.defaultSession.on('will-download', (event, item, webContents) => {
+        const filename = item.getFilename();
+        const totalBytes = item.getTotalBytes();
+        const dlId = 'dl_' + Date.now();
+
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('download-will-start', {
+            id: dlId,
+            filename,
+            totalBytes,
+            url: item.getURL()
+          });
+        }
+
+        item.on('updated', (event, state) => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('download-progress-update', {
+              id: dlId,
+              receivedBytes: item.getReceivedBytes(),
+              totalBytes: item.getTotalBytes(),
+              state // 'progressing' | 'interrupted'
+            });
+          }
+        });
+
+        item.once('done', (event, state) => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('download-completed', {
+              id: dlId,
+              state, // 'completed' | 'cancelled' | 'interrupted'
+              savePath: item.getSavePath()
+            });
+          }
+        });
+      });
+    }
+
     createWindow();
 
     app.on('activate', () => {
@@ -155,7 +275,7 @@ if (app && app.whenReady) {
   });
 }
 
-// Window Control & Theme IPC Handlers
+// Window Control, Proxy & Theme IPC Handlers
 if (ipcMain) {
   ipcMain.on('window-minimize', (event) => {
     const win = (event && event.sender && BrowserWindow.fromWebContents(event.sender)) || mainWindow;
@@ -183,5 +303,21 @@ if (ipcMain) {
       nativeTheme.themeSource = (theme === 'dark' || theme === 'light') ? theme : 'system';
     }
   });
+
+  // Proxy Configuration IPC
+  ipcMain.on('set-network-proxy', (event, { proxyRules, proxyBypassRules = '' }) => {
+    const { session } = require('electron');
+    if (session && session.defaultSession) {
+      session.defaultSession.setProxy({
+        proxyRules: proxyRules || '',
+        proxyBypassRules: proxyBypassRules || '<local>'
+      }).then(() => {
+        console.log('[Main Process] Network proxy updated:', proxyRules || 'Direct');
+      }).catch(err => {
+        console.warn('[Main Process] Failed to set proxy:', err);
+      });
+    }
+  });
 }
+
 

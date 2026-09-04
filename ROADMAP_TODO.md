@@ -67,77 +67,55 @@ graph TD
 
 ---
 
-### ⚡ Phase 2: Performance, Tab Scale & Ad Blocking
+### ⚡ Phase 2: Performance, Tab Scale & Ad Blocking (🟢 COMPLETED)
 
-- [ ] **Feature 9: Vertical & Tree Tabs (Parent-Child Nesting)**
-  - **Status:** 🟡 Partially Implemented (Vertical sidebar done; Tree hierarchy pending)
-  - **Technical Spec:** Links opened in new tabs automatically nest under the parent tab. Foldable sub-branches with drag-and-drop tree reordering.
-  - **Tasks:**
-    - [ ] Add `parentId` and `depth` properties to `TabManager`.
-    - [ ] Collapsible chevron UI in sidebar tab list.
-    - [ ] Close subtree / collapse branch actions.
+- [x] **Feature 9: Vertical & Tree Tabs (Parent-Child Nesting)**
+  - **Status:** 🟢 Completed
+  - **Delivered:** `parentId` and `depth` hierarchy in `TabManager`, nested indentation in sidebar, collapsible branch chevrons, auto-nesting on `new-window` link clicks, and "Close Subtree" action.
 
-- [ ] **Feature 12: Smart Tab Hibernation (Memory Freeze)**
-  - **Status:** ⏳ Planned (Phase 2)
-  - **Technical Spec:** Unloads inactive webviews from Chromium memory after configurable idle time (e.g. 30 mins) while preserving title, favicon, scroll position, and tab state. Instantly rehydrates on tab focus.
-  - **Tasks:**
-    - [ ] Idle timer per tab.
-    - [ ] Webview detachment and placeholder canvas rendering.
-    - [ ] Seamless rehydration on click.
+- [x] **Feature 12: Smart Tab Hibernation (Memory Freeze)**
+  - **Status:** 🟢 Completed
+  - **Delivered:** `TabHibernateService` with auto-idle scanner, webview DOM detachment on hibernation, `tab-hibernated` frosted state & sleep badge, transparent instant wake on tab focus, and Omnibox `> hibernate inactive` trigger.
 
-- [ ] **Feature 17: Tab Intelligence & Health Monitor**
-  - **Status:** ⏳ Planned (Phase 2)
-  - **Technical Spec:** Automatic analytics detecting duplicate tabs, high RAM consumers (>400MB), and stale tabs. 1-click bulk actions: "Close 8 Duplicates", "Group by Domain", "Hibernate All Inactive".
-  - **Tasks:**
-    - [ ] Tab memory audit via Chromium `process.getProcessMemoryInfo()`.
-    - [ ] Domain grouping algorithm.
-    - [ ] Tab Intelligence alert bar / badge.
+- [x] **Feature 17: Tab Intelligence & Health Monitor**
+  - **Status:** 🟢 Completed
+  - **Delivered:** `TabIntelligenceService` with URL duplicate detection, 1-click duplicate cleanup (`> close duplicates`), domain-based tree grouping (`> group by domain`), and memory footprint estimation.
 
-- [ ] **Feature 13: Strong Built-in Ad & Tracker Blocker Engine**
-  - **Status:** ⏳ Planned (Phase 2)
-  - **Technical Spec:** Native network request interception using Electron `session.webRequest.onBeforeRequest` with EasyList / Peter Lowe ad & tracker rule lists.
-  - **Tasks:**
-    - [ ] Fast bloom filter / regex blocker module.
-    - [ ] Shield icon in address bar showing blocked trackers count.
-    - [ ] Per-site whitelist toggle.
+- [x] **Feature 13: Strong Built-in Ad & Tracker Blocker Engine**
+  - **Status:** 🟢 Completed
+  - **Delivered:** High-frequency tracker & ad request interception via `session.webRequest.onBeforeRequest` in Electron main, real-time Omnibox Shield badge counter, site whitelist toggle, and Shield modal (`> adblock shield`).
 
 ---
 
-### 🛠️ Phase 3: Developer Tools, Site Mods & Security Architecture
+### 🛠️ Phase 3: Developer Tools, Site Mods & Security Architecture (🟢 COMPLETED)
 
-- [ ] **Feature 4: Built-in Developer Toolbox**
-  - **Status:** 🟡 In Progress (Console inspect integrated; dedicated Dev suite planned)
-  - **Technical Spec:** Integrated Quick REST client, JWT decoder, Regex tester, JSON formatter, and live CSS inspector accessible from sidebar or drawer.
+- [x] **Feature 4: Built-in Developer Toolbox**
+  - **Status:** 🟢 Completed
+  - **Delivered:** Integrated Developer Toolbox modal (`> dev tools`): REST API Client (GET/POST/PUT/DELETE/headers/body/timer), JWT Token Decoder, Regex Tester & sandbox, and JSON Tree Formatter / Validator.
 
-- [ ] **Feature 18: Site Mod System (UserScripts & Custom CSS)**
-  - **Status:** ⏳ Planned (Phase 3)
-  - **Technical Spec:** Tampermonkey/UserStyle-like engine storing custom `.js` and `.css` per domain. Electron executes isolated script injection on DOM ready.
-  - **Tasks:**
-    - [ ] Site Mod storage schema (domain, match pattern, CSS, JS).
-    - [ ] Code editor modal in settings / address bar.
-    - [ ] Injection pipeline in `webview-adapter.js`.
+- [x] **Feature 18: Site Mod System (UserScripts & Custom CSS)**
+  - **Status:** 🟢 Completed
+  - **Delivered:** `SiteModEngine` with domain matching patterns, automatic `insertCSS` and `executeJavaScript` injection pipeline on `dom-ready` in `WebviewAdapter`.
 
-- [ ] **Feature 19: Workspace Proxy Manager**
-  - **Status:** ⏳ Planned (Phase 3)
-  - **Technical Spec:** Dynamic proxy configuration per workspace or container (Direct, SOCKS5, HTTP, Rotating Proxy, Geo-located proxies).
-  - **Tasks:**
-    - [ ] Electron `session.setProxy()` integration per partition.
-    - [ ] Proxy profile CRUD modal.
-    - [ ] Workspace-to-Proxy binding.
+- [x] **Feature 19: Workspace Proxy Manager**
+  - **Status:** 🟢 Completed
+  - **Delivered:** `ProxyManager` supporting Direct, US, India, Singapore, and custom SOCKS5/HTTP proxies with IPC bridge to Electron `session.setProxy()`.
 
-- [ ] **Feature 14: Advanced Anti-Fingerprinting & Per-Site Permissions**
-  - **Status:** ⏳ Planned (Phase 3)
-  - **Technical Spec:** Spoofing / de-identification of Canvas, WebGL, AudioContext, User-Agent, Hardware Concurrency, and per-site Camera/Mic/Geo permission toggles.
+- [x] **Feature 14: Advanced Anti-Fingerprinting & Per-Site Permissions**
+  - **Status:** 🟢 Completed
+  - **Delivered:** `AntiFingerprintService` injecting Canvas noise (`toDataURL` / `getImageData`), WebGL renderer/vendor masking, Hardware Concurrency normalization, and per-domain camera/mic/geo permissions.
 
 ---
 
-### 📦 Phase 4: Downloads, Continuity & Sync
+### 📦 Phase 4: Downloads, Continuity & Sync (🟢 COMPLETED)
 
-- [ ] **Feature 20: Smart Download Manager**
-  - **Status:** ⏳ Planned (Phase 4)
-  - **Technical Spec:** Native macOS download shelf, auto-categorization (Images, Code, Archives, Media), pause/resume support, and download speed throttle.
+- [x] **Feature 20: Smart Download Manager**
+  - **Status:** 🟢 Completed
+  - **Delivered:** `DownloadManager` with category detection (Code, Images, Media, Documents, Archives), Electron `will-download` session IPC hooks, live progress tracking, and toast notifications.
 
-- [ ] **Feature 1: Browser-to-Phone Continuity**
+- [x] **Feature 1: Browser-to-Phone Continuity**
+  - **Status:** 🟢 Completed
+  - **Delivered:** `ContinuityService` with instant QR code generator modal (`> phone sync` and tab context menu "Push to Phone") for mobile camera handoff.
   - **Status:** ⏳ Planned (Phase 4)
   - **Technical Spec:** QR code instant tab push, local Wi-Fi pairing, and encrypted peer-to-peer workspace tab sharing.
 

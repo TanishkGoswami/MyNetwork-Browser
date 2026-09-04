@@ -9,6 +9,8 @@ module.exports = {
   LEGACY_HISTORY_URL: 'about:history',
   BOOKMARKS_URL: 'mynetwork://bookmarks',
   LEGACY_BOOKMARKS_URL: 'about:bookmarks',
+  PROJECTS_URL: 'mynetwork://projects',
+  LEGACY_PROJECTS_URL: 'about:projects',
   BLANK_URL: 'about:blank',
   
   EVENTS: {

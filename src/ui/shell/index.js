@@ -1,6 +1,6 @@
 // UI Shell - Main Renderer Controller (Clean Pure Light Mode Architecture)
 const { eventBus } = require('../../shared/events/event-bus');
-const { EVENTS, DEFAULT_NEWTAB_URL, LEGACY_NEWTAB_URL, SETTINGS_URL, LEGACY_SETTINGS_URL, HISTORY_URL, LEGACY_HISTORY_URL, BOOKMARKS_URL, LEGACY_BOOKMARKS_URL, BLANK_URL } = require('../../shared/constants');
+const { EVENTS, DEFAULT_NEWTAB_URL, LEGACY_NEWTAB_URL, SETTINGS_URL, LEGACY_SETTINGS_URL, HISTORY_URL, LEGACY_HISTORY_URL, BOOKMARKS_URL, LEGACY_BOOKMARKS_URL, PROJECTS_URL, LEGACY_PROJECTS_URL, BLANK_URL } = require('../../shared/constants');
 const { tabManager } = require('../../core/tabs/tab-manager');
 const { browserContext } = require('../../core/browser/browser-context');
 const { WebviewAdapter } = require('../../engine/webview/webview-adapter');
@@ -16,6 +16,8 @@ const { settingsService } = require('../../infrastructure/config/settings-servic
 const { passwordService } = require('../../infrastructure/storage/password-service');
 const { sessionService } = require('../../features/session/session-service');
 const { bookmarkService, workspaceService } = require('../../features/bookmarks');
+const { containerService } = require('../../features/containers');
+const { omniboxService } = require('../../features/omnibox');
 
 class MyNetworkShell {
   constructor() {
@@ -34,6 +36,11 @@ class MyNetworkShell {
     this.currentBmViewMode = 'grid'; // 'grid' | 'list'
     this.popoverActiveTags = [];
     this.activeBmContextItem = null;
+    this.bmSelectedIds = new Set();
+
+    // Projects Controller State
+    this.projectsSearchQuery = '';
+    this.activeTabContextMenuId = null;
 
     this.bindCoreEvents();
     this.bindFeatureEvents();
@@ -43,7 +50,11 @@ class MyNetworkShell {
     this.initHistoryController();
     this.initBookmarksController();
     this.initPasswordManager();
+    this.initWorkspaceController();
+    this.initProjectsOverviewController();
+    this.initWorkspaceModal();
     this.initTabContextMenu();
+    this.initSmartOmnibox();
     this.initClockAndGreeting();
 
     // Initial feature data population
@@ -65,19 +76,31 @@ class MyNetworkShell {
     const saved = sessionService.loadSession();
 
     if (saved && saved.tabs && saved.tabs.length > 0 && startupBehavior !== 'newtab') {
-      let activeIndex = 0;
-      saved.tabs.forEach((t, i) => {
-        const tab = tabManager.createTab(t.url, t.title, t.favicon);
+      if (saved.activeWorkspaceId) {
+        workspaceService.setActiveWorkspace(saved.activeWorkspaceId);
+      }
+      
+      let targetTabToActivate = null;
+      saved.tabs.forEach((t) => {
+        const tab = tabManager.createTab(t.url, t.title, t.favicon, t.workspaceId || 'ws_default');
         if (t.isPinned) tabManager.pinTab(tab.id);
-        if (t.url === saved.activeTabUrl) activeIndex = i;
+        if (t.id === saved.activeTabId || t.url === saved.activeTabUrl) {
+          targetTabToActivate = tab;
+        }
       });
-      const allTabs = tabManager.getAllTabs();
-      if (allTabs[activeIndex]) {
-        tabManager.activateTab(allTabs[activeIndex].id);
+
+      const activeWsTabs = tabManager.getTabsForWorkspace(workspaceService.getActiveWorkspaceId());
+      if (targetTabToActivate && targetTabToActivate.workspaceId === workspaceService.getActiveWorkspaceId()) {
+        tabManager.activateTab(targetTabToActivate.id);
+      } else if (activeWsTabs.length > 0) {
+        tabManager.activateTab(activeWsTabs[0].id);
       }
     } else {
-      tabManager.createTab(DEFAULT_NEWTAB_URL, 'New Tab');
+      tabManager.createTab(DEFAULT_NEWTAB_URL, 'New Tab', null, workspaceService.getActiveWorkspaceId());
     }
+
+    this.renderWorkspaceSidebar();
+    this.renderWorkspaceTabs();
   }
 
   initDomCache() {
@@ -86,6 +109,8 @@ class MyNetworkShell {
       tabsList: document.getElementById('tabs-list'),
       urlInput: document.getElementById('url-input'),
       omniboxEngineIcon: document.getElementById('omnibox-engine-icon'),
+      omniboxDropdown: document.getElementById('omnibox-dropdown'),
+      omniboxResultsList: document.getElementById('omnibox-results-list'),
       webviewContainer: document.getElementById('webview-container'),
       newTabView: document.getElementById('new-tab-view'),
       progressBar: document.getElementById('load-progress'),
@@ -296,7 +321,9 @@ class MyNetworkShell {
       shortcutEditId: document.getElementById('shortcut-edit-id'),
       shortcutInputTitle: document.getElementById('shortcut-input-title'),
       shortcutInputUrl: document.getElementById('shortcut-input-url'),
+      shortcutInputFolder: document.getElementById('shortcut-input-parent'),
       shortcutInputWs: document.getElementById('shortcut-input-ws'),
+      shortcutInputTags: document.getElementById('shortcut-input-tags'),
       btnDeleteShortcut: document.getElementById('btn-delete-shortcut'),
       btnCloseShortcutModal: document.getElementById('btn-close-shortcut-modal'),
       btnCancelShortcutModal: document.getElementById('btn-cancel-shortcut-modal'),
@@ -307,6 +334,7 @@ class MyNetworkShell {
       bmFolderInputTitle: document.getElementById('bm-folder-input-title'),
       bmFolderInputParent: document.getElementById('bm-folder-input-parent'),
       bmFolderColorOptions: document.getElementById('bm-folder-color-options'),
+      btnDeleteBmFolder: document.getElementById('btn-delete-bm-folder'),
       btnCloseBmFolderModal: document.getElementById('btn-close-bm-folder-modal'),
       btnCancelBmFolderModal: document.getElementById('btn-cancel-bm-folder-modal'),
 
@@ -328,6 +356,16 @@ class MyNetworkShell {
       btnBmExportHtml: document.getElementById('btn-bm-export-html'),
       btnBmEmptyTrash: document.getElementById('btn-bm-empty-trash'),
       bookmarkContextMenu: document.getElementById('bookmark-context-menu'),
+      bmBatchBar: document.getElementById('bm-batch-bar'),
+      bmBatchCount: document.getElementById('bm-batch-count'),
+      btnBmBatchSelectAll: document.getElementById('btn-bm-batch-select-all'),
+      btnBmBatchTrash: document.getElementById('btn-bm-batch-trash'),
+      bmBatchTrashLabel: document.getElementById('bm-batch-trash-label'),
+      btnBmBatchRestore: document.getElementById('btn-bm-batch-restore'),
+      btnBmBatchClear: document.getElementById('btn-bm-batch-clear'),
+      ctxBmRestore: document.getElementById('ctx-bm-restore'),
+      ctxBmDeleteLabel: document.getElementById('ctx-bm-delete-label'),
+      ctxBmEditLabel: document.getElementById('ctx-bm-edit-label'),
 
       // Settings bookmark controls
       settingBookmarksBarMode: document.getElementById('setting-bookmarks-bar-mode'),
@@ -339,7 +377,49 @@ class MyNetworkShell {
       settingToggleWidgetTimer: document.getElementById('setting-toggle-widget-timer'),
       settingToggleWidgetRecent: document.getElementById('setting-toggle-widget-recent'),
       btnSettingsImportBm: document.getElementById('btn-settings-import-bm'),
-      btnSettingsExportBm: document.getElementById('btn-settings-export-bm')
+      btnSettingsExportBm: document.getElementById('btn-settings-export-bm'),
+
+      // Project Workspace DOM
+      sidebarWsHeader: document.getElementById('sidebar-workspace-header'),
+      sidebarWsSelect: document.getElementById('btn-sidebar-workspace-select'),
+      sidebarActiveWsDot: document.getElementById('sidebar-active-ws-dot'),
+      sidebarActiveWsName: document.getElementById('sidebar-active-ws-name'),
+      sidebarWsDropdown: document.getElementById('sidebar-ws-dropdown'),
+      sidebarWsDropdownList: document.getElementById('sidebar-ws-dropdown-list'),
+      btnSidebarNewWs: document.getElementById('btn-sidebar-new-workspace'),
+      workspaceQuickChips: document.getElementById('workspace-quick-chips'),
+      btnManageProjectsNav: document.getElementById('btn-manage-projects-nav'),
+      btnCreateProjectModalTrigger: document.getElementById('btn-create-project-modal-trigger'),
+      btnWorkspaces: document.getElementById('btn-workspaces'),
+
+      // Dedicated macOS Projects View DOM
+      projectsView: document.getElementById('projects-view'),
+      btnProjectsBack: document.getElementById('btn-projects-back'),
+      macProjectsSearch: document.getElementById('mac-projects-search'),
+      btnProjectsAddNew: document.getElementById('btn-projects-add-new'),
+      projectsCardsContainer: document.getElementById('projects-cards-container'),
+      projectsStatsBadge: document.getElementById('projects-stats-badge'),
+
+      // Workspace Create / Edit Modal DOM
+      modalCreateWorkspace: document.getElementById('modal-create-workspace'),
+      formCreateWorkspace: document.getElementById('form-create-workspace'),
+      workspaceFormId: document.getElementById('workspace-form-id'),
+      workspaceFormName: document.getElementById('workspace-form-name'),
+      workspaceFormDevUrl: document.getElementById('workspace-form-dev-url'),
+      workspaceFormDesc: document.getElementById('workspace-form-desc'),
+      workspaceColorPicker: document.getElementById('workspace-color-picker'),
+      workspaceIconSelector: document.getElementById('workspace-icon-selector'),
+      btnDeleteWorkspace: document.getElementById('btn-delete-workspace'),
+      btnCloseWorkspaceModal: document.getElementById('btn-close-workspace-modal'),
+      btnCancelWorkspaceModal: document.getElementById('btn-cancel-workspace-modal'),
+      workspaceModalTitle: document.getElementById('workspace-modal-title'),
+
+      // Tab Context Menu Submenu
+      ctxWorkspaceSubmenu: document.getElementById('ctx-workspace-submenu'),
+      ctxMoveWorkspaceItem: document.getElementById('ctx-move-workspace-item'),
+      ctxContainerSubmenu: document.getElementById('ctx-container-submenu'),
+      ctxReopenGhostTab: document.getElementById('ctx-reopen-ghost-tab'),
+      btnAddGhostTab: document.getElementById('btn-add-ghost-tab')
     };
   }
 
@@ -350,13 +430,21 @@ class MyNetworkShell {
     // Tab lifecycle
     eventBus.on(EVENTS.TAB_CREATED, ({ tab }) => {
       this.engineAdapter.createWebview(tab);
-      this.renderTabPill(tab);
-      sessionService.saveSession(tabManager.getAllTabs(), tabManager.activeTabId);
+      const activeWsId = workspaceService.getActiveWorkspaceId();
+      if ((tab.workspaceId || 'ws_default') === activeWsId) {
+        this.renderTabPill(tab);
+      }
+      this.renderWorkspaceSidebar();
+      sessionService.saveSession(tabManager.getAllTabs(), tabManager.activeTabId, activeWsId);
     });
 
     eventBus.on(EVENTS.TAB_ACTIVATED, ({ tabId, tab }) => {
-      this.updateActiveTabUi(tabId, tab);
-      sessionService.saveSession(tabManager.getAllTabs(), tabId);
+      const activeTab = tab || tabManager.getTab(tabId);
+      if (activeTab && activeTab.workspaceId && activeTab.workspaceId !== workspaceService.getActiveWorkspaceId()) {
+        workspaceService.setActiveWorkspace(activeTab.workspaceId);
+      }
+      this.updateActiveTabUi(tabId, activeTab);
+      sessionService.saveSession(tabManager.getAllTabs(), tabId, workspaceService.getActiveWorkspaceId());
     });
 
     eventBus.on(EVENTS.TAB_CLOSED, ({ tabId }) => {
@@ -365,12 +453,20 @@ class MyNetworkShell {
       if (tabPill && tabPill.parentNode) tabPill.parentNode.removeChild(tabPill);
       const hTabPill = document.getElementById(`h-tab-pill-${tabId}`);
       if (hTabPill && hTabPill.parentNode) hTabPill.parentNode.removeChild(hTabPill);
-      sessionService.saveSession(tabManager.getAllTabs(), tabManager.activeTabId);
+      this.renderWorkspaceSidebar();
+      sessionService.saveSession(tabManager.getAllTabs(), tabManager.activeTabId, workspaceService.getActiveWorkspaceId());
     });
 
     eventBus.on(EVENTS.TAB_UPDATED, ({ tabId, updates, tab }) => {
       const fullTab = tab || tabManager.getTab(tabId);
-      if (fullTab) this.updateTabPillDisplay(tabId, fullTab);
+      const activeWsId = workspaceService.getActiveWorkspaceId();
+      if (updates && updates.workspaceId) {
+        // Tab moved to another workspace - refresh tab pills
+        this.renderWorkspaceTabs();
+        this.renderWorkspaceSidebar();
+      } else if (fullTab && (fullTab.workspaceId || 'ws_default') === activeWsId) {
+        this.updateTabPillDisplay(tabId, fullTab);
+      }
       const activeTab = tabManager.getActiveTab();
       if (activeTab && activeTab.id === tabId) {
         if (updates && updates.url && updates.url !== DEFAULT_NEWTAB_URL && updates.url !== BLANK_URL && !updates.url.startsWith('mynetwork://')) {
@@ -379,7 +475,7 @@ class MyNetworkShell {
         this.updateOmniboxIcon(activeTab);
         this.updateOmniboxStarState(activeTab);
       }
-      sessionService.saveSession(tabManager.getAllTabs(), tabManager.activeTabId);
+      sessionService.saveSession(tabManager.getAllTabs(), tabManager.activeTabId, activeWsId);
     });
 
     // Engine Navigation
@@ -396,6 +492,26 @@ class MyNetworkShell {
       const activeTab = tabManager.getActiveTab();
       if (activeTab && activeTab.id === tabId) {
         this.updateOmniboxStarState(activeTab);
+        this.updateNavButtonsState(tabId);
+      }
+    });
+
+    eventBus.on(EVENTS.NAV_FAIL, ({ tabId }) => {
+      this.hideProgress();
+      tabManager.updateTab(tabId, { isLoading: false });
+      const activeTab = tabManager.getActiveTab();
+      if (activeTab && activeTab.id === tabId) {
+        this.updateNavButtonsState(tabId);
+      }
+    });
+
+    eventBus.on('navigation:state-changed', ({ tabId, canGoBack, canGoForward }) => {
+      const activeTab = tabManager.getActiveTab();
+      if (activeTab && activeTab.id === tabId) {
+        const btnBack = document.getElementById('btn-back');
+        const btnForward = document.getElementById('btn-forward');
+        if (btnBack) btnBack.classList.toggle('disabled', !canGoBack);
+        if (btnForward) btnForward.classList.toggle('disabled', !canGoForward);
       }
     });
 
@@ -433,19 +549,37 @@ class MyNetworkShell {
       if (this.dom.sidebar) {
         this.dom.sidebar.classList.toggle('compact', isRail);
       }
+      if (this.dom.sidebarToggleBtn) {
+        this.dom.sidebarToggleBtn.classList.toggle('active', isRail);
+      }
+      const collapseBtn = document.getElementById('sidebar-collapse-icon-btn');
+      if (collapseBtn) {
+        collapseBtn.classList.toggle('active', isRail);
+      }
     });
 
-    eventBus.on('ui:splitview-toggled', ({ isSplit }) => {
+    eventBus.on('ui:splitview-toggled', ({ isSplit, layout = 'dual', tabIds = null }) => {
       const splitBtn = document.getElementById('btn-split-toggle');
       if (splitBtn) splitBtn.classList.toggle('active', isSplit);
       if (this.dom.webviewContainer) {
         this.dom.webviewContainer.classList.toggle('split-mode', isSplit);
+        this.dom.webviewContainer.classList.toggle('split-triple', isSplit && layout === 'triple');
+        this.dom.webviewContainer.classList.toggle('split-quad', isSplit && layout === 'quad');
       }
+      this.updateSplitViewWebviews(isSplit, layout, tabIds || browserContext.splitTabIds);
     });
 
     eventBus.on('ui:ai-drawer-toggled', ({ isOpen }) => {
       if (this.dom.aiDrawer) {
         this.dom.aiDrawer.classList.toggle('open', isOpen);
+      }
+    });
+
+    // Handle standard new tab opening from target="_blank" window.open in webviews
+    ipcBridge.on('open-new-tab', (event, { url }) => {
+      if (url && url !== 'about:blank' && !url.startsWith('mynetwork://')) {
+        const activeWsId = workspaceService.getActiveWorkspaceId();
+        tabManager.createTab(url, 'New Tab', null, activeWsId);
       }
     });
   }
@@ -488,9 +622,14 @@ class MyNetworkShell {
     });
 
     eventBus.on(EVENTS.WORKSPACE_CHANGED, () => {
+      this.renderWorkspaceSidebar();
+      this.renderWorkspaceTabs();
       this.renderBookmarksBar();
       this.renderNewTabShortcuts();
       this.renderBookmarksManager();
+      if (this.dom.projectsView && this.dom.projectsView.style.display !== 'none') {
+        this.renderProjectsDashboard();
+      }
     });
   }
 
@@ -502,6 +641,12 @@ class MyNetworkShell {
     if (this.dom.btnAddTab) {
       this.dom.btnAddTab.addEventListener('click', () => tabManager.createTab());
     }
+    if (this.dom.btnAddGhostTab) {
+      this.dom.btnAddGhostTab.addEventListener('click', () => {
+        tabManager.createTab(DEFAULT_NEWTAB_URL, 'Ghost Tab', null, null, null, true);
+        this.showToast('👻 Opened Ghost Tab (Ephemeral in-memory session)');
+      });
+    }
     const sidebarAddBtn = document.getElementById('sidebar-rail-add-tab');
     if (sidebarAddBtn) {
       sidebarAddBtn.addEventListener('click', () => tabManager.createTab());
@@ -510,6 +655,10 @@ class MyNetworkShell {
     // Sidebar Rail Toggle
     if (this.dom.sidebarToggleBtn) {
       this.dom.sidebarToggleBtn.addEventListener('click', () => browserContext.toggleSidebarRail());
+    }
+    const sidebarCollapseIconBtn = document.getElementById('sidebar-collapse-icon-btn');
+    if (sidebarCollapseIconBtn) {
+      sidebarCollapseIconBtn.addEventListener('click', () => browserContext.toggleSidebarRail());
     }
 
     // Navigation Controls
@@ -665,6 +814,30 @@ class MyNetworkShell {
   /* ==========================================================================
      TAB RENDERING & NAVIGATION LOGIC
      ========================================================================== */
+  renderWorkspaceTabs() {
+    if (this.dom.tabsList) this.dom.tabsList.innerHTML = '';
+    if (this.dom.horizontalTabsList) this.dom.horizontalTabsList.innerHTML = '';
+    
+    const activeWsId = workspaceService.getActiveWorkspaceId();
+    const tabs = tabManager.getTabsForWorkspace(activeWsId);
+
+    if (tabs.length === 0) {
+      tabManager.createTab(DEFAULT_NEWTAB_URL, 'New Tab', null, activeWsId);
+      return;
+    }
+
+    tabs.forEach(tab => {
+      this.renderTabPill(tab);
+    });
+
+    const activeTab = tabManager.getActiveTab();
+    if (!activeTab || (activeTab.workspaceId || 'ws_default') !== activeWsId) {
+      tabManager.activateTab(tabs[0].id);
+    } else {
+      this.updateActiveTabUi(activeTab.id, activeTab);
+    }
+  }
+
   renderTabPill(tab) {
     const createPillEl = (prefix) => {
       const el = document.createElement('div');
@@ -676,12 +849,14 @@ class MyNetworkShell {
       const isSettings = url === SETTINGS_URL || url === LEGACY_SETTINGS_URL || url.toLowerCase() === 'mynetwork://settings' || url.toLowerCase() === 'about:settings';
       const isHistory = url === HISTORY_URL || url === LEGACY_HISTORY_URL || url.toLowerCase() === 'mynetwork://history' || url.toLowerCase() === 'about:history';
       const isBookmarks = url === BOOKMARKS_URL || url === LEGACY_BOOKMARKS_URL || url.toLowerCase() === 'mynetwork://bookmarks' || url.toLowerCase() === 'about:bookmarks';
-      const isInternal = isNewTab || isSettings || isHistory || isBookmarks || url.startsWith('mynetwork://') || url.startsWith('about:') || url.startsWith('chrome://');
+      const isProjects = url === PROJECTS_URL || url === LEGACY_PROJECTS_URL || url.toLowerCase() === 'mynetwork://projects' || url.toLowerCase() === 'about:projects';
+      const isInternal = isNewTab || isSettings || isHistory || isBookmarks || isProjects || url.startsWith('mynetwork://') || url.startsWith('about:') || url.startsWith('chrome://');
 
       let displayTitle = 'New Tab';
       if (isSettings) displayTitle = 'Settings';
       else if (isHistory) displayTitle = 'History';
       else if (isBookmarks) displayTitle = 'Bookmarks';
+      else if (isProjects) displayTitle = 'Projects';
       else if (isNewTab) displayTitle = 'New Tab';
       else displayTitle = (tab.title && tab.title !== 'about:blank') ? tab.title : (url || 'New Tab');
 
@@ -695,19 +870,88 @@ class MyNetworkShell {
             </svg>`
         );
 
+      let containerBadgeHtml = '';
+      if (tab.isGhost) {
+        el.classList.add('ghost-tab');
+        containerBadgeHtml = `<span class="tab-ghost-badge" title="Disposable Ghost Tab (Session destroyed on close)">👻</span>`;
+      } else if (tab.containerId) {
+        const container = containerService.getContainer(tab.containerId);
+        if (container) {
+          el.classList.add('container-tab');
+          containerBadgeHtml = `<span class="tab-container-dot" style="background: ${container.color};" title="Container: ${container.name}"></span>`;
+        }
+      }
+
       el.innerHTML = `
         <div class="tab-favicon">${faviconHtml}</div>
         <span class="tab-title" title="${displayTitle}">${displayTitle}</span>
+        ${containerBadgeHtml}
         ${tab.isPinned ? `<span class="tab-pin-indicator" title="Pinned Tab"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.89A2 2 0 0 1 15 10.77V6h1a1 1 0 0 0 0-2H8a1 1 0 0 0 0 2h1v4.77a2 2 0 0 1-1.11 1.79l-1.78.89A2 2 0 0 0 5 15.24V17z"/></svg></span>` : ''}
         <button class="tab-close-btn" title="Close Tab">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       `;
 
-      el.addEventListener('click', (e) => {
-        if (!e.target.closest('.tab-close-btn')) {
-          tabManager.activateTab(tab.id);
+      el.setAttribute('draggable', 'true');
+
+      // Drag & Drop Tab Reordering (Mac/Arc style tab positioning)
+      el.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', tab.id);
+        e.dataTransfer.effectAllowed = 'move';
+        el.classList.add('dragging');
+      });
+
+      el.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const rect = el.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        if (e.clientY < midY) {
+          el.classList.add('drag-over-top');
+          el.classList.remove('drag-over-bottom');
+        } else {
+          el.classList.add('drag-over-bottom');
+          el.classList.remove('drag-over-top');
         }
+      });
+
+      el.addEventListener('dragleave', () => {
+        el.classList.remove('drag-over-top', 'drag-over-bottom');
+      });
+
+      el.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const sourceTabId = e.dataTransfer.getData('text/plain');
+        el.classList.remove('drag-over-top', 'drag-over-bottom', 'dragging');
+        if (!sourceTabId || sourceTabId === tab.id) return;
+
+        const rect = el.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        const insertBefore = e.clientY < midY;
+
+        tabManager.moveTab(sourceTabId, tab.id, insertBefore);
+        this.renderWorkspaceTabs();
+      });
+
+      el.addEventListener('dragend', () => {
+        el.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom');
+        document.querySelectorAll('.tab-item').forEach(item => {
+          item.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom');
+        });
+      });
+
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('.tab-close-btn')) return;
+
+        // Ctrl + Click (or Cmd + Click on macOS) toggles Split Screen Grouping
+        if (e.ctrlKey || e.metaKey) {
+          e.preventDefault();
+          e.stopPropagation();
+          browserContext.toggleSplitTab(tab.id);
+          return;
+        }
+
+        tabManager.activateTab(tab.id);
       });
 
       // Right-Click Context Menu
@@ -753,6 +997,8 @@ class MyNetworkShell {
       url === LEGACY_HISTORY_URL || 
       url === BOOKMARKS_URL || 
       url === LEGACY_BOOKMARKS_URL || 
+      url === PROJECTS_URL ||
+      url === LEGACY_PROJECTS_URL ||
       url.startsWith('mynetwork://') || 
       url.startsWith('about:') || 
       url.startsWith('chrome://');
@@ -793,58 +1039,79 @@ class MyNetworkShell {
     this.updateOmniboxIcon(tab);
 
     document.querySelectorAll('.tab-item').forEach(el => {
-      el.classList.toggle('active', el.id === `tab-pill-${tabId}` || el.id === `h-tab-pill-${tabId}`);
+      const elTabId = el.id.replace('tab-pill-', '').replace('h-tab-pill-', '');
+      const isSplitGrouped = browserContext.isSplitView && browserContext.splitTabIds && browserContext.splitTabIds.includes(elTabId);
+      const isCurrentActive = el.id === `tab-pill-${tabId}` || el.id === `h-tab-pill-${tabId}`;
+      el.classList.toggle('active', isCurrentActive);
+      el.classList.toggle('split-grouped', !!isSplitGrouped);
+      el.classList.toggle('split-active', !!isSplitGrouped && isCurrentActive);
     });
 
     const isSettings = tab.url === SETTINGS_URL || tab.url === LEGACY_SETTINGS_URL;
     const isHistory = tab.url === HISTORY_URL || tab.url === LEGACY_HISTORY_URL;
     const isBookmarks = tab.url === BOOKMARKS_URL || tab.url === LEGACY_BOOKMARKS_URL;
+    const isProjects = tab.url === PROJECTS_URL || tab.url === LEGACY_PROJECTS_URL || tab.url.toLowerCase() === 'mynetwork://projects' || tab.url.toLowerCase() === 'about:projects';
     const isNewTab = tab.url === DEFAULT_NEWTAB_URL || tab.url === LEGACY_NEWTAB_URL || tab.url === BLANK_URL;
 
     if (isSettings) {
-      // Hide left sidebar completely when Settings is open
       if (this.dom.sidebar) this.dom.sidebar.style.display = 'none';
       if (this.dom.horizontalTabsBar) this.dom.horizontalTabsBar.style.display = 'none';
       if (this.dom.newTabView) this.dom.newTabView.style.display = 'none';
       if (this.dom.historyView) this.dom.historyView.style.display = 'none';
       if (this.dom.bookmarksView) this.dom.bookmarksView.style.display = 'none';
+      if (this.dom.projectsView) this.dom.projectsView.style.display = 'none';
       if (this.dom.settingsView) this.dom.settingsView.style.display = 'flex';
       this.dom.urlInput.value = 'mynetwork://settings';
       document.querySelectorAll('.browser-webview').forEach(wv => wv.classList.remove('active'));
       this.populateSettingsForm();
       this.renderSettingsHistory();
     } else if (isHistory) {
-      // Show dedicated macOS History view
       if (this.dom.sidebar) this.dom.sidebar.style.display = 'none';
       if (this.dom.horizontalTabsBar) this.dom.horizontalTabsBar.style.display = 'none';
       if (this.dom.newTabView) this.dom.newTabView.style.display = 'none';
       if (this.dom.settingsView) this.dom.settingsView.style.display = 'none';
       if (this.dom.bookmarksView) this.dom.bookmarksView.style.display = 'none';
+      if (this.dom.projectsView) this.dom.projectsView.style.display = 'none';
       if (this.dom.historyView) this.dom.historyView.style.display = 'flex';
       this.dom.urlInput.value = 'mynetwork://history';
       document.querySelectorAll('.browser-webview').forEach(wv => wv.classList.remove('active'));
       this.renderHistoryView();
     } else if (isBookmarks) {
-      // Show dedicated macOS Bookmarks Manager view
       if (this.dom.sidebar) this.dom.sidebar.style.display = 'none';
       if (this.dom.horizontalTabsBar) this.dom.horizontalTabsBar.style.display = 'none';
       if (this.dom.newTabView) this.dom.newTabView.style.display = 'none';
       if (this.dom.settingsView) this.dom.settingsView.style.display = 'none';
       if (this.dom.historyView) this.dom.historyView.style.display = 'none';
+      if (this.dom.projectsView) this.dom.projectsView.style.display = 'none';
       if (this.dom.bookmarksView) this.dom.bookmarksView.style.display = 'flex';
       this.dom.urlInput.value = 'mynetwork://bookmarks';
       document.querySelectorAll('.browser-webview').forEach(wv => wv.classList.remove('active'));
       this.renderBookmarksManager();
+    } else if (isProjects) {
+      if (this.dom.sidebar) this.dom.sidebar.style.display = 'none';
+      if (this.dom.horizontalTabsBar) this.dom.horizontalTabsBar.style.display = 'none';
+      if (this.dom.newTabView) this.dom.newTabView.style.display = 'none';
+      if (this.dom.settingsView) this.dom.settingsView.style.display = 'none';
+      if (this.dom.historyView) this.dom.historyView.style.display = 'none';
+      if (this.dom.bookmarksView) this.dom.bookmarksView.style.display = 'none';
+      if (this.dom.projectsView) this.dom.projectsView.style.display = 'flex';
+      this.dom.urlInput.value = 'mynetwork://projects';
+      document.querySelectorAll('.browser-webview').forEach(wv => wv.classList.remove('active'));
+      this.renderProjectsDashboard();
     } else {
-      // Restore layout mode (Vertical vs Horizontal)
       const currentLayout = settingsService.get('tabLayout', 'vertical');
       this.applyTabLayout(currentLayout);
 
       if (this.dom.settingsView) this.dom.settingsView.style.display = 'none';
       if (this.dom.historyView) this.dom.historyView.style.display = 'none';
       if (this.dom.bookmarksView) this.dom.bookmarksView.style.display = 'none';
+      if (this.dom.projectsView) this.dom.projectsView.style.display = 'none';
 
-      if (isNewTab) {
+      if (browserContext.isSplitView && browserContext.splitTabIds && browserContext.splitTabIds.includes(tabId)) {
+        if (this.dom.newTabView) this.dom.newTabView.style.display = 'none';
+        this.dom.urlInput.value = (tab.url && tab.url !== DEFAULT_NEWTAB_URL && tab.url !== BLANK_URL) ? tab.url : '';
+        this.updateSplitViewWebviews(true, 'dual', browserContext.splitTabIds);
+      } else if (isNewTab) {
         if (this.dom.newTabView) this.dom.newTabView.style.display = 'flex';
         this.dom.urlInput.value = '';
         this.dom.urlInput.placeholder = browserContext.getCurrentEngine().placeholder;
@@ -859,6 +1126,7 @@ class MyNetworkShell {
 
     this.updateOmniboxStarState(tab);
     this.renderBookmarksBar();
+    this.updateNavButtonsState(tabId);
   }
 
   updateTabPillDisplay(tabId, tab) {
@@ -871,12 +1139,14 @@ class MyNetworkShell {
       const isSettings = url === SETTINGS_URL || url === LEGACY_SETTINGS_URL || url.toLowerCase() === 'mynetwork://settings' || url.toLowerCase() === 'about:settings';
       const isHistory = url === HISTORY_URL || url === LEGACY_HISTORY_URL || url.toLowerCase() === 'mynetwork://history' || url.toLowerCase() === 'about:history';
       const isBookmarks = url === BOOKMARKS_URL || url === LEGACY_BOOKMARKS_URL || url.toLowerCase() === 'mynetwork://bookmarks' || url.toLowerCase() === 'about:bookmarks';
-      const isInternal = isNewTab || isSettings || isHistory || isBookmarks || url.startsWith('mynetwork://') || url.startsWith('about:') || url.startsWith('chrome://');
+      const isProjects = url === PROJECTS_URL || url === LEGACY_PROJECTS_URL || url.toLowerCase() === 'mynetwork://projects' || url.toLowerCase() === 'about:projects';
+      const isInternal = isNewTab || isSettings || isHistory || isBookmarks || isProjects || url.startsWith('mynetwork://') || url.startsWith('about:') || url.startsWith('chrome://');
 
       let displayTitle = 'New Tab';
       if (isSettings) displayTitle = 'Settings';
       else if (isHistory) displayTitle = 'History';
       else if (isBookmarks) displayTitle = 'Bookmarks';
+      else if (isProjects) displayTitle = 'Projects';
       else if (isNewTab) displayTitle = 'New Tab';
       else displayTitle = (tab.title && tab.title !== 'about:blank') ? tab.title : (url || 'New Tab');
       
@@ -931,6 +1201,12 @@ class MyNetworkShell {
       return;
     }
 
+    if (targetUrl.toLowerCase() === 'mynetwork://projects' || targetUrl.toLowerCase() === 'about:projects' || targetUrl.toLowerCase() === 'chrome://projects' || targetUrl.toLowerCase() === 'projects') {
+      tabManager.updateTab(activeTab.id, { url: PROJECTS_URL, title: 'Projects' });
+      this.updateActiveTabUi(activeTab.id, tabManager.getActiveTab());
+      return;
+    }
+
     if (targetUrl === DEFAULT_NEWTAB_URL || targetUrl === LEGACY_NEWTAB_URL || targetUrl === BLANK_URL) {
       tabManager.updateTab(activeTab.id, { url: DEFAULT_NEWTAB_URL, title: 'New Tab', favicon: null });
       this.updateActiveTabUi(activeTab.id, tabManager.getActiveTab());
@@ -965,6 +1241,7 @@ class MyNetworkShell {
     if (this.dom.settingsView) this.dom.settingsView.style.display = 'none';
     if (this.dom.historyView) this.dom.historyView.style.display = 'none';
     if (this.dom.bookmarksView) this.dom.bookmarksView.style.display = 'none';
+    if (this.dom.projectsView) this.dom.projectsView.style.display = 'none';
     if (this.dom.urlInput) this.dom.urlInput.value = targetUrl;
     
     this.engineAdapter.navigate(activeTab.id, targetUrl);
@@ -1221,18 +1498,46 @@ class MyNetworkShell {
     this.dom.aiMessages.scrollTop = this.dom.aiMessages.scrollHeight;
   }
 
+  updateNavButtonsState(tabId) {
+    const btnBack = document.getElementById('btn-back');
+    const btnForward = document.getElementById('btn-forward');
+    if (!tabId) {
+      if (btnBack) btnBack.classList.add('disabled');
+      if (btnForward) btnForward.classList.add('disabled');
+      return;
+    }
+    const webview = this.engineAdapter?.webviewMap?.get(tabId);
+    if (webview && typeof webview.canGoBack === 'function') {
+      if (btnBack) btnBack.classList.toggle('disabled', !webview.canGoBack());
+      if (btnForward) btnForward.classList.toggle('disabled', !webview.canGoForward());
+    } else {
+      if (btnBack) btnBack.classList.add('disabled');
+      if (btnForward) btnForward.classList.add('disabled');
+    }
+  }
+
   showProgress(percentage) {
     if (this.dom.progressBar) {
+      const pct = Math.max(0, Math.min(100, Number(percentage) || 0));
       this.dom.progressBar.style.opacity = '1';
-      this.dom.progressBar.style.width = `${percentage}%`;
+      this.dom.progressBar.style.width = `${pct}%`;
+      if (pct >= 100) {
+        if (this._progressTimeout) clearTimeout(this._progressTimeout);
+        this._progressTimeout = setTimeout(() => {
+          this.hideProgress();
+        }, 260);
+      }
     }
   }
 
   hideProgress() {
+    if (this._progressTimeout) clearTimeout(this._progressTimeout);
     if (this.dom.progressBar) {
       this.dom.progressBar.style.opacity = '0';
       setTimeout(() => {
-        this.dom.progressBar.style.width = '0%';
+        if (this.dom.progressBar && this.dom.progressBar.style.opacity === '0') {
+          this.dom.progressBar.style.width = '0%';
+        }
       }, 250);
     }
   }
@@ -1247,6 +1552,16 @@ class MyNetworkShell {
       label: 'New Tab',
       category: 'Tabs & Windows',
       handler: () => tabManager.createTab()
+    });
+
+    keybindingManager.register('ctrl+shift+g', {
+      id: 'tab:new-ghost',
+      label: 'New Disposable Ghost Tab',
+      category: 'Tabs & Windows',
+      handler: () => {
+        tabManager.createTab(DEFAULT_NEWTAB_URL, 'Ghost Tab', null, null, null, true);
+        this.showToast('👻 Opened Ghost Tab (Ephemeral in-memory session)');
+      }
     });
 
     keybindingManager.register('ctrl+w', {
@@ -1315,13 +1630,14 @@ class MyNetworkShell {
     });
 
     keybindingManager.register('ctrl+k', {
-      id: 'nav:focus-search',
-      label: 'Focus Dashboard Search',
+      id: 'nav:smart-omnibox',
+      label: 'Smart Omnibox Command Center',
       category: 'Navigation',
       handler: () => {
-        if (this.dom.dashSearchInput) {
-          this.dom.dashSearchInput.focus();
-          this.dom.dashSearchInput.select();
+        if (this.dom.urlInput) {
+          this.dom.urlInput.focus();
+          this.dom.urlInput.select();
+          this.triggerOmniboxSearch(this.dom.urlInput.value || '>');
         }
       }
     });
@@ -1416,6 +1732,36 @@ class MyNetworkShell {
       label: 'Toggle Sidebar Compact Rail',
       category: 'Workspace & Layout',
       handler: () => browserContext.toggleSidebarRail()
+    });
+
+    keybindingManager.register('ctrl+shift+p', {
+      id: 'feature:open-projects',
+      label: 'Open Project Workspaces Board',
+      category: 'Workspace & Layout',
+      handler: () => this.openProjectsTab()
+    });
+
+    for (let i = 1; i <= 6; i++) {
+      keybindingManager.register(`alt+${i}`, {
+        id: `workspace:switch-${i}`,
+        label: `Switch to Project Workspace ${i}`,
+        category: 'Workspace & Layout',
+        handler: () => this.switchToWorkspaceByIndex(i - 1)
+      });
+    }
+
+    keybindingManager.register('ctrl+shift+[', {
+      id: 'workspace:prev',
+      label: 'Previous Project Workspace',
+      category: 'Workspace & Layout',
+      handler: () => this.cycleWorkspace(-1)
+    });
+
+    keybindingManager.register('ctrl+shift+]', {
+      id: 'workspace:next',
+      label: 'Next Project Workspace',
+      category: 'Workspace & Layout',
+      handler: () => this.cycleWorkspace(1)
     });
 
     keybindingManager.register('ctrl+shift+s', {
@@ -2747,12 +3093,33 @@ class MyNetworkShell {
     if (this.dom.shortcutEditId) this.dom.shortcutEditId.value = existing ? existing.id : '';
     if (this.dom.shortcutInputTitle) this.dom.shortcutInputTitle.value = defaultTitle;
     if (this.dom.shortcutInputUrl) this.dom.shortcutInputUrl.value = defaultUrl;
+    
+    // Populate Folder Dropdown
+    if (this.dom.shortcutInputFolder) {
+      const folders = bookmarkService.getAllFolders();
+      this.dom.shortcutInputFolder.innerHTML = '';
+      folders.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = `📁 ${f.title}`;
+        if (existing && f.id === existing.parentId) {
+          opt.selected = true;
+        } else if (!existing && f.id === (this.currentBmFilter.folderId || 'root_bar')) {
+          opt.selected = true;
+        }
+        this.dom.shortcutInputFolder.appendChild(opt);
+      });
+    }
+
     if (this.dom.shortcutInputWs) {
       this.dom.shortcutInputWs.value = existing ? (existing.workspaceId || 'auto') : 'auto';
     }
+    if (this.dom.shortcutInputTags) {
+      this.dom.shortcutInputTags.value = (existing && Array.isArray(existing.tags)) ? existing.tags.join(', ') : '';
+    }
     if (this.dom.btnDeleteShortcut) this.dom.btnDeleteShortcut.style.display = existing ? 'block' : 'none';
     const titleEl = document.getElementById('shortcut-modal-title');
-    if (titleEl) titleEl.textContent = existing ? 'Edit Shortcut' : 'Add Shortcut';
+    if (titleEl) titleEl.textContent = existing ? 'Edit Bookmark' : 'Add Bookmark';
     this.dom.modalAddShortcut.showModal();
     if (this.dom.shortcutInputTitle) this.dom.shortcutInputTitle.focus();
   }
@@ -2777,6 +3144,10 @@ class MyNetworkShell {
       });
     }
 
+    if (this.dom.btnDeleteBmFolder) {
+      this.dom.btnDeleteBmFolder.style.display = existing ? 'block' : 'none';
+    }
+
     const titleEl = document.getElementById('bm-folder-modal-title');
     if (titleEl) titleEl.textContent = existing ? 'Edit Folder' : 'New Folder';
     this.dom.modalAddBmFolder.showModal();
@@ -2786,6 +3157,7 @@ class MyNetworkShell {
   renderBookmarksManager() {
     this.renderBookmarksSidebar();
     this.renderBookmarksList();
+    this.renderBmBatchBar();
   }
 
   renderBookmarksSidebar() {
@@ -2834,6 +3206,7 @@ class MyNetworkShell {
         document.querySelectorAll('.bookmarks-sidebar .bm-nav-item').forEach(n => n.classList.remove('active'));
         nav.classList.add('active');
         const target = nav.getAttribute('data-nav');
+        this.bmSelectedIds.clear();
         if (target === 'all') {
           this.currentBmFilter = { rootId: null, workspaceId: null, folderId: null, tag: null, isRead: null, query: '' };
         } else if (target === 'bar') {
@@ -2861,8 +3234,13 @@ class MyNetworkShell {
         item.addEventListener('click', () => {
           document.querySelectorAll('.bookmarks-sidebar .bm-nav-item, .bm-tree-item').forEach(n => n.classList.remove('active'));
           item.classList.add('active');
+          this.bmSelectedIds.clear();
           this.currentBmFilter = { rootId: null, workspaceId: null, folderId: f.id, tag: null, isRead: null, query: '' };
           this.renderBookmarksList();
+        });
+        item.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          this.showBookmarkContextMenu(e, f);
         });
         this.dom.bmMgrFolderTree.appendChild(item);
       });
@@ -2879,6 +3257,7 @@ class MyNetworkShell {
         tagEl.className = `bm-tag-pill ${this.currentBmFilter.tag === tagName ? 'active' : ''}`;
         tagEl.textContent = `#${this.escapeHtml(tagName)}`;
         tagEl.addEventListener('click', () => {
+          this.bmSelectedIds.clear();
           if (this.currentBmFilter.tag === tagName) {
             this.currentBmFilter.tag = null;
           } else {
@@ -2894,6 +3273,7 @@ class MyNetworkShell {
   renderBookmarksList() {
     if (!this.dom.bmMgrItemsContainer) return;
     let items = [];
+    const isTrashView = this.currentBmFilter.rootId === 'root_trash';
 
     if (this.currentBmFilter.query) {
       items = bookmarkService.search(this.currentBmFilter.query);
@@ -2905,7 +3285,7 @@ class MyNetworkShell {
       items = bookmarkService.getFavoritesBarItems();
     } else if (this.currentBmFilter.rootId === 'root_reading') {
       items = bookmarkService.getReadingList();
-    } else if (this.currentBmFilter.rootId === 'root_trash') {
+    } else if (isTrashView) {
       items = bookmarkService.getTrashItems();
     } else {
       items = bookmarkService.getAllBookmarks();
@@ -2913,13 +3293,13 @@ class MyNetworkShell {
 
     // Update Empty Trash visibility
     if (this.dom.btnBmEmptyTrash) {
-      this.dom.btnBmEmptyTrash.style.display = (this.currentBmFilter.rootId === 'root_trash') ? 'block' : 'none';
+      this.dom.btnBmEmptyTrash.style.display = isTrashView ? 'block' : 'none';
     }
 
     // Update Status Bar text
     if (this.dom.bmStatusText) {
-      const folderCount = items.filter(i => i.isFolder).length;
-      const bmCount = items.filter(i => !i.isFolder).length;
+      const folderCount = items.filter(i => i.isFolder || i.type === 'folder').length;
+      const bmCount = items.filter(i => !i.isFolder && i.type !== 'folder').length;
       this.dom.bmStatusText.textContent = `${bmCount} Bookmark${bmCount === 1 ? '' : 's'}${folderCount > 0 ? ` • ${folderCount} Folder${folderCount === 1 ? '' : 's'}` : ''} • Synced locally`;
     }
 
@@ -2933,7 +3313,7 @@ class MyNetworkShell {
         label = folder ? `Folder: ${folder.title}` : 'Folder';
       } else if (this.currentBmFilter.rootId === 'root_bar') label = 'Favorites Bar';
       else if (this.currentBmFilter.rootId === 'root_reading') label = 'Reading List';
-      else if (this.currentBmFilter.rootId === 'root_trash') label = 'Trash';
+      else if (isTrashView) label = 'Trash';
 
       this.dom.bmMgrBreadcrumbs.innerHTML = `<span class="breadcrumb-item active">${this.escapeHtml(label)}</span>`;
     }
@@ -2946,9 +3326,10 @@ class MyNetworkShell {
       this.dom.bmMgrItemsContainer.innerHTML = `
         <div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 20px; color: #94a3b8; gap: 8px;">
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          <span style="font-size: 13px; font-weight: 500;">No bookmarks found</span>
+          <span style="font-size: 13px; font-weight: 500;">${isTrashView ? 'Trash is empty' : 'No bookmarks found'}</span>
         </div>
       `;
+      this.renderBmBatchBar();
       return;
     }
 
@@ -2959,40 +3340,71 @@ class MyNetworkShell {
       const wsObj = workspaceService.getWorkspace(wsId);
       const wsIcon = wsObj?.icon === 'globe' ? '🌐' : (wsObj?.icon === 'code' ? '💻' : (wsObj?.icon === 'user' ? '👤' : '💼'));
       const wsBadgeHtml = `<span class="bm-card-ws-badge ws-badge-${wsId}">${wsIcon} ${this.escapeHtml(wsObj?.name || 'General')}</span>`;
+      const displayUrl = isFolder ? 'Folder' : (item.url ? item.url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '') : '');
 
       if (this.currentBmViewMode === 'grid') {
         const card = document.createElement('div');
         card.className = 'bm-card';
         const faviconHtml = item.favicon 
-          ? `<img src="${item.favicon}" alt="" class="bm-card-favicon" onerror="this.outerHTML='<svg width=\\'20\\' height=\\'20\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'#64748b\\' stroke-width=\\'2\\'><circle cx=\\'12\\' cy=\\'12\\' r=\\'10\\'/></svg>'">`
-          : (isFolder ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${item.color || '#f59e0b'}" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>` : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>`);
+          ? `<img src="${item.favicon}" alt="" class="bm-card-favicon" onerror="this.outerHTML='<svg width=\\'18\\' height=\\'18\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'#64748b\\' stroke-width=\\'2\\'><circle cx=\\'12\\' cy=\\'12\\' r=\\'10\\'/></svg>'">`
+          : (isFolder ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${item.color || '#f59e0b'}" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>` : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>`);
 
         const tagsHtml = (item.tags && item.tags.length > 0)
           ? `<div class="bm-card-tags">${item.tags.map(t => `<span class="bm-card-tag">#${this.escapeHtml(t)}</span>`).join('')}</div>`
           : '';
 
+        const hasBottom = (item.tags && item.tags.length > 0) || wsBadgeHtml;
+
         card.innerHTML = `
-          <div class="bm-card-header">
-            ${faviconHtml}
-            <span class="bm-card-title">${this.escapeHtml(item.title)}</span>
-            ${wsBadgeHtml}
+          <div class="bm-card-main">
+            <div class="bm-card-icon-wrap">
+              ${faviconHtml}
+            </div>
+            <div class="bm-card-meta">
+              <span class="bm-card-title" title="${this.escapeHtml(item.title)}">${this.escapeHtml(item.title)}</span>
+              <span class="bm-card-url">${this.escapeHtml(displayUrl)}</span>
+            </div>
+            <button type="button" class="bm-card-more-btn" title="Options">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/></svg>
+            </button>
           </div>
-          ${isFolder ? '' : `<div class="bm-card-url">${this.escapeHtml(item.url || '')}</div>`}
-          ${tagsHtml}
+          ${hasBottom ? `
+          <div class="bm-card-footer">
+            ${tagsHtml}
+            ${wsBadgeHtml}
+          </div>` : ''}
         `;
 
-        card.addEventListener('click', () => {
+        // More options button click -> Open context menu
+        const moreBtn = card.querySelector('.bm-card-more-btn');
+        if (moreBtn) {
+          moreBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.showBookmarkContextMenu(e, item);
+          });
+        }
+
+        // Left click on card -> Open bookmark / folder
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('.bm-card-more-btn')) return;
+          if (isTrashView) {
+            this.showToast('Item is in Trash. Click options (···) to restore.');
+            return;
+          }
           if (isFolder) {
             this.currentBmFilter.folderId = item.id;
             this.renderBookmarksList();
           } else if (item.url && item.url !== 'undefined') {
-            this.openBookmarkUrl(item.url);
+            this.openBookmarkUrl(item.url, e.ctrlKey || e.metaKey);
           }
         });
+
+        // Right click on card -> Open context menu
         card.addEventListener('contextmenu', (e) => {
           e.preventDefault();
           this.showBookmarkContextMenu(e, item);
         });
+
         this.dom.bmMgrItemsContainer.appendChild(card);
 
       } else {
@@ -3005,39 +3417,144 @@ class MyNetworkShell {
 
         row.innerHTML = `
           ${faviconHtml}
-          <span class="bm-list-title">${this.escapeHtml(item.title)}</span>
+          <span class="bm-list-title" title="${this.escapeHtml(item.title)}">${this.escapeHtml(item.title)}</span>
+          <span class="bm-list-url">${this.escapeHtml(displayUrl)}</span>
           ${wsBadgeHtml}
-          <span class="bm-list-url">${this.escapeHtml(item.url || (isFolder ? 'Folder' : ''))}</span>
+          <button type="button" class="bm-row-more-btn" title="Options">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/></svg>
+          </button>
         `;
-        row.addEventListener('click', () => {
+
+        const moreBtn = row.querySelector('.bm-row-more-btn');
+        if (moreBtn) {
+          moreBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.showBookmarkContextMenu(e, item);
+          });
+        }
+
+        row.addEventListener('click', (e) => {
+          if (e.target.closest('.bm-row-more-btn')) return;
+          if (isTrashView) {
+            this.showToast('Item is in Trash. Click options (···) to restore.');
+            return;
+          }
           if (isFolder) {
             this.currentBmFilter.folderId = item.id;
             this.renderBookmarksList();
           } else if (item.url && item.url !== 'undefined') {
-            this.openBookmarkUrl(item.url);
+            this.openBookmarkUrl(item.url, e.ctrlKey || e.metaKey);
           }
         });
+
         row.addEventListener('contextmenu', (e) => {
           e.preventDefault();
           this.showBookmarkContextMenu(e, item);
         });
+
         this.dom.bmMgrItemsContainer.appendChild(row);
       }
     });
+
+    this.renderBmBatchBar();
+  }
+
+  handleBookmarkAction(action, item) {
+    if (!item) return;
+    const isFolder = item.type === 'folder' || !!item.isFolder;
+
+    if (action === 'edit') {
+      if (isFolder) {
+        this.openAddBookmarkFolderModal(item);
+      } else {
+        this.openAddShortcutModal(item);
+      }
+    } else if (action === 'copy') {
+      if (item.url) {
+        navigator.clipboard.writeText(item.url);
+        this.showToast('Copied bookmark URL');
+      }
+    } else if (action === 'trash') {
+      bookmarkService.moveToTrash(item.id);
+      this.showToast(`Moved "${item.title}" to Trash`);
+      this.renderBookmarksManager();
+      this.renderBookmarksBar();
+      this.renderNewTabShortcuts();
+    } else if (action === 'restore') {
+      bookmarkService.restoreFromTrash(item.id);
+      this.showToast(`Restored "${item.title}"`);
+      this.renderBookmarksManager();
+      this.renderBookmarksBar();
+      this.renderNewTabShortcuts();
+    } else if (action === 'delete-perm') {
+      if (confirm(`Permanently delete "${item.title}"? This cannot be undone.`)) {
+        if (isFolder) {
+          bookmarkService.deleteFolder(item.id, true);
+        } else {
+          bookmarkService.deleteBookmark(item.id, true);
+        }
+        this.showToast(`Permanently deleted "${item.title}"`);
+        this.renderBookmarksManager();
+        this.renderBookmarksBar();
+        this.renderNewTabShortcuts();
+      }
+    }
+  }
+
+  renderBmBatchBar() {
+    if (!this.dom.bmBatchBar) return;
+    const count = this.bmSelectedIds.size;
+    if (count === 0) {
+      this.dom.bmBatchBar.style.display = 'none';
+      return;
+    }
+
+    const isTrashView = this.currentBmFilter.rootId === 'root_trash';
+    this.dom.bmBatchBar.style.display = 'flex';
+    if (this.dom.bmBatchCount) this.dom.bmBatchCount.textContent = count;
+
+    if (this.dom.btnBmBatchRestore) {
+      this.dom.btnBmBatchRestore.style.display = isTrashView ? 'inline-flex' : 'none';
+    }
+    if (this.dom.bmBatchTrashLabel) {
+      this.dom.bmBatchTrashLabel.textContent = isTrashView ? 'Delete Permanently' : 'Move to Trash';
+    }
   }
 
   showBookmarkContextMenu(e, item) {
     if (!this.dom.bookmarkContextMenu || !item) return;
     this.activeBmContextItem = item;
     const isFolder = item.type === 'folder' || !!item.isFolder;
+    const isTrash = this.currentBmFilter.rootId === 'root_trash' || item.parentId === 'root_trash';
 
+    const ctxOpenTab = document.getElementById('ctx-bm-open-tab');
     const ctxOpenSplit = document.getElementById('ctx-bm-open-split');
     const ctxCopyLink = document.getElementById('ctx-bm-copy-link');
-    if (ctxOpenSplit) ctxOpenSplit.style.display = isFolder ? 'none' : 'flex';
-    if (ctxCopyLink) ctxCopyLink.style.display = isFolder ? 'none' : 'flex';
+    const ctxEdit = document.getElementById('ctx-bm-edit');
+    const ctxRestore = document.getElementById('ctx-bm-restore');
+    const ctxDeleteLabel = document.getElementById('ctx-bm-delete-label');
+    const ctxEditLabel = document.getElementById('ctx-bm-edit-label');
 
-    this.dom.bookmarkContextMenu.style.left = `${Math.min(e.clientX, window.innerWidth - 200)}px`;
-    this.dom.bookmarkContextMenu.style.top = `${Math.min(e.clientY, window.innerHeight - 180)}px`;
+    if (ctxOpenTab) ctxOpenTab.style.display = isTrash ? 'none' : 'flex';
+    if (ctxOpenSplit) ctxOpenSplit.style.display = (isTrash || isFolder) ? 'none' : 'flex';
+    if (ctxCopyLink) ctxCopyLink.style.display = (isTrash || isFolder) ? 'none' : 'flex';
+    if (ctxEdit) ctxEdit.style.display = isTrash ? 'none' : 'flex';
+    if (ctxEditLabel) ctxEditLabel.textContent = isFolder ? 'Edit Folder' : 'Edit Bookmark';
+
+    if (ctxRestore) ctxRestore.style.display = isTrash ? 'flex' : 'none';
+    if (ctxDeleteLabel) ctxDeleteLabel.textContent = isTrash ? 'Delete Permanently' : 'Move to Trash';
+
+    let posX = e.clientX;
+    let posY = e.clientY;
+    const triggerBtn = e.target ? e.target.closest('.bm-card-more-btn, .bm-row-more-btn') : null;
+    if (triggerBtn) {
+      const rect = triggerBtn.getBoundingClientRect();
+      posX = rect.right - 180;
+      posY = rect.bottom + 4;
+    }
+
+    this.dom.bookmarkContextMenu.style.left = `${Math.max(10, Math.min(posX, window.innerWidth - 200))}px`;
+    this.dom.bookmarkContextMenu.style.top = `${Math.max(10, Math.min(posY, window.innerHeight - 240))}px`;
     this.dom.bookmarkContextMenu.style.display = 'block';
   }
 
@@ -3318,18 +3835,22 @@ class MyNetworkShell {
       this.dom.btnBmExportHtml.addEventListener('click', () => this.exportBookmarksHtml());
     }
 
-    // Modals: Add Shortcut Form Submit
+    // Modals: Add Shortcut / Bookmark Form Submit
     if (this.dom.formAddShortcut) {
       this.dom.formAddShortcut.addEventListener('submit', (e) => {
         e.preventDefault();
         const id = this.dom.shortcutEditId ? this.dom.shortcutEditId.value : null;
         const title = this.dom.shortcutInputTitle.value.trim();
         const url = this.dom.shortcutInputUrl.value.trim();
+        const parentId = this.dom.shortcutInputFolder ? this.dom.shortcutInputFolder.value : 'root_bar';
         const wsVal = this.dom.shortcutInputWs ? this.dom.shortcutInputWs.value : 'auto';
+        const tagsRaw = this.dom.shortcutInputTags ? this.dom.shortcutInputTags.value : '';
+        const tags = tagsRaw.split(',').map(t => t.trim().replace(/^#/, '')).filter(Boolean);
+
         if (!title || !url) return;
 
         if (id) {
-          const updates = { title, url };
+          const updates = { title, url, parentId, tags };
           if (wsVal && wsVal !== 'auto') updates.workspaceId = wsVal;
           bookmarkService.updateBookmark(id, updates);
           this.showToast(`Updated "${title}"`);
@@ -3337,12 +3858,16 @@ class MyNetworkShell {
           bookmarkService.createBookmark({
             title,
             url,
-            parentId: 'root_bar',
-            workspaceId: wsVal
+            parentId,
+            workspaceId: wsVal,
+            tags
           });
-          this.showToast(`Added "${title}" to Shortcuts`);
+          this.showToast(`Added "${title}" to Bookmarks`);
         }
         if (this.dom.modalAddShortcut) this.dom.modalAddShortcut.close();
+        this.renderBookmarksManager();
+        this.renderBookmarksBar();
+        this.renderNewTabShortcuts();
       });
     }
 
@@ -3360,8 +3885,11 @@ class MyNetworkShell {
       this.dom.btnDeleteShortcut.addEventListener('click', () => {
         const id = this.dom.shortcutEditId ? this.dom.shortcutEditId.value : null;
         if (id) {
-          bookmarkService.deleteBookmark(id);
-          this.showToast('Shortcut deleted');
+          bookmarkService.moveToTrash(id);
+          this.showToast('Bookmark moved to Trash');
+          this.renderBookmarksManager();
+          this.renderBookmarksBar();
+          this.renderNewTabShortcuts();
         }
         if (this.dom.modalAddShortcut) this.dom.modalAddShortcut.close();
       });
@@ -3379,13 +3907,15 @@ class MyNetworkShell {
         if (!title) return;
 
         if (id) {
-          bookmarkService.updateBookmark(id, { title, parentId, color });
+          bookmarkService.updateFolder(id, { title, parentId, color });
           this.showToast(`Updated folder "${title}"`);
         } else {
-          bookmarkService.createFolder(title, parentId, color);
+          bookmarkService.createFolder({ title, parentId, color });
           this.showToast(`Created folder "${title}"`);
         }
         if (this.dom.modalAddBmFolder) this.dom.modalAddBmFolder.close();
+        this.renderBookmarksManager();
+        this.renderBookmarksBar();
       });
     }
 
@@ -3399,6 +3929,21 @@ class MyNetworkShell {
         if (this.dom.modalAddBmFolder) this.dom.modalAddBmFolder.close();
       });
     }
+    if (this.dom.btnDeleteBmFolder) {
+      this.dom.btnDeleteBmFolder.addEventListener('click', () => {
+        const id = this.dom.bmFolderEditId ? this.dom.bmFolderEditId.value : null;
+        if (id) {
+          if (confirm('Move folder and all its contents to Trash?')) {
+            bookmarkService.moveToTrash(id);
+            this.showToast('Folder moved to Trash');
+            this.renderBookmarksManager();
+            this.renderBookmarksBar();
+            this.renderNewTabShortcuts();
+          }
+        }
+        if (this.dom.modalAddBmFolder) this.dom.modalAddBmFolder.close();
+      });
+    }
 
     // Color picker in folder modal
     document.querySelectorAll('#bm-folder-color-options .color-dot').forEach(dot => {
@@ -3407,6 +3952,66 @@ class MyNetworkShell {
         dot.classList.add('active');
       });
     });
+
+    // Batch Action Bar Listeners
+    if (this.dom.btnBmBatchSelectAll) {
+      this.dom.btnBmBatchSelectAll.addEventListener('click', () => {
+        let items = [];
+        if (this.currentBmFilter.rootId === 'root_trash') items = bookmarkService.getTrashItems();
+        else if (this.currentBmFilter.folderId) items = bookmarkService.getFolderChildren(this.currentBmFilter.folderId);
+        else if (this.currentBmFilter.rootId === 'root_bar') items = bookmarkService.getFavoritesBarItems();
+        else if (this.currentBmFilter.rootId === 'root_reading') items = bookmarkService.getReadingList();
+        else items = bookmarkService.getAllBookmarks();
+
+        items.forEach(i => {
+          if (i && i.id) this.bmSelectedIds.add(i.id);
+        });
+        this.renderBookmarksList();
+      });
+    }
+
+    if (this.dom.btnBmBatchTrash) {
+      this.dom.btnBmBatchTrash.addEventListener('click', () => {
+        const ids = Array.from(this.bmSelectedIds);
+        if (ids.length === 0) return;
+        const isTrash = this.currentBmFilter.rootId === 'root_trash';
+        if (isTrash) {
+          if (confirm(`Permanently delete ${ids.length} selected items? This cannot be undone.`)) {
+            bookmarkService.batchDelete(ids, true);
+            this.showToast(`Permanently deleted ${ids.length} items`);
+            this.bmSelectedIds.clear();
+            this.renderBookmarksManager();
+          }
+        } else {
+          bookmarkService.batchMoveToTrash(ids);
+          this.showToast(`Moved ${ids.length} items to Trash`);
+          this.bmSelectedIds.clear();
+          this.renderBookmarksManager();
+          this.renderBookmarksBar();
+          this.renderNewTabShortcuts();
+        }
+      });
+    }
+
+    if (this.dom.btnBmBatchRestore) {
+      this.dom.btnBmBatchRestore.addEventListener('click', () => {
+        const ids = Array.from(this.bmSelectedIds);
+        if (ids.length === 0) return;
+        bookmarkService.batchRestore(ids);
+        this.showToast(`Restored ${ids.length} items from Trash`);
+        this.bmSelectedIds.clear();
+        this.renderBookmarksManager();
+        this.renderBookmarksBar();
+        this.renderNewTabShortcuts();
+      });
+    }
+
+    if (this.dom.btnBmBatchClear) {
+      this.dom.btnBmBatchClear.addEventListener('click', () => {
+        this.bmSelectedIds.clear();
+        this.renderBookmarksList();
+      });
+    }
 
     // Bookmark Context Menu Items
     const ctxBmOpenTab = document.getElementById('ctx-bm-open-tab');
@@ -3434,7 +4039,7 @@ class MyNetworkShell {
     if (ctxBmEdit) {
       ctxBmEdit.addEventListener('click', () => {
         if (this.activeBmContextItem) {
-          if (this.activeBmContextItem.isFolder) {
+          if (this.activeBmContextItem.isFolder || this.activeBmContextItem.type === 'folder') {
             this.openAddBookmarkFolderModal(this.activeBmContextItem);
           } else {
             this.openAddShortcutModal(this.activeBmContextItem);
@@ -3455,12 +4060,48 @@ class MyNetworkShell {
       });
     }
 
+    const ctxBmRestore = document.getElementById('ctx-bm-restore');
+    if (ctxBmRestore) {
+      ctxBmRestore.addEventListener('click', () => {
+        if (this.activeBmContextItem) {
+          bookmarkService.restoreFromTrash(this.activeBmContextItem.id);
+          this.showToast(`Restored "${this.activeBmContextItem.title}"`);
+          this.renderBookmarksManager();
+          this.renderBookmarksBar();
+          this.renderNewTabShortcuts();
+        }
+        if (this.dom.bookmarkContextMenu) this.dom.bookmarkContextMenu.style.display = 'none';
+      });
+    }
+
     const ctxBmDelete = document.getElementById('ctx-bm-delete');
     if (ctxBmDelete) {
-      ctxBmDelete.addEventListener('click', () => {
+      ctxBmDelete.addEventListener('click', async () => {
         if (this.activeBmContextItem) {
-          bookmarkService.deleteBookmark(this.activeBmContextItem.id);
-          this.showToast('Bookmark deleted');
+          const isTrash = this.currentBmFilter.rootId === 'root_trash' || this.activeBmContextItem.parentId === 'root_trash';
+          if (isTrash) {
+            const confirmed = await this.showMacConfirm({
+              title: `Delete "${this.activeBmContextItem.title}"?`,
+              message: 'This item will be permanently removed from your bookmarks.',
+              confirmText: 'Delete Permanently',
+              isDanger: true
+            });
+            if (confirmed) {
+              if (this.activeBmContextItem.type === 'folder' || this.activeBmContextItem.isFolder) {
+                bookmarkService.deleteFolder(this.activeBmContextItem.id, true);
+              } else {
+                bookmarkService.deleteBookmark(this.activeBmContextItem.id, true);
+              }
+              this.showToast(`Permanently deleted "${this.activeBmContextItem.title}"`);
+              this.renderBookmarksManager();
+            }
+          } else {
+            bookmarkService.moveToTrash(this.activeBmContextItem.id);
+            this.showToast(`Moved "${this.activeBmContextItem.title}" to Trash`);
+            this.renderBookmarksManager();
+            this.renderBookmarksBar();
+            this.renderNewTabShortcuts();
+          }
         }
         if (this.dom.bookmarkContextMenu) this.dom.bookmarkContextMenu.style.display = 'none';
       });
@@ -4414,7 +5055,598 @@ class MyNetworkShell {
   }
 
   /* ==========================================================================
-     MAC OS TAB CONTEXT MENU CONTROLLER
+     PROJECT WORKSPACES CONTROLLER
+     ========================================================================== */
+  initWorkspaceController() {
+    // 1. Toggle Workspace Dropdown
+    if (this.dom.sidebarWsSelect) {
+      this.dom.sidebarWsSelect.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = this.dom.sidebarWsDropdown && this.dom.sidebarWsDropdown.style.display !== 'none';
+        this.toggleWorkspaceDropdown(!isOpen);
+      });
+    }
+
+    // 2. Add New Project buttons
+    if (this.dom.btnSidebarNewWs) {
+      this.dom.btnSidebarNewWs.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleWorkspaceDropdown(false);
+        this.openWorkspaceModal();
+      });
+    }
+
+    if (this.dom.btnCreateProjectModalTrigger) {
+      this.dom.btnCreateProjectModalTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleWorkspaceDropdown(false);
+        this.openWorkspaceModal();
+      });
+    }
+
+    // 3. Projects Dashboard Nav Button
+    if (this.dom.btnManageProjectsNav) {
+      this.dom.btnManageProjectsNav.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleWorkspaceDropdown(false);
+        this.openProjectsTab();
+      });
+    }
+
+    if (this.dom.btnWorkspaces) {
+      this.dom.btnWorkspaces.addEventListener('click', () => {
+        this.openProjectsTab();
+      });
+    }
+
+    // Close dropdown on click outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#sidebar-workspace-header') && !e.target.closest('#sidebar-ws-dropdown')) {
+        this.toggleWorkspaceDropdown(false);
+      }
+    });
+
+    this.renderWorkspaceSidebar();
+  }
+
+  toggleWorkspaceDropdown(open) {
+    if (!this.dom.sidebarWsDropdown) return;
+    this.dom.sidebarWsDropdown.style.display = open ? 'block' : 'none';
+    if (this.dom.sidebarWsSelect) {
+      this.dom.sidebarWsSelect.classList.toggle('open', open);
+    }
+  }
+
+  renderWorkspaceSidebar() {
+    const activeWs = workspaceService.getActiveWorkspace();
+    if (!activeWs) return;
+
+    // Update active pill in sidebar
+    if (this.dom.sidebarActiveWsDot) {
+      this.dom.sidebarActiveWsDot.style.background = activeWs.color || '#007aff';
+    }
+    if (this.dom.sidebarActiveWsName) {
+      this.dom.sidebarActiveWsName.textContent = activeWs.name || 'General';
+    }
+
+    const allWorkspaces = workspaceService.getAllWorkspaces();
+
+    // Render Quick Chips Row
+    if (this.dom.workspaceQuickChips) {
+      this.dom.workspaceQuickChips.innerHTML = '';
+      allWorkspaces.forEach(ws => {
+        const chip = document.createElement('div');
+        const isActive = ws.id === activeWs.id;
+        chip.className = `ws-quick-dot ${isActive ? 'active' : ''}`;
+        chip.title = `${ws.name} - ${tabManager.getTabsForWorkspace(ws.id).length} open tabs`;
+        chip.innerHTML = `
+          <span class="ws-color-dot" style="background: ${ws.color || '#007aff'}; width: 6px; height: 6px;"></span>
+          <span>${ws.name}</span>
+        `;
+        chip.addEventListener('click', () => {
+          this.switchWorkspace(ws.id);
+        });
+        this.dom.workspaceQuickChips.appendChild(chip);
+      });
+    }
+
+    // Render Dropdown List
+    if (this.dom.sidebarWsDropdownList) {
+      this.dom.sidebarWsDropdownList.innerHTML = '';
+      allWorkspaces.forEach(ws => {
+        const item = document.createElement('div');
+        const isActive = ws.id === activeWs.id;
+        const tabCount = tabManager.getTabsForWorkspace(ws.id).length;
+        item.className = `sidebar-ws-item ${isActive ? 'active' : ''}`;
+        item.innerHTML = `
+          <div class="sidebar-ws-item-left">
+            <span class="ws-color-dot" style="background: ${ws.color || '#007aff'};"></span>
+            <span>${ws.name}</span>
+          </div>
+          <span class="sidebar-ws-item-badge">${tabCount} ${tabCount === 1 ? 'tab' : 'tabs'}</span>
+        `;
+        item.addEventListener('click', () => {
+          this.toggleWorkspaceDropdown(false);
+          this.switchWorkspace(ws.id);
+        });
+        this.dom.sidebarWsDropdownList.appendChild(item);
+      });
+    }
+  }
+
+  switchWorkspace(workspaceId) {
+    if (!workspaceId) return;
+    workspaceService.setActiveWorkspace(workspaceId);
+    this.renderWorkspaceSidebar();
+    this.renderWorkspaceTabs();
+    this.showToast(`Switched to "${workspaceService.getActiveWorkspace()?.name || 'Project'}"`);
+  }
+
+  cycleWorkspace(direction = 1) {
+    const all = workspaceService.getAllWorkspaces();
+    if (all.length <= 1) return;
+    const currentId = workspaceService.getActiveWorkspaceId();
+    const idx = all.findIndex(w => w.id === currentId);
+    let nextIdx = (idx + direction + all.length) % all.length;
+    this.switchWorkspace(all[nextIdx].id);
+  }
+
+  switchToWorkspaceByIndex(index) {
+    const all = workspaceService.getAllWorkspaces();
+    if (all[index]) {
+      this.switchWorkspace(all[index].id);
+    }
+  }
+
+  /* ==========================================================================
+     DEDICATED macOS PROJECTS OVERVIEW CONTROLLER (mynetwork://projects)
+     ========================================================================== */
+  initProjectsOverviewController() {
+    if (this.dom.btnProjectsBack) {
+      this.dom.btnProjectsBack.addEventListener('click', () => {
+        const nonProjectsTab = tabManager.getTabs().find(t => 
+          t.url !== PROJECTS_URL && 
+          t.url !== LEGACY_PROJECTS_URL && 
+          t.url !== SETTINGS_URL && 
+          t.url !== LEGACY_SETTINGS_URL && 
+          t.url !== HISTORY_URL && 
+          t.url !== LEGACY_HISTORY_URL && 
+          t.url !== BOOKMARKS_URL && 
+          t.url !== LEGACY_BOOKMARKS_URL
+        );
+        if (nonProjectsTab) {
+          tabManager.activateTab(nonProjectsTab.id);
+        } else {
+          tabManager.createTab(DEFAULT_NEWTAB_URL, 'New Tab', null, workspaceService.getActiveWorkspaceId());
+        }
+      });
+    }
+
+    if (this.dom.btnProjectsAddNew) {
+      this.dom.btnProjectsAddNew.addEventListener('click', () => {
+        this.openWorkspaceModal();
+      });
+    }
+
+    if (this.dom.macProjectsSearch) {
+      this.dom.macProjectsSearch.addEventListener('input', (e) => {
+        this.projectsSearchQuery = (e.target.value || '').trim().toLowerCase();
+        this.renderProjectsDashboard();
+      });
+    }
+  }
+
+  openProjectsTab() {
+    const existing = tabManager.getTabs().find(t => t.url === PROJECTS_URL || t.url === LEGACY_PROJECTS_URL);
+    if (existing) {
+      tabManager.activateTab(existing.id);
+    } else {
+      tabManager.createTab(PROJECTS_URL, 'Projects', null, workspaceService.getActiveWorkspaceId());
+    }
+    this.renderProjectsDashboard();
+  }
+
+  renderProjectsDashboard() {
+    if (!this.dom.projectsCardsContainer) return;
+    this.dom.projectsCardsContainer.innerHTML = '';
+
+    const allWorkspaces = workspaceService.getAllWorkspaces();
+    const allTabs = tabManager.getAllTabs();
+    const activeWsId = workspaceService.getActiveWorkspaceId();
+
+    if (this.dom.projectsStatsBadge) {
+      this.dom.projectsStatsBadge.textContent = `${allWorkspaces.length} Projects • ${allTabs.length} Tabs`;
+    }
+
+    const iconMap = {
+      globe: '🌐',
+      code: '💻',
+      user: '👤',
+      briefcase: '💼',
+      rocket: '🚀',
+      star: '⭐',
+      folder: '📁'
+    };
+
+    const filtered = allWorkspaces.filter(ws => {
+      if (!this.projectsSearchQuery) return true;
+      const q = this.projectsSearchQuery;
+      const matchName = (ws.name || '').toLowerCase().includes(q);
+      const matchDesc = (ws.description || '').toLowerCase().includes(q);
+      const matchDev = (ws.devUrl || '').toLowerCase().includes(q);
+      const wsTabs = tabManager.getTabsForWorkspace(ws.id);
+      const matchTabs = wsTabs.some(t => (t.title || '').toLowerCase().includes(q) || (t.url || '').toLowerCase().includes(q));
+      return matchName || matchDesc || matchDev || matchTabs;
+    });
+
+    if (filtered.length === 0) {
+      this.dom.projectsCardsContainer.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 48px; color: #86868b; font-size: 13px;">
+          No projects match your search query.
+        </div>
+      `;
+      return;
+    }
+
+    filtered.forEach(ws => {
+      const wsTabs = tabManager.getTabsForWorkspace(ws.id);
+      const isActive = ws.id === activeWsId;
+      const emojiIcon = iconMap[ws.icon] || '📁';
+      const wsColor = ws.color || '#007aff';
+
+      const card = document.createElement('div');
+      card.className = `project-card ${isActive ? 'active' : ''}`;
+      card.setAttribute('data-workspace-id', ws.id);
+      
+      let tabsHtml = '';
+      if (wsTabs.length === 0) {
+        tabsHtml = `<div class="project-empty-tabs">No open tabs in this project</div>`;
+      } else {
+        tabsHtml = wsTabs.slice(0, 4).map(t => {
+          const faviconHtml = t.favicon 
+            ? `<img src="${t.favicon}" width="13" height="13" style="border-radius: 2.5px;" onerror="this.outerHTML='<svg width=\\'12\\' height=\\'12\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><circle cx=\\'12\\' cy=\\'12\\'/></svg>'">`
+            : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12"/></svg>`;
+          return `
+            <div class="project-tab-row" data-tab-id="${t.id}" title="${this.escapeHtml(t.url)}">
+              <span class="project-tab-favicon">${faviconHtml}</span>
+              <span class="project-tab-title">${this.escapeHtml(t.title || t.url || 'New Tab')}</span>
+            </div>
+          `;
+        }).join('');
+
+        if (wsTabs.length > 4) {
+          tabsHtml += `<div style="font-size: 10.5px; color: #86868b; padding: 3px 6px; text-align: center;">+${wsTabs.length - 4} more tabs</div>`;
+        }
+      }
+
+      card.innerHTML = `
+        <div class="project-card-header">
+          <div class="project-card-main-info">
+            <div class="project-card-icon-badge" style="background: ${wsColor}18; border: 1px solid ${wsColor}33;">
+              ${emojiIcon}
+            </div>
+            <div class="project-card-titles">
+              <h4 class="project-card-title">${this.escapeHtml(ws.name)}</h4>
+              ${ws.description ? `<p class="project-card-desc">${this.escapeHtml(ws.description)}</p>` : ''}
+            </div>
+          </div>
+          <div class="project-card-header-actions">
+            ${isActive ? `
+              <div class="project-active-indicator">
+                <span class="project-active-dot"></span>
+                <span>Active</span>
+              </div>
+            ` : ''}
+            <button class="mac-icon-btn-subtle btn-project-edit" title="Edit Project Settings">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="project-card-body">
+          <div class="project-tabs-preview-header">
+            <span>OPEN TABS</span>
+            <span>${wsTabs.length}</span>
+          </div>
+          <div class="project-card-tabs-list">
+            ${tabsHtml}
+          </div>
+        </div>
+
+        <div class="project-card-footer">
+          <div class="project-card-left-tags">
+            ${ws.devUrl ? `
+              <button class="project-dev-tag btn-project-dev-launch" title="Launch Dev URL: ${this.escapeHtml(ws.devUrl)}" data-url="${this.escapeHtml(ws.devUrl)}">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                <span>${this.escapeHtml(ws.devUrl.replace(/^https?:\/\//, ''))}</span>
+              </button>
+            ` : `<span style="font-size: 11px; color: #86868b;">${ws.isDefault ? 'Default Space' : 'Custom Workspace'}</span>`}
+          </div>
+
+          <div>
+            ${isActive ? `
+              <span class="project-switch-btn active-status">● Current Space</span>
+            ` : `
+              <button class="project-switch-btn primary btn-project-switch">
+                Switch Space
+              </button>
+            `}
+          </div>
+        </div>
+      `;
+
+      // Entire card left-click switches workspace
+      card.addEventListener('click', (e) => {
+        if (ws.id !== activeWsId) {
+          this.switchWorkspace(ws.id);
+          this.renderProjectsDashboard();
+        }
+      });
+
+      // Bind Tab Rows to open/activate directly
+      card.querySelectorAll('.project-tab-row').forEach(row => {
+        row.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const tabId = row.getAttribute('data-tab-id');
+          if (ws.id !== activeWsId) {
+            this.switchWorkspace(ws.id);
+          }
+          tabManager.activateTab(tabId);
+        });
+      });
+
+      // Bind Dev URL Launch
+      const btnDev = card.querySelector('.btn-project-dev-launch');
+      if (btnDev) {
+        btnDev.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const devUrl = btnDev.getAttribute('data-url');
+          if (ws.id !== activeWsId) {
+            this.switchWorkspace(ws.id);
+          }
+          tabManager.createTab(devUrl, 'Dev Server', null, ws.id);
+        });
+      }
+
+      // Bind Edit Project Modal
+      const btnEdit = card.querySelector('.btn-project-edit');
+      if (btnEdit) {
+        btnEdit.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.openWorkspaceModal(ws.id);
+        });
+      }
+
+      // Bind Switch Workspace Button
+      const btnSwitch = card.querySelector('.btn-project-switch');
+      if (btnSwitch) {
+        btnSwitch.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.switchWorkspace(ws.id);
+          this.renderProjectsDashboard();
+        });
+      }
+
+      this.dom.projectsCardsContainer.appendChild(card);
+    });
+  }
+
+  /* ==========================================================================
+     PROJECT WORKSPACE CREATE / EDIT MODAL CONTROLLER
+     ========================================================================== */
+  initWorkspaceModal() {
+    if (this.dom.btnCloseWorkspaceModal) {
+      this.dom.btnCloseWorkspaceModal.addEventListener('click', () => {
+        this.closeWorkspaceModal();
+      });
+    }
+
+    if (this.dom.btnCancelWorkspaceModal) {
+      this.dom.btnCancelWorkspaceModal.addEventListener('click', () => {
+        this.closeWorkspaceModal();
+      });
+    }
+
+    if (this.dom.modalCreateWorkspace) {
+      this.dom.modalCreateWorkspace.addEventListener('click', (e) => {
+        if (e.target === this.dom.modalCreateWorkspace) {
+          this.closeWorkspaceModal();
+        }
+      });
+    }
+
+    if (this.dom.formCreateWorkspace) {
+      this.dom.formCreateWorkspace.addEventListener('submit', (e) => {
+        this.handleWorkspaceSubmit(e);
+      });
+    }
+
+    if (this.dom.btnDeleteWorkspace) {
+      this.dom.btnDeleteWorkspace.addEventListener('click', () => {
+        const id = this.dom.workspaceFormId?.value;
+        if (id) this.handleWorkspaceDelete(id);
+      });
+    }
+
+    // Color Pickers
+    if (this.dom.workspaceColorPicker) {
+      this.dom.workspaceColorPicker.querySelectorAll('.color-dot').forEach(dot => {
+        dot.addEventListener('click', () => {
+          this.dom.workspaceColorPicker.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+          dot.classList.add('active');
+        });
+      });
+    }
+
+    // Icon Selector
+    if (this.dom.workspaceIconSelector) {
+      this.dom.workspaceIconSelector.querySelectorAll('.project-icon-choice').forEach(btn => {
+        btn.addEventListener('click', () => {
+          this.dom.workspaceIconSelector.querySelectorAll('.project-icon-choice').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+        });
+      });
+    }
+  }
+
+  openWorkspaceModal(workspaceId = null) {
+    if (!this.dom.modalCreateWorkspace) return;
+
+    const isEdit = !!workspaceId;
+    let wsData = null;
+    if (isEdit) {
+      wsData = workspaceService.getWorkspace(workspaceId);
+    }
+
+    if (this.dom.workspaceModalTitle) {
+      this.dom.workspaceModalTitle.textContent = isEdit ? 'Edit Project Workspace' : 'New Project Workspace';
+    }
+
+    if (this.dom.workspaceFormId) this.dom.workspaceFormId.value = isEdit ? workspaceId : '';
+    if (this.dom.workspaceFormName) this.dom.workspaceFormName.value = wsData ? wsData.name : '';
+    if (this.dom.workspaceFormDevUrl) this.dom.workspaceFormDevUrl.value = wsData ? (wsData.devUrl || '') : '';
+    if (this.dom.workspaceFormDesc) this.dom.workspaceFormDesc.value = wsData ? (wsData.description || '') : '';
+
+    // Set Color
+    const activeColor = wsData ? (wsData.color || '#007aff') : '#007aff';
+    if (this.dom.workspaceColorPicker) {
+      this.dom.workspaceColorPicker.querySelectorAll('.color-dot').forEach(dot => {
+        dot.classList.toggle('active', dot.getAttribute('data-color') === activeColor);
+      });
+    }
+
+    // Set Icon
+    const activeIcon = wsData ? (wsData.icon || 'globe') : 'globe';
+    if (this.dom.workspaceIconSelector) {
+      this.dom.workspaceIconSelector.querySelectorAll('.project-icon-choice').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-icon') === activeIcon);
+      });
+    }
+
+    // Toggle delete button
+    if (this.dom.btnDeleteWorkspace) {
+      this.dom.btnDeleteWorkspace.style.display = (isEdit && workspaceId !== 'ws_default') ? 'block' : 'none';
+    }
+
+    this.dom.modalCreateWorkspace.showModal();
+    setTimeout(() => {
+      if (this.dom.workspaceFormName) {
+        this.dom.workspaceFormName.focus();
+        this.dom.workspaceFormName.select();
+      }
+    }, 50);
+  }
+
+  closeWorkspaceModal() {
+    if (this.dom.modalCreateWorkspace) {
+      this.dom.modalCreateWorkspace.close();
+    }
+  }
+
+  handleWorkspaceSubmit(e) {
+    e.preventDefault();
+    const id = this.dom.workspaceFormId?.value;
+    const name = this.dom.workspaceFormName?.value?.trim();
+    if (!name) return;
+
+    const devUrl = this.dom.workspaceFormDevUrl?.value?.trim() || '';
+    const description = this.dom.workspaceFormDesc?.value?.trim() || '';
+    const color = this.dom.workspaceColorPicker?.querySelector('.color-dot.active')?.getAttribute('data-color') || '#007aff';
+    const icon = this.dom.workspaceIconSelector?.querySelector('.project-icon-choice.active')?.getAttribute('data-icon') || 'globe';
+
+    try {
+      if (id) {
+        workspaceService.updateWorkspace(id, { name, color, icon, description, devUrl });
+        this.showToast(`Updated project "${name}"`);
+      } else {
+        const newWs = workspaceService.createWorkspace({ name, color, icon, description, devUrl });
+        this.showToast(`Created project "${name}"`);
+        this.switchWorkspace(newWs.id);
+      }
+      this.closeWorkspaceModal();
+      this.renderWorkspaceSidebar();
+      if (this.dom.projectsView && this.dom.projectsView.style.display !== 'none') {
+        this.renderProjectsDashboard();
+      }
+    } catch (err) {
+      console.error('[WorkspaceModal] Failed to save workspace:', err);
+    }
+  }
+
+  showMacConfirm({ title = 'Are you sure?', message = '', confirmText = 'Confirm', isDanger = false } = {}) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById('modal-mac-confirm');
+      const titleEl = document.getElementById('mac-confirm-title');
+      const msgEl = document.getElementById('mac-confirm-message');
+      const okBtn = document.getElementById('btn-mac-confirm-ok');
+      const cancelBtn = document.getElementById('btn-mac-confirm-cancel');
+
+      if (!modal || !okBtn || !cancelBtn) {
+        resolve(window.confirm(message || title));
+        return;
+      }
+
+      if (titleEl) titleEl.textContent = title;
+      if (msgEl) msgEl.textContent = message;
+      okBtn.textContent = confirmText;
+      okBtn.className = `mac-sheet-btn ${isDanger ? 'mac-sheet-btn-danger' : 'mac-sheet-btn-primary'}`;
+
+      const cleanup = () => {
+        okBtn.removeEventListener('click', onOk);
+        cancelBtn.removeEventListener('click', onCancel);
+        modal.removeEventListener('cancel', onCancel);
+        try { modal.close(); } catch (e) {}
+      };
+
+      const onOk = (e) => {
+        e.preventDefault();
+        cleanup();
+        resolve(true);
+      };
+
+      const onCancel = (e) => {
+        e.preventDefault();
+        cleanup();
+        resolve(false);
+      };
+
+      okBtn.addEventListener('click', onOk);
+      cancelBtn.addEventListener('click', onCancel);
+      modal.addEventListener('cancel', onCancel);
+
+      modal.showModal();
+    });
+  }
+
+  async handleWorkspaceDelete(workspaceId) {
+    const ws = workspaceService.getWorkspace(workspaceId);
+    const wsName = ws ? ws.name : 'this project';
+    const confirmed = await this.showMacConfirm({
+      title: `Delete "${wsName}" Project?`,
+      message: 'All open tabs and project state in this workspace will be closed. This action cannot be undone.',
+      confirmText: 'Delete Project',
+      isDanger: true
+    });
+
+    if (!confirmed) return;
+
+    try {
+      tabManager.closeWorkspaceTabs(workspaceId);
+      workspaceService.deleteWorkspace(workspaceId);
+      this.closeWorkspaceModal();
+      this.renderWorkspaceSidebar();
+      this.renderWorkspaceTabs();
+      this.showToast(`Deleted "${wsName}" project workspace.`);
+      if (this.dom.projectsView && this.dom.projectsView.style.display !== 'none') {
+        this.renderProjectsDashboard();
+      }
+    } catch (err) {
+      console.error('[WorkspaceModal] Failed to delete workspace:', err);
+    }
+  }
+
+  /* ==========================================================================
+     MAC OS TAB CONTEXT MENU CONTROLLER (With Move-to-Project Submenu)
      ========================================================================== */
   initTabContextMenu() {
     this.currentContextTabId = null;
@@ -4429,7 +5661,7 @@ class MyNetworkShell {
       this.dom.ctxPinTab.addEventListener('click', () => {
         if (this.currentContextTabId) {
           tabManager.togglePinTab(this.currentContextTabId);
-          this.rebuildTabLists();
+          this.renderWorkspaceTabs();
         }
         this.closeTabContextMenu();
       });
@@ -4488,6 +5720,19 @@ class MyNetworkShell {
         this.closeTabContextMenu();
       });
     }
+
+    if (this.dom.ctxReopenGhostTab) {
+      this.dom.ctxReopenGhostTab.addEventListener('click', () => {
+        if (this.currentContextTabId) {
+          const tab = tabManager.getTab(this.currentContextTabId);
+          if (tab) {
+            tabManager.createTab(tab.url, tab.title, tab.favicon, tab.workspaceId, null, true);
+            this.showToast('👻 Reopened in Disposable Ghost Tab');
+          }
+        }
+        this.closeTabContextMenu();
+      });
+    }
   }
 
   openTabContextMenu(e, tabId) {
@@ -4504,12 +5749,101 @@ class MyNetworkShell {
       this.dom.ctxMuteLabel.textContent = tab.isMuted ? 'Unmute Tab' : 'Mute Tab';
     }
 
+    // Populate Move to Project Submenu
+    if (this.dom.ctxWorkspaceSubmenu) {
+      this.dom.ctxWorkspaceSubmenu.innerHTML = '';
+      const allWorkspaces = workspaceService.getAllWorkspaces();
+      const currentTabWsId = tab.workspaceId || 'ws_default';
+
+      allWorkspaces.forEach(ws => {
+        const isCurrent = ws.id === currentTabWsId;
+        const item = document.createElement('div');
+        item.className = `context-submenu-item ${isCurrent ? 'active' : ''}`;
+        item.innerHTML = `
+          <span class="ws-color-dot" style="background: ${ws.color || '#007aff'};"></span>
+          <span style="flex: 1;">${this.escapeHtml(ws.name)}</span>
+          ${isCurrent ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
+        `;
+        item.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          this.closeTabContextMenu();
+          if (!isCurrent) {
+            tabManager.moveTabToWorkspace(tabId, ws.id);
+            this.showToast(`Moved tab to "${ws.name}"`);
+          }
+        });
+        this.dom.ctxWorkspaceSubmenu.appendChild(item);
+      });
+
+      // + Create New Project option
+      const newWsItem = document.createElement('div');
+      newWsItem.className = 'context-submenu-item new-project';
+      newWsItem.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <span>New Project...</span>
+      `;
+      newWsItem.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        this.closeTabContextMenu();
+        this.openWorkspaceModal();
+      });
+      this.dom.ctxWorkspaceSubmenu.appendChild(newWsItem);
+    }
+
+    // Populate Container Profile Submenu
+    if (this.dom.ctxContainerSubmenu) {
+      this.dom.ctxContainerSubmenu.innerHTML = '';
+      const allContainers = containerService.getAllContainers();
+
+      // Default Session Item
+      const isDefault = !tab.containerId && !tab.isGhost;
+      const defItem = document.createElement('div');
+      defItem.className = `context-submenu-item ${isDefault ? 'active' : ''}`;
+      defItem.innerHTML = `
+        <span class="ws-color-dot" style="background: #8e8e93;"></span>
+        <span style="flex: 1;">Default Session</span>
+        ${isDefault ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
+      `;
+      defItem.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        this.closeTabContextMenu();
+        tab.containerId = null;
+        tab.isGhost = false;
+        this.reloadTabWithNewPartition(tab);
+        this.renderWorkspaceTabs();
+        this.showToast('Switched to Default Session');
+      });
+      this.dom.ctxContainerSubmenu.appendChild(defItem);
+
+      // Named Container Items
+      allContainers.forEach(container => {
+        const isCurrent = tab.containerId === container.id;
+        const item = document.createElement('div');
+        item.className = `context-submenu-item ${isCurrent ? 'active' : ''}`;
+        item.innerHTML = `
+          <span class="ws-color-dot" style="background: ${container.color};"></span>
+          <span style="flex: 1;">${this.escapeHtml(container.name)}</span>
+          ${isCurrent ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
+        `;
+        item.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          this.closeTabContextMenu();
+          tab.containerId = container.id;
+          tab.isGhost = false;
+          this.reloadTabWithNewPartition(tab);
+          this.renderWorkspaceTabs();
+          this.showToast(`Switched to container "${container.name}"`);
+        });
+        this.dom.ctxContainerSubmenu.appendChild(item);
+      });
+    }
+
     const menu = this.dom.tabContextMenu;
     menu.style.display = 'flex';
 
     // Position menu safely inside window viewport
     const menuWidth = 200;
-    const menuHeight = 220;
+    const menuHeight = 320;
     let left = e.clientX;
     let top = e.clientY;
 
@@ -4520,6 +5854,20 @@ class MyNetworkShell {
     menu.style.top = `${top}px`;
   }
 
+  reloadTabWithNewPartition(tab) {
+    const oldWv = this.engineAdapter.webviewMap.get(tab.id);
+    if (oldWv) {
+      try {
+        oldWv.remove();
+      } catch (e) {}
+      this.engineAdapter.webviewMap.delete(tab.id);
+    }
+    const newWv = this.engineAdapter.createWebview(tab);
+    if (tabManager.getActiveTabId() === tab.id) {
+      this.updateActiveTabUi(tab.id, tab);
+    }
+  }
+
   closeTabContextMenu() {
     if (this.dom.tabContextMenu) {
       this.dom.tabContextMenu.style.display = 'none';
@@ -4528,11 +5876,245 @@ class MyNetworkShell {
   }
 
   rebuildTabLists() {
-    if (this.dom.tabsList) this.dom.tabsList.innerHTML = '';
-    if (this.dom.horizontalTabsList) this.dom.horizontalTabsList.innerHTML = '';
-    tabManager.getAllTabs().forEach(t => this.renderTabPill(t));
-    const active = tabManager.getActiveTab();
-    if (active) this.updateActiveTabUi(active.id, active);
+    this.renderWorkspaceTabs();
+  }
+
+  /* ==========================================================================
+     MULTI-PANE SPLIT SCREEN WEBVIEW CONTROLLER
+     ========================================================================== */
+  updateSplitViewWebviews(isSplit, layout = 'dual', tabIds = null) {
+    const activeWsId = workspaceService.getActiveWorkspaceId();
+    const wsTabs = tabManager.getTabsForWorkspace(activeWsId);
+    const activeTabId = tabManager.getActiveTabId();
+
+    // Reset split styles on all webviews
+    this.engineAdapter.webviewMap.forEach((wv) => {
+      wv.classList.remove('split-pane-visible', 'active-pane');
+      wv.style.display = 'none';
+    });
+
+    // Reset split styles on tab pills
+    document.querySelectorAll('.tab-item').forEach(el => {
+      el.classList.remove('split-grouped', 'split-active');
+    });
+
+    if (!isSplit) {
+      const activeTab = tabManager.getActiveTab();
+      if (activeTab) {
+        this.engineAdapter.showWebview(activeTab.id);
+      }
+      return;
+    }
+
+    let panes = [];
+    if (tabIds && Array.isArray(tabIds) && tabIds.length >= 2) {
+      panes = tabIds.map(id => tabManager.getTab(id)).filter(Boolean);
+    }
+
+    if (panes.length < 2) {
+      let paneCount = 2;
+      if (layout === 'triple') paneCount = 3;
+      if (layout === 'quad') paneCount = 4;
+
+      while (wsTabs.length < paneCount) {
+        const newT = tabManager.createTab(DEFAULT_NEWTAB_URL, 'New Tab', null, activeWsId);
+        wsTabs.push(newT);
+      }
+      panes = wsTabs.slice(0, paneCount);
+    }
+
+    panes.forEach(tab => {
+      let wv = this.engineAdapter.webviewMap.get(tab.id);
+      if (!wv) {
+        wv = this.engineAdapter.createWebview(tab);
+      }
+      wv.style.display = 'flex';
+      wv.classList.add('split-pane-visible');
+      if (tab.id === activeTabId) {
+        wv.classList.add('active-pane');
+      }
+
+      // Mark tab pills in sidebar as part of the split group
+      const pill1 = document.getElementById(`tab-pill-${tab.id}`);
+      if (pill1) {
+        pill1.classList.add('split-grouped');
+        if (tab.id === activeTabId) pill1.classList.add('split-active');
+      }
+      const pill2 = document.getElementById(`h-tab-pill-${tab.id}`);
+      if (pill2) {
+        pill2.classList.add('split-grouped');
+        if (tab.id === activeTabId) pill2.classList.add('split-active');
+      }
+
+      wv.onmousedown = () => {
+        if (tabManager.getActiveTabId() !== tab.id) {
+          tabManager.activateTab(tab.id);
+          this.updateSplitViewWebviews(true, layout, panes.map(p => p.id));
+        }
+      };
+    });
+  }
+
+  /* ==========================================================================
+     SMART OMNIBOX & COMMAND PALETTE HYBRID CONTROLLER
+     ========================================================================== */
+  initSmartOmnibox() {
+    if (!this.dom.urlInput || !this.dom.omniboxDropdown) return;
+
+    this.omniboxSelectedIndex = -1;
+    this.currentOmniboxResults = [];
+
+    // Hints Chips Click (@tabs, @history, @bookmark, >)
+    this.dom.omniboxDropdown.querySelectorAll('.omnibox-hint-chip').forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const prefix = chip.getAttribute('data-prefix');
+        this.dom.urlInput.value = prefix;
+        this.dom.urlInput.focus();
+        this.triggerOmniboxSearch(prefix);
+      });
+    });
+
+    // Input Search Listener
+    this.dom.urlInput.addEventListener('input', (e) => {
+      const query = e.target.value;
+      if (query.trim()) {
+        this.triggerOmniboxSearch(query);
+      } else {
+        this.closeOmniboxDropdown();
+      }
+    });
+
+    // Keyboard Navigation (ArrowUp, ArrowDown, Enter, Escape)
+    this.dom.urlInput.addEventListener('keydown', (e) => {
+      if (!this.dom.omniboxDropdown || this.dom.omniboxDropdown.style.display === 'none') {
+        if (e.key === 'Enter') {
+          const val = this.dom.urlInput.value.trim();
+          if (val) this.navigateCurrentTab(val);
+        }
+        return;
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        this.moveOmniboxSelection(1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        this.moveOmniboxSelection(-1);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        this.closeOmniboxDropdown();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (this.omniboxSelectedIndex >= 0 && this.currentOmniboxResults[this.omniboxSelectedIndex]) {
+          this.executeOmniboxResult(this.currentOmniboxResults[this.omniboxSelectedIndex]);
+        } else {
+          const val = this.dom.urlInput.value.trim();
+          if (val) this.navigateCurrentTab(val);
+          this.closeOmniboxDropdown();
+        }
+      }
+    });
+
+    // Close on click outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.omnibox-wrapper')) {
+        this.closeOmniboxDropdown();
+      }
+    });
+  }
+
+  triggerOmniboxSearch(query) {
+    if (!this.dom.omniboxDropdown || !this.dom.omniboxResultsList) return;
+    const results = omniboxService.query(query);
+    this.currentOmniboxResults = results;
+    this.omniboxSelectedIndex = results.length > 0 ? 0 : -1;
+
+    if (results.length === 0) {
+      this.closeOmniboxDropdown();
+      return;
+    }
+
+    this.dom.omniboxResultsList.innerHTML = '';
+    results.forEach((res, idx) => {
+      const item = document.createElement('div');
+      item.className = `omnibox-result-item ${idx === 0 ? 'selected' : ''}`;
+      item.setAttribute('data-index', idx);
+
+      let iconHtml = '';
+      if (res.isFaviconUrl) {
+        iconHtml = `<img src="${res.icon}" width="14" height="14" style="border-radius: 3px;" onerror="this.outerHTML='<span>🌐</span>'">`;
+      } else {
+        iconHtml = `<span>${res.icon || '🔍'}</span>`;
+      }
+
+      let badgeHtml = '';
+      if (res.type === 'tab') badgeHtml = '<span class="omnibox-result-badge">TAB</span>';
+      else if (res.type === 'command') badgeHtml = `<span class="omnibox-result-badge" style="color: #007aff;">${res.shortcut || 'ACTION'}</span>`;
+      else if (res.type === 'bookmark') badgeHtml = '<span class="omnibox-result-badge" style="color: #f59e0b;">BOOKMARK</span>';
+      else if (res.type === 'history') badgeHtml = '<span class="omnibox-result-badge">HISTORY</span>';
+
+      item.innerHTML = `
+        <div class="omnibox-result-icon">${iconHtml}</div>
+        <div class="omnibox-result-info">
+          <div class="omnibox-result-title">${this.escapeHtml(res.title)}</div>
+          <div class="omnibox-result-subtitle">${this.escapeHtml(res.subtitle)}</div>
+        </div>
+        ${badgeHtml}
+      `;
+
+      item.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        this.executeOmniboxResult(res);
+      });
+
+      this.dom.omniboxResultsList.appendChild(item);
+    });
+
+    this.dom.omniboxDropdown.style.display = 'flex';
+  }
+
+  moveOmniboxSelection(dir) {
+    if (!this.currentOmniboxResults.length) return;
+    this.omniboxSelectedIndex = (this.omniboxSelectedIndex + dir + this.currentOmniboxResults.length) % this.currentOmniboxResults.length;
+    
+    const items = this.dom.omniboxResultsList.querySelectorAll('.omnibox-result-item');
+    items.forEach((it, idx) => {
+      it.classList.toggle('selected', idx === this.omniboxSelectedIndex);
+      if (idx === this.omniboxSelectedIndex) {
+        it.scrollIntoView({ block: 'nearest' });
+      }
+    });
+  }
+
+  executeOmniboxResult(res) {
+    this.closeOmniboxDropdown();
+    if (!res) return;
+
+    if (res.type === 'tab') {
+      const { tabId, workspaceId } = res.payload;
+      if (workspaceId && workspaceId !== workspaceService.getActiveWorkspaceId()) {
+        this.switchWorkspace(workspaceId);
+      }
+      tabManager.activateTab(tabId);
+    } else if (res.type === 'command') {
+      const cmd = res.payload;
+      if (cmd && typeof cmd.handler === 'function') {
+        cmd.handler(this);
+      }
+    } else if (res.type === 'bookmark' || res.type === 'history' || res.type === 'url') {
+      this.navigateCurrentTab(res.payload);
+    } else if (res.type === 'search') {
+      this.navigateCurrentTab(res.payload);
+    }
+  }
+
+  closeOmniboxDropdown() {
+    if (this.dom.omniboxDropdown) {
+      this.dom.omniboxDropdown.style.display = 'none';
+      this.omniboxSelectedIndex = -1;
+      this.currentOmniboxResults = [];
+    }
   }
 
   /* ==========================================================================

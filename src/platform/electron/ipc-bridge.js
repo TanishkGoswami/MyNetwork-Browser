@@ -34,6 +34,12 @@ class IpcBridge {
   close() {
     this.closeWindow();
   }
+
+  on(channel, callback) {
+    if (ipcRenderer && typeof ipcRenderer.on === 'function') {
+      ipcRenderer.on(channel, callback);
+    }
+  }
 }
 
 const ipcBridge = new IpcBridge();

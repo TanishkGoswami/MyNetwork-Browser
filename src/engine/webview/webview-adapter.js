@@ -14,6 +14,21 @@ class WebviewAdapter {
     webview.className = 'browser-webview';
     webview.setAttribute('allowpopups', 'true');
     webview.setAttribute('webpreferences', 'contextIsolation=false');
+    webview.setAttribute('useragent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36');
+
+    try {
+      const { containerService } = require('../../features/containers/container-service');
+      const partition = containerService.resolvePartition({
+        containerId: tab.containerId,
+        isGhost: tab.isGhost,
+        tabId: tab.id
+      });
+      if (partition) {
+        webview.setAttribute('partition', partition);
+      }
+    } catch (e) {
+      console.warn('[WebviewAdapter] Container partition resolution skipped:', e);
+    }
 
     const isInternal = !tab.url || tab.url.startsWith('mynetwork://') || tab.url.startsWith('about:') || tab.url.startsWith('zen://');
     webview.src = isInternal ? BLANK_URL : tab.url;
@@ -25,6 +40,34 @@ class WebviewAdapter {
   }
 
   attachEvents(webview, tabId) {
+    // Handle window.open, popups, and OAuth login popups (Google, GitHub, Facebook)
+    webview.addEventListener('new-window', (e) => {
+      const url = e.url;
+      if (!url || url === 'about:blank') return;
+      
+      const isAuthOrPopup = 
+        url.includes('accounts.google.com') ||
+        url.includes('google.com/signin') ||
+        url.includes('github.com/login') ||
+        url.includes('facebook.com') ||
+        url.includes('appleid.apple.com') ||
+        url.includes('oauth') ||
+        url.includes('login') ||
+        url.includes('signin') ||
+        url.includes('auth') ||
+        e.disposition === 'new-window' ||
+        (e.options && (e.options.width || e.options.height));
+
+      // If it's a standard link (not an OAuth popup), open in internal new tab
+      if (!isAuthOrPopup) {
+        e.preventDefault();
+        const { tabManager } = require('../../core/tabs/tab-manager');
+        const { workspaceService } = require('../../features/workspaces/workspace-service');
+        const activeWsId = workspaceService.getActiveWorkspaceId();
+        tabManager.createTab(url, 'New Tab', null, activeWsId);
+      }
+    });
+
     webview.addEventListener('did-start-loading', () => {
       const currentUrl = webview.getURL();
       eventBus.emit(EVENTS.NAV_START, { tabId, url: currentUrl });
@@ -91,10 +134,34 @@ class WebviewAdapter {
     webview.addEventListener('dom-ready', () => {
       this.injectCredentialObserver(webview);
       this.injectAutofill(webview);
+      eventBus.emit('navigation:state-changed', {
+        tabId,
+        canGoBack: webview.canGoBack(),
+        canGoForward: webview.canGoForward()
+      });
+    });
+
+    webview.addEventListener('did-navigate', () => {
+      eventBus.emit('navigation:state-changed', {
+        tabId,
+        canGoBack: webview.canGoBack(),
+        canGoForward: webview.canGoForward()
+      });
+    });
+
+    webview.addEventListener('did-navigate-in-page', () => {
+      eventBus.emit('navigation:state-changed', {
+        tabId,
+        canGoBack: webview.canGoBack(),
+        canGoForward: webview.canGoForward()
+      });
     });
 
     webview.addEventListener('did-finish-load', () => {
       const url = webview.getURL();
+      const { tabManager } = require('../../core/tabs/tab-manager');
+      const currentTab = tabManager.getTab(tabId);
+
       if (url && url !== 'about:blank' && !url.startsWith('mynetwork://')) {
         const rawTitle = webview.getTitle();
         const title = (rawTitle && rawTitle !== 'about:blank') ? rawTitle : url;
@@ -107,8 +174,6 @@ class WebviewAdapter {
           }
         } catch (err) {}
 
-        const { tabManager } = require('../../core/tabs/tab-manager');
-        const currentTab = tabManager.getTab(tabId);
         const updates = { isLoading: false, url, title };
         if ((!currentTab || !currentTab.favicon) && fallbackFavicon) {
           updates.favicon = fallbackFavicon;
@@ -122,15 +187,187 @@ class WebviewAdapter {
 
         this.injectCredentialObserver(webview);
         this.injectAutofill(webview);
+      } else {
+        tabManager.updateTab(tabId, { isLoading: false });
+        eventBus.emit(EVENTS.NAV_FINISH, { tabId, url: url || '', title: currentTab?.title || 'New Tab', favicon: null });
       }
+
       eventBus.emit(EVENTS.NAV_PROGRESS, { percentage: 100 });
+      eventBus.emit('navigation:state-changed', {
+        tabId,
+        canGoBack: webview.canGoBack(),
+        canGoForward: webview.canGoForward()
+      });
     });
 
     webview.addEventListener('did-fail-load', (e) => {
-      if (e.errorCode !== -3) { // Ignore aborted requests
-        eventBus.emit(EVENTS.NAV_FAIL, { tabId, errorCode: e.errorCode, desc: e.errorDescription });
+      if (e.errorCode === -3) {
+        // Ignore aborted requests (e.g. user typed a new URL before old one finished)
+        return;
       }
+      
+      const failedUrl = e.validatedURL || webview.getURL() || tab.url;
+      const { tabManager } = require('../../core/tabs/tab-manager');
+      tabManager.updateTab(tabId, { isLoading: false });
+      
+      eventBus.emit(EVENTS.NAV_FAIL, { tabId, errorCode: e.errorCode, desc: e.errorDescription, url: failedUrl });
+      eventBus.emit('navigation:state-changed', {
+        tabId,
+        canGoBack: webview.canGoBack(),
+        canGoForward: webview.canGoForward()
+      });
+      
+      // Inject friendly macOS recovery page
+      this.injectErrorPage(webview, tabId, failedUrl, e.errorCode, e.errorDescription);
     });
+  }
+
+  injectErrorPage(webview, tabId, url, errorCode, errorDescription) {
+    let errorTitle = 'This site can’t be reached';
+    let errorHelp = 'Check if there is a typo in the address, or verify your internet connection.';
+
+    if (errorCode === -105 || errorCode === -2) {
+      errorTitle = 'Server IP Address Not Found';
+      errorHelp = `The server at "${url}" could not be resolved. Please check the domain or search with Google.`;
+    } else if (errorCode === -21) {
+      errorTitle = 'Network Connection Changed';
+      errorHelp = 'Your network configuration changed while loading this page. Please click reload.';
+    } else if (errorCode === -106) {
+      errorTitle = 'No Internet Connection';
+      errorHelp = 'Your device appears to be offline. Please check your Wi-Fi or network cables.';
+    }
+
+    const cleanQuery = encodeURIComponent(url.replace(/^https?:\/\//i, '').split('/')[0]);
+    const errorHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Page Load Error</title>
+        <style>
+          * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; }
+          body {
+            background: linear-gradient(135deg, #f8fafc 0%, #eef2f6 100%);
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px;
+            user-select: none;
+          }
+          .mac-error-card {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 18px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+            max-width: 500px;
+            width: 100%;
+            padding: 36px 32px;
+            text-align: center;
+            animation: fadeIn 0.25s ease-out;
+          }
+          @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+          .mac-error-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: #fee2e2;
+            color: #ef4444;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+          }
+          .mac-error-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 10px;
+            letter-spacing: -0.02em;
+          }
+          .mac-error-url {
+            font-size: 13px;
+            font-family: "JetBrains Mono", monospace;
+            color: #64748b;
+            background: #f1f5f9;
+            padding: 6px 12px;
+            border-radius: 8px;
+            word-break: break-all;
+            margin-bottom: 16px;
+            display: inline-block;
+          }
+          .mac-error-desc {
+            font-size: 13.5px;
+            color: #475569;
+            line-height: 1.55;
+            margin-bottom: 28px;
+          }
+          .mac-error-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+          }
+          .mac-btn {
+            padding: 9px 18px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+          }
+          .mac-btn-primary {
+            background: #007aff;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.25);
+          }
+          .mac-btn-primary:hover { background: #0062cc; transform: translateY(-1px); }
+          .mac-btn-secondary {
+            background: #e2e8f0;
+            color: #334155;
+          }
+          .mac-btn-secondary:hover { background: #cbd5e1; }
+          .mac-error-code {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 24px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="mac-error-card">
+          <div class="mac-error-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <div class="mac-error-title">${errorTitle}</div>
+          <div class="mac-error-url">${url}</div>
+          <p class="mac-error-desc">${errorHelp}</p>
+          <div class="mac-error-actions">
+            <button class="mac-btn mac-btn-primary" onclick="window.location.reload()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              Try Again
+            </button>
+            <a class="mac-btn mac-btn-secondary" href="https://www.google.com/search?q=${cleanQuery}">
+              Search Google
+            </a>
+          </div>
+          <div class="mac-error-code">Error Code: ${errorCode} (${errorDescription || 'UNKNOWN_ERROR'})</div>
+        </div>
+      </body>
+      </html>
+    `;
+    try {
+      webview.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(errorHtml)}`).catch(() => {});
+    } catch (err) {}
   }
 
   injectCredentialObserver(webview) {

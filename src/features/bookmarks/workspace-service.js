@@ -26,7 +26,9 @@ class WorkspaceService {
           name: 'General',
           icon: 'globe',
           color: '#007aff',
+          description: 'Daily browsing, general web, search & utilities',
           isDefault: true,
+          activeTabId: null,
           createdAt: Date.now()
         },
         {
@@ -34,7 +36,9 @@ class WorkspaceService {
           name: 'Work & Dev',
           icon: 'code',
           color: '#10b981',
+          description: 'Coding repositories, APIs, localhost dev, cloud dashboards',
           isDefault: false,
+          activeTabId: null,
           createdAt: Date.now()
         },
         {
@@ -42,7 +46,9 @@ class WorkspaceService {
           name: 'Personal',
           icon: 'user',
           color: '#8b5cf6',
+          description: 'Social feeds, media streaming, shopping & personal reading',
           isDefault: false,
+          activeTabId: null,
           createdAt: Date.now()
         }
       ];
@@ -78,7 +84,8 @@ class WorkspaceService {
 
   setActiveWorkspace(id) {
     const ws = this.getWorkspace(id);
-    if (!ws || this.activeWorkspaceId === id) return ws;
+    if (!ws) return this.getActiveWorkspace();
+    if (this.activeWorkspaceId === id) return ws;
     
     const previousId = this.activeWorkspaceId;
     this.activeWorkspaceId = id;
@@ -93,7 +100,7 @@ class WorkspaceService {
     return ws;
   }
 
-  createWorkspace({ name, icon = 'folder', color = '#007aff' }) {
+  createWorkspace({ name, icon = 'folder', color = '#007aff', description = '', devUrl = '' }) {
     const trimmedName = (name || '').trim();
     if (!trimmedName) throw new Error('Workspace name cannot be empty');
 
@@ -103,7 +110,10 @@ class WorkspaceService {
       name: trimmedName,
       icon: icon || 'folder',
       color: color || '#007aff',
+      description: description.trim(),
+      devUrl: devUrl.trim(),
       isDefault: false,
+      activeTabId: null,
       createdAt: Date.now()
     };
 
@@ -129,6 +139,9 @@ class WorkspaceService {
     }
     if (updates.icon !== undefined) ws.icon = updates.icon;
     if (updates.color !== undefined) ws.color = updates.color;
+    if (updates.description !== undefined) ws.description = updates.description.trim();
+    if (updates.devUrl !== undefined) ws.devUrl = updates.devUrl.trim();
+    if (updates.activeTabId !== undefined) ws.activeTabId = updates.activeTabId;
 
     this.workspaces[idx] = ws;
     this.saveWorkspaces();
@@ -139,6 +152,19 @@ class WorkspaceService {
     });
 
     return ws;
+  }
+
+  duplicateWorkspace(id) {
+    const source = this.getWorkspace(id);
+    if (!source) return null;
+
+    return this.createWorkspace({
+      name: `${source.name} (Copy)`,
+      icon: source.icon,
+      color: source.color,
+      description: source.description || '',
+      devUrl: source.devUrl || ''
+    });
   }
 
   deleteWorkspace(id) {

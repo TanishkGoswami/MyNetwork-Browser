@@ -636,6 +636,41 @@ class BookmarkService {
     return true;
   }
 
+  moveToTrash(id) {
+    const item = this.getItem(id);
+    if (!item) return false;
+    if (item.type === 'folder') {
+      return this.deleteFolder(id, false);
+    } else {
+      return this.deleteBookmark(id, false);
+    }
+  }
+
+  batchMoveToTrash(ids = []) {
+    if (!Array.isArray(ids) || ids.length === 0) return 0;
+    let count = 0;
+    ids.forEach(id => {
+      if (this.moveToTrash(id)) count++;
+    });
+    return count;
+  }
+
+  batchDelete(ids = [], permanent = true) {
+    if (!Array.isArray(ids) || ids.length === 0) return 0;
+    let count = 0;
+    ids.forEach(id => {
+      const item = this.getItem(id);
+      if (item) {
+        if (item.type === 'folder') {
+          if (this.deleteFolder(id, permanent)) count++;
+        } else {
+          if (this.deleteBookmark(id, permanent)) count++;
+        }
+      }
+    });
+    return count;
+  }
+
   restoreFromTrash(id, targetParentId = 'root_bar') {
     const item = this.state.items[id];
     if (!item || item.parentId !== 'root_trash') return false;
@@ -643,6 +678,15 @@ class BookmarkService {
     this.reparentItem(id, targetParentId || 'root_bar');
     this.saveState();
     return true;
+  }
+
+  batchRestore(ids = [], targetParentId = 'root_bar') {
+    if (!Array.isArray(ids) || ids.length === 0) return 0;
+    let count = 0;
+    ids.forEach(id => {
+      if (this.restoreFromTrash(id, targetParentId)) count++;
+    });
+    return count;
   }
 
   emptyTrash() {

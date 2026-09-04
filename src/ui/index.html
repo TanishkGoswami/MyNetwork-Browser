@@ -45,10 +45,23 @@
           <div class="omnibox-logo" id="omnibox-engine-icon" title="MyNetwork Internal Page">
             <img src="assets/icon-symbol.svg" width="16" height="16" alt="MyNetwork" style="display: block; object-fit: contain;">
           </div>
-          <input type="text" id="url-input" placeholder="Search or type a URL..." autocomplete="off" spellcheck="false">
+          <input type="text" id="url-input" placeholder="Search, @tabs, @history, > commands (Ctrl+K)..." autocomplete="off" spellcheck="false">
           <button id="btn-bookmark" class="omnibox-action-btn" title="Bookmark This Tab (Ctrl+D)">
             <svg id="btn-bookmark-star-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           </button>
+        </div>
+
+        <!-- SMART OMNIBOX & COMMAND PALETTE DROPDOWN -->
+        <div id="omnibox-dropdown" class="mac-omnibox-dropdown" style="display: none;">
+          <div class="omnibox-dropdown-hints">
+            <span class="omnibox-hint-chip" data-prefix="@tabs "><b>@tabs</b> Open Tabs</span>
+            <span class="omnibox-hint-chip" data-prefix="@history "><b>@history</b> History</span>
+            <span class="omnibox-hint-chip" data-prefix="@bookmark "><b>@bookmark</b> Bookmarks</span>
+            <span class="omnibox-hint-chip" data-prefix="> "><b>&gt;</b> Actions</span>
+          </div>
+          <div class="omnibox-dropdown-list" id="omnibox-results-list">
+            <!-- Dynamically populated -->
+          </div>
         </div>
 
         <!-- QUICK BOOKMARK POPOVER (Ctrl+D) -->
@@ -247,7 +260,7 @@
         
         <!-- Top Action Row -->
         <div class="sidebar-top-bar">
-          <button id="sidebar-toggle-btn" class="sidebar-icon-btn" title="Collapse / Expand Sidebar (Ctrl+S)">
+          <button id="sidebar-collapse-icon-btn" class="sidebar-icon-btn" title="Collapse / Expand Sidebar (Ctrl+S)">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="4" y1="6" x2="14" y2="6"/>
               <line x1="4" y1="12" x2="11" y2="12"/>
@@ -257,8 +270,8 @@
           </button>
 
           <div class="sidebar-top-actions">
-            <!-- Workspaces / Grid Icon -->
-            <button class="sidebar-icon-btn" id="btn-workspaces" title="Dashboard">
+            <!-- Workspaces / Projects Dashboard Icon -->
+            <button class="sidebar-icon-btn" id="btn-workspaces" title="Projects & Workspaces (Ctrl+Shift+P)">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="3" width="7" height="7"/>
                 <rect x="14" y="3" width="7" height="7"/>
@@ -277,18 +290,59 @@
           </div>
         </div>
 
+        <!-- PROJECT WORKSPACE SWITCHER BAR (Mac/Arc Style) -->
+        <div class="sidebar-workspace-header" id="sidebar-workspace-header">
+          <div class="workspace-pill-active" id="btn-sidebar-workspace-select" title="Switch Project Workspace">
+            <span class="ws-color-dot" id="sidebar-active-ws-dot" style="background: #007aff;"></span>
+            <span class="ws-title-text" id="sidebar-active-ws-name">General</span>
+            <svg class="ws-chevron-svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+          <button id="btn-sidebar-new-workspace" class="ws-add-btn" title="New Project Workspace (+)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+
+        <!-- Horizontal Quick Project Dots / Chips Row -->
+        <div class="workspace-quick-chips" id="workspace-quick-chips">
+          <!-- Populated dynamically (General, Work & Dev, Personal, + New) -->
+        </div>
+
+        <!-- Dropdown Project Workspace Menu -->
+        <div class="sidebar-ws-dropdown" id="sidebar-ws-dropdown" style="display: none;">
+          <div class="sidebar-ws-list" id="sidebar-ws-dropdown-list">
+            <!-- Dynamic project workspaces list -->
+          </div>
+          <div class="sidebar-ws-dropdown-footer">
+            <button id="btn-manage-projects-nav" class="mac-btn-sub">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              <span>Projects Board</span>
+            </button>
+            <button id="btn-create-project-modal-trigger" class="mac-btn-sub primary">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>New Project</span>
+            </button>
+          </div>
+        </div>
+
         <!-- Open Tabs List -->
         <div class="tabs-list-container" id="tabs-list">
           <!-- Dynamic Tabs Rendered Here -->
         </div>
 
-        <!-- Wide Add Tab Button -->
-        <button id="btn-add-tab" class="add-tab-btn" title="New Tab (Ctrl+T)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-        </button>
+        <!-- Tab Actions Row -->
+        <div class="sidebar-tab-actions-row">
+          <button id="btn-add-tab" class="add-tab-btn" title="New Tab (Ctrl+T)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <span>New Tab</span>
+          </button>
+          <button id="btn-add-ghost-tab" class="ghost-tab-btn" title="New Disposable Ghost Tab (Ctrl+Shift+G) - Auto-destructs on close">
+            <span style="font-size: 13px;">👻</span>
+            <span>Ghost</span>
+          </button>
+        </div>
 
         <!-- Bottom Sidebar Tools -->
         <div class="sidebar-bottom-tools">
@@ -1233,6 +1287,27 @@
                     <!-- Dynamic Bookmarks and Folder Cards -->
                   </div>
 
+                  <!-- Floating Batch Actions Bar -->
+                  <div class="bm-batch-bar" id="bm-batch-bar" style="display: none;">
+                    <div class="bm-batch-info">
+                      <span class="bm-batch-count-badge" id="bm-batch-count">0</span>
+                      <span>selected</span>
+                    </div>
+                    <div class="bm-batch-divider"></div>
+                    <div class="bm-batch-actions">
+                      <button type="button" class="bm-batch-btn" id="btn-bm-batch-select-all" title="Select All in view">Select All</button>
+                      <button type="button" class="bm-batch-btn danger" id="btn-bm-batch-trash" title="Move to Trash">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                        <span id="bm-batch-trash-label">Move to Trash</span>
+                      </button>
+                      <button type="button" class="bm-batch-btn success" id="btn-bm-batch-restore" style="display: none;" title="Restore selected items">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                        <span>Restore</span>
+                      </button>
+                      <button type="button" class="bm-batch-btn" id="btn-bm-batch-clear" title="Clear selection">Clear</button>
+                    </div>
+                  </div>
+
                   <!-- Bottom Status Bar -->
                   <footer class="bookmarks-status-bar">
                     <span id="bm-status-text">Loading bookmarks...</span>
@@ -1242,6 +1317,59 @@
                     </div>
                   </footer>
                 </main>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- DEDICATED macOS PROJECT WORKSPACES DASHBOARD (mynetwork://projects) -->
+          <div class="projects-view" id="projects-view" style="display: none;">
+            <div class="projects-view-container">
+              
+              <!-- macOS Projects Top Toolbar -->
+              <header class="projects-top-bar">
+                <div class="projects-title-area">
+                  <button id="btn-projects-back" class="mac-nav-back-btn" title="Back to Workspace">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                  </button>
+                  <div class="projects-title-wrapper">
+                    <div class="projects-icon-badge">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#007aff" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    </div>
+                    <h2>Project Workspaces</h2>
+                  </div>
+                </div>
+
+                <!-- Center Search -->
+                <div class="projects-search-wrapper">
+                  <div class="projects-search-box">
+                    <svg class="projects-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="mac-projects-search" placeholder="Search projects, tabs, dev ports..." autocomplete="off" spellcheck="false">
+                  </div>
+                </div>
+
+                <!-- Right Action -->
+                <div class="projects-top-actions">
+                  <button class="mac-pill-action-btn primary" id="btn-projects-add-new">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span>New Project</span>
+                  </button>
+                </div>
+              </header>
+
+              <!-- Projects Grid Canvas -->
+              <div class="projects-content-scroll">
+                <div class="projects-overview-header">
+                  <div>
+                    <h3>Active Projects & Workspaces</h3>
+                    <p>Each Project Workspace isolates active tabs, bookmarks, scratchpads, and context boundaries.</p>
+                  </div>
+                  <div class="projects-stats-pill" id="projects-stats-badge">3 Projects • 0 Open Tabs</div>
+                </div>
+
+                <div class="projects-cards-grid" id="projects-cards-container">
+                  <!-- Rendered dynamically -->
+                </div>
               </div>
 
             </div>
@@ -1482,6 +1610,18 @@
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
       <span id="ctx-mute-label">Mute Tab</span>
     </div>
+
+    <!-- Move to Project Workspace Submenu -->
+    <div class="context-menu-item context-submenu-trigger" id="ctx-move-project-parent">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      <span>Move to Project</span>
+      <svg class="submenu-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+      
+      <div class="mac-context-submenu" id="ctx-projects-sublist">
+        <!-- Dynamically rendered project options -->
+      </div>
+    </div>
+
     <div class="context-menu-separator"></div>
     <div class="context-menu-item" id="ctx-close-tab">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1497,6 +1637,67 @@
       <span>Close Tabs to the Right</span>
     </div>
   </div>
+
+  <!-- ADD / EDIT PROJECT WORKSPACE MODAL -->
+  <dialog id="modal-project-editor" class="shortcuts-modal-dialog">
+    <div class="shortcuts-modal-card" style="max-width: 480px;">
+      <div class="shortcuts-modal-header">
+        <div class="shortcuts-header-title">
+          <div class="settings-icon-badge" style="background: linear-gradient(135deg, #007aff, #0051a8); width: 22px; height: 22px; color: #ffffff;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          </div>
+          <h3 id="project-editor-modal-title">New Project Workspace</h3>
+        </div>
+        <button id="btn-close-project-modal" class="shortcuts-modal-close" aria-label="Close">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <form id="form-project-editor" class="pwd-modal-body">
+        <input type="hidden" id="project-edit-id" value="">
+        <div class="pwd-field-group">
+          <label for="project-input-name">Project / Workspace Name</label>
+          <input type="text" id="project-input-name" placeholder="e.g. MetaBull Client, AI Research, Backend Dev..." required autocomplete="off">
+        </div>
+        <div class="pwd-field-group">
+          <label for="project-input-desc">Description (Optional)</label>
+          <input type="text" id="project-input-desc" placeholder="Brief focus note or summary for this project..." autocomplete="off">
+        </div>
+        <div class="pwd-field-group">
+          <label for="project-input-devurl">Quick Dev URL / Local Port (Optional)</label>
+          <input type="text" id="project-input-devurl" placeholder="e.g. http://localhost:3000 or github.com/user/repo" autocomplete="off">
+        </div>
+        <div class="pwd-field-group">
+          <label>Theme Accent Color</label>
+          <div class="folder-color-pickers" id="project-color-options">
+            <span class="color-dot active" data-color="#007aff" style="background: #007aff;"></span>
+            <span class="color-dot" data-color="#10b981" style="background: #10b981;"></span>
+            <span class="color-dot" data-color="#8b5cf6" style="background: #8b5cf6;"></span>
+            <span class="color-dot" data-color="#f59e0b" style="background: #f59e0b;"></span>
+            <span class="color-dot" data-color="#ec4899" style="background: #ec4899;"></span>
+            <span class="color-dot" data-color="#06b6d4" style="background: #06b6d4;"></span>
+            <span class="color-dot" data-color="#64748b" style="background: #64748b;"></span>
+          </div>
+        </div>
+        <div class="pwd-field-group">
+          <label>Icon Style</label>
+          <div class="project-icon-selector" id="project-icon-options">
+            <button type="button" class="project-icon-choice active" data-icon="folder">📁 Folder</button>
+            <button type="button" class="project-icon-choice" data-icon="code">💻 Dev</button>
+            <button type="button" class="project-icon-choice" data-icon="globe">🌐 Web</button>
+            <button type="button" class="project-icon-choice" data-icon="ai">🤖 AI</button>
+            <button type="button" class="project-icon-choice" data-icon="rocket">🚀 Rocket</button>
+            <button type="button" class="project-icon-choice" data-icon="user">👤 User</button>
+          </div>
+        </div>
+        <div class="pwd-modal-actions">
+          <button type="button" id="btn-delete-project" class="mac-btn mac-btn-danger" style="display: none; margin-right: auto;">Delete Project</button>
+          <button type="button" id="btn-cancel-project-modal" class="mac-btn mac-btn-secondary">Cancel</button>
+          <button type="submit" id="btn-save-project" class="mac-btn mac-btn-primary">Save Project</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
 
   <!-- CLEAR BROWSING DATA MODAL (macOS Sheet Style) -->
   <dialog id="clear-history-dialog" class="shortcuts-modal-dialog">
@@ -1561,15 +1762,44 @@
     </div>
   </div>
 
-  <!-- ADD / EDIT NEW TAB SHORTCUT MODAL -->
+  <!-- BOOKMARK & FOLDER CONTEXT MENU (macOS Style) -->
+  <div id="bookmark-context-menu" class="mac-context-menu" style="display: none;">
+    <div class="context-menu-item" id="ctx-bm-open-tab">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      <span>Open in New Tab</span>
+    </div>
+    <div class="context-menu-item" id="ctx-bm-open-split">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+      <span>Open in Split View</span>
+    </div>
+    <div class="context-menu-item" id="ctx-bm-copy-link">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      <span>Copy Link</span>
+    </div>
+    <div class="context-menu-item" id="ctx-bm-edit">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+      <span id="ctx-bm-edit-label">Edit</span>
+    </div>
+    <div class="context-menu-item" id="ctx-bm-restore" style="display: none;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+      <span style="color: #10b981; font-weight: 500;">Restore from Trash</span>
+    </div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item dropdown-danger" id="ctx-bm-delete">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+      <span id="ctx-bm-delete-label">Move to Trash</span>
+    </div>
+  </div>
+
+  <!-- ADD / EDIT BOOKMARK / SHORTCUT MODAL -->
   <dialog id="modal-add-shortcut" class="shortcuts-modal-dialog">
-    <div class="shortcuts-modal-card" style="max-width: 440px;">
+    <div class="shortcuts-modal-card" style="max-width: 460px;">
       <div class="shortcuts-modal-header">
         <div class="shortcuts-header-title">
           <div class="settings-icon-badge" style="background: linear-gradient(135deg, #f59e0b, #d97706); width: 22px; height: 22px; color: #ffffff;">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="#ffffff" stroke="#ffffff" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           </div>
-          <h3 id="shortcut-modal-title">Add Shortcut</h3>
+          <h3 id="shortcut-modal-title">Add Bookmark</h3>
         </div>
         <button id="btn-close-shortcut-modal" class="shortcuts-modal-close" aria-label="Close">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1587,6 +1817,12 @@
           <input type="url" id="shortcut-input-url" placeholder="https://example.com" required autocomplete="off">
         </div>
         <div class="pwd-field-group">
+          <label for="shortcut-input-parent">Folder</label>
+          <select id="shortcut-input-parent" class="mac-select">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+        <div class="pwd-field-group">
           <label for="shortcut-input-ws">Workspace</label>
           <select id="shortcut-input-ws" class="mac-select">
             <option value="auto">✨ Auto Detect (Smart Space)</option>
@@ -1595,10 +1831,14 @@
             <option value="ws_personal">👤 Personal</option>
           </select>
         </div>
+        <div class="pwd-field-group">
+          <label for="shortcut-input-tags">Tags (comma separated)</label>
+          <input type="text" id="shortcut-input-tags" placeholder="e.g. dev, api, tools" autocomplete="off">
+        </div>
         <div class="pwd-modal-actions">
           <button type="button" id="btn-delete-shortcut" class="mac-btn mac-btn-danger" style="display: none; margin-right: auto;">Delete</button>
           <button type="button" id="btn-cancel-shortcut-modal" class="mac-btn mac-btn-secondary">Cancel</button>
-          <button type="submit" id="btn-save-shortcut" class="mac-btn mac-btn-primary">Save Shortcut</button>
+          <button type="submit" id="btn-save-shortcut" class="mac-btn mac-btn-primary">Save Bookmark</button>
         </div>
       </form>
     </div>
@@ -1643,6 +1883,7 @@
           </div>
         </div>
         <div class="pwd-modal-actions">
+          <button type="button" id="btn-delete-bm-folder" class="mac-btn mac-btn-danger" style="display: none; margin-right: auto;">Delete Folder</button>
           <button type="button" id="btn-cancel-bm-folder-modal" class="mac-btn mac-btn-secondary">Cancel</button>
           <button type="submit" id="btn-save-bm-folder" class="mac-btn mac-btn-primary">Save Folder</button>
         </div>
@@ -1657,30 +1898,144 @@
     </div>
   </div>
 
-  <!-- BOOKMARK ITEM CONTEXT MENU / POPUP MENU -->
-  <div id="bookmark-context-menu" class="mac-context-menu" style="display: none;">
-    <div class="context-menu-item" id="ctx-bm-open-tab">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-      <span>Open in New Tab</span>
+  <!-- TAB CONTEXT MENU (macOS Style with Move to Project Submenu) -->
+  <div id="tab-context-menu" class="mac-context-menu" style="display: none;">
+    <div class="context-menu-item" id="ctx-pin-tab">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.89A2 2 0 0 1 15 10.77V6h1a1 1 0 0 0 0-2H8a1 1 0 0 0 0 2h1v4.77a2 2 0 0 1-1.11 1.79l-1.78.89A2 2 0 0 0 5 15.24V17z"/></svg>
+      <span id="ctx-pin-label">Pin Tab</span>
     </div>
-    <div class="context-menu-item" id="ctx-bm-open-split">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
-      <span>Open in Split View</span>
-    </div>
-    <div class="context-menu-item" id="ctx-bm-edit">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-      <span>Edit Bookmark...</span>
-    </div>
-    <div class="context-menu-item" id="ctx-bm-copy-link">
+    <div class="context-menu-item" id="ctx-duplicate-tab">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-      <span>Copy URL</span>
+      <span>Duplicate Tab</span>
+    </div>
+    <div class="context-menu-item" id="ctx-reload-tab">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+      <span>Reload Tab</span>
+    </div>
+    <div class="context-menu-item" id="ctx-mute-tab">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+      <span id="ctx-mute-label">Mute Tab</span>
+    </div>
+    <div class="context-menu-item has-submenu" id="ctx-move-workspace-item">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      <span>Move to Project</span>
+      <svg class="submenu-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+      <div class="context-submenu" id="ctx-workspace-submenu">
+        <!-- Dynamically populated workspace list -->
+      </div>
+    </div>
+    <div class="context-menu-item has-submenu" id="ctx-container-item">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/></svg>
+      <span>Container Profile</span>
+      <svg class="submenu-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+      <div class="context-submenu" id="ctx-container-submenu">
+        <!-- Dynamically populated container list -->
+      </div>
+    </div>
+    <div class="context-menu-item" id="ctx-reopen-ghost-tab">
+      <span style="font-size: 13px;">👻</span>
+      <span>Reopen in Ghost Tab</span>
     </div>
     <div class="context-menu-separator"></div>
-    <div class="context-menu-item dropdown-danger" id="ctx-bm-delete">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
-      <span>Delete Bookmark</span>
+    <div class="context-menu-item" id="ctx-close-other-tabs">
+      <span>Close Other Tabs</span>
+    </div>
+    <div class="context-menu-item" id="ctx-close-tabs-right">
+      <span>Close Tabs to the Right</span>
+    </div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item dropdown-danger" id="ctx-close-tab">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      <span>Close Tab</span>
+      <kbd>Ctrl+W</kbd>
     </div>
   </div>
+
+  <!-- macOS NATIVE ALERT & CONFIRMATION DIALOG (Replaces ugly browser confirm popups) -->
+  <dialog id="modal-mac-confirm" class="mac-alert-dialog">
+    <div class="mac-alert-card">
+      <div class="mac-alert-body">
+        <div class="mac-alert-icon-wrap" id="mac-confirm-icon-wrap">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="mac-alert-text">
+          <h4 id="mac-confirm-title">Delete Project Workspace?</h4>
+          <p id="mac-confirm-message">All open tabs and project state in this workspace will be closed. This action cannot be undone.</p>
+        </div>
+      </div>
+      <div class="mac-alert-actions">
+        <button type="button" id="btn-mac-confirm-cancel" class="mac-sheet-btn mac-sheet-btn-secondary">Cancel</button>
+        <button type="button" id="btn-mac-confirm-ok" class="mac-sheet-btn mac-sheet-btn-danger">Delete Project</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ADD / EDIT PROJECT WORKSPACE MODAL (macOS Sheet Dialog) -->
+  <dialog id="modal-create-workspace" class="shortcuts-modal-dialog">
+    <div class="shortcuts-modal-card" style="max-width: 480px;">
+      <div class="shortcuts-modal-header">
+        <div class="shortcuts-header-title">
+          <div class="settings-icon-badge badge-blue" id="workspace-modal-icon-badge" style="background: #007aff; width: 22px; height: 22px; color: #ffffff;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          </div>
+          <h3 id="workspace-modal-title">New Project Workspace</h3>
+        </div>
+        <button id="btn-close-workspace-modal" class="shortcuts-modal-close" aria-label="Close">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <form id="form-create-workspace" class="pwd-modal-body">
+        <input type="hidden" id="workspace-form-id" value="">
+        <div class="pwd-field-group">
+          <label for="workspace-form-name">Project Name</label>
+          <input type="text" id="workspace-form-name" placeholder="e.g. AI Research, Client Dashboard..." required autocomplete="off">
+        </div>
+        
+        <div class="pwd-field-group">
+          <label>Project Icon</label>
+          <div class="project-icon-selector" id="workspace-icon-selector">
+            <button type="button" class="project-icon-choice active" data-icon="globe">🌐 Globe</button>
+            <button type="button" class="project-icon-choice" data-icon="code">💻 Code</button>
+            <button type="button" class="project-icon-choice" data-icon="user">👤 Personal</button>
+            <button type="button" class="project-icon-choice" data-icon="briefcase">💼 Work</button>
+            <button type="button" class="project-icon-choice" data-icon="rocket">🚀 Launch</button>
+            <button type="button" class="project-icon-choice" data-icon="star">⭐ Focus</button>
+          </div>
+        </div>
+
+        <div class="pwd-field-group">
+          <label>Accent Color</label>
+          <div class="folder-color-pickers" id="workspace-color-picker">
+            <span class="color-dot active" data-color="#007aff" style="background: #007aff;"></span>
+            <span class="color-dot" data-color="#10b981" style="background: #10b981;"></span>
+            <span class="color-dot" data-color="#8b5cf6" style="background: #8b5cf6;"></span>
+            <span class="color-dot" data-color="#f59e0b" style="background: #f59e0b;"></span>
+            <span class="color-dot" data-color="#ec4899" style="background: #ec4899;"></span>
+            <span class="color-dot" data-color="#06b6d4" style="background: #06b6d4;"></span>
+            <span class="color-dot" data-color="#64748b" style="background: #64748b;"></span>
+            <span class="color-dot" data-color="#ef4444" style="background: #ef4444;"></span>
+          </div>
+        </div>
+
+        <div class="pwd-field-group">
+          <label for="workspace-form-dev-url">Dev Localhost URL (Optional)</label>
+          <input type="text" id="workspace-form-dev-url" placeholder="http://localhost:3000" autocomplete="off">
+        </div>
+
+        <div class="pwd-field-group">
+          <label for="workspace-form-desc">Description</label>
+          <textarea id="workspace-form-desc" rows="2" placeholder="Brief notes or focus goals for this project..." style="resize: none;"></textarea>
+        </div>
+
+        <div class="pwd-modal-actions">
+          <button type="button" id="btn-delete-workspace" class="mac-btn mac-btn-danger" style="display: none; margin-right: auto;">Delete Project</button>
+          <button type="button" id="btn-cancel-workspace-modal" class="mac-btn mac-btn-secondary">Cancel</button>
+          <button type="submit" id="btn-save-workspace" class="mac-btn mac-btn-primary">Save Project</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
 
   <script>
     require('./shell/index.js');

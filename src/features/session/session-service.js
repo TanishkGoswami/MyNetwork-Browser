@@ -24,13 +24,25 @@ class SessionService {
     }
   }
 
-  saveSession(tabs, activeTabId) {
+  saveSession(tabs, activeTabId, activeWorkspaceId = null) {
     clearTimeout(this.saveTimeout);
     this.saveTimeout = setTimeout(() => {
       try {
+        let wsId = activeWorkspaceId;
+        if (!wsId) {
+          try {
+            const { workspaceService } = require('../bookmarks/workspace-service');
+            wsId = workspaceService.getActiveWorkspaceId() || 'ws_default';
+          } catch (e) {
+            wsId = 'ws_default';
+          }
+        }
+
         const cleanTabs = tabs
           .filter(t => t.url && !t.url.startsWith('mynetwork://settings'))
           .map(t => ({
+            id: t.id,
+            workspaceId: t.workspaceId || 'ws_default',
             url: t.url,
             title: t.title,
             favicon: t.favicon,
@@ -39,8 +51,10 @@ class SessionService {
 
         const data = {
           lastSaved: Date.now(),
+          activeWorkspaceId: wsId,
           activeTabUrl: tabs.find(t => t.id === activeTabId)?.url || DEFAULT_NEWTAB_URL,
-          tabs: cleanTabs.length > 0 ? cleanTabs : [{ url: DEFAULT_NEWTAB_URL, title: 'New Tab', isPinned: false }]
+          activeTabId: activeTabId,
+          tabs: cleanTabs.length > 0 ? cleanTabs : [{ workspaceId: 'ws_default', url: DEFAULT_NEWTAB_URL, title: 'New Tab', isPinned: false }]
         };
 
         fs.writeFileSync(this.sessionPath, JSON.stringify(data, null, 2), 'utf8');

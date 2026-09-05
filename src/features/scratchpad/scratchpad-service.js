@@ -12,9 +12,17 @@ class ScratchpadService {
     return storage.get(this.storageKey, '');
   }
 
+  getContent() {
+    return this.getNotes();
+  }
+
   saveNotes(text) {
     storage.set(this.storageKey, text);
     eventBus.emit(EVENTS.SCRATCHPAD_CHANGED, { text, length: text.length });
+  }
+
+  save(text) {
+    this.saveNotes(text);
   }
 
   clearNotes() {

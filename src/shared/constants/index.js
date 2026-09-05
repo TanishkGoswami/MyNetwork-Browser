@@ -11,6 +11,8 @@ module.exports = {
   LEGACY_BOOKMARKS_URL: 'about:bookmarks',
   PROJECTS_URL: 'mynetwork://projects',
   LEGACY_PROJECTS_URL: 'about:projects',
+  AI_ANALYTICS_URL: 'mynetwork://ai-analytics',
+  LEGACY_AI_ANALYTICS_URL: 'about:ai-analytics',
   BLANK_URL: 'about:blank',
   
   EVENTS: {

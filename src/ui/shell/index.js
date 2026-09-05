@@ -1,6 +1,6 @@
 // UI Shell - Main Renderer Controller (Clean Pure Light Mode Architecture)
 const { eventBus } = require('../../shared/events/event-bus');
-const { EVENTS, DEFAULT_NEWTAB_URL, LEGACY_NEWTAB_URL, SETTINGS_URL, LEGACY_SETTINGS_URL, HISTORY_URL, LEGACY_HISTORY_URL, BOOKMARKS_URL, LEGACY_BOOKMARKS_URL, PROJECTS_URL, LEGACY_PROJECTS_URL, BLANK_URL } = require('../../shared/constants');
+const { EVENTS, DEFAULT_NEWTAB_URL, LEGACY_NEWTAB_URL, SETTINGS_URL, LEGACY_SETTINGS_URL, HISTORY_URL, LEGACY_HISTORY_URL, BOOKMARKS_URL, LEGACY_BOOKMARKS_URL, PROJECTS_URL, LEGACY_PROJECTS_URL, AI_ANALYTICS_URL, LEGACY_AI_ANALYTICS_URL, BLANK_URL } = require('../../shared/constants');
 const { tabManager } = require('../../core/tabs/tab-manager');
 const { browserContext } = require('../../core/browser/browser-context');
 const { WebviewAdapter } = require('../../engine/webview/webview-adapter');
@@ -23,6 +23,9 @@ const { mockServerService } = require('../../features/mock-server/mock-server-se
 const { workspaceVaultService } = require('../../features/vault/workspace-vault-service');
 const { macroRecorderService } = require('../../features/automation/macro-recorder-service');
 const { claudeService } = require('../../features/intelligence/claude-service');
+const { AiDrawerController } = require('../../features/intelligence/ai-drawer-controller');
+const { AiAnalyticsController } = require('../../features/intelligence/ai-analytics-controller');
+const { WifiPopoverController } = require('../../features/network/wifi-popover-controller');
 
 class MyNetworkShell {
   constructor() {
@@ -70,6 +73,10 @@ class MyNetworkShell {
     this.initWorkspaceVaultController();
     this.initMacroAutomationController();
     this.initClaudeCopilotController();
+    this.initAiAnalyticsController();
+    this.initStatusBarController();
+    this.initSplitViewController();
+    this.initWifiController();
 
     // Initial feature data population
     this.renderTasks();
@@ -200,8 +207,10 @@ class MyNetworkShell {
       horizontalTabsList: document.getElementById('horizontal-tabs-list'),
       btnAddTabH: document.getElementById('btn-add-tab-h'),
 
-      // Settings View
+      // Dedicated Views
       settingsView: document.getElementById('settings-view'),
+      projectsView: document.getElementById('dedicated-projects-view') || document.getElementById('projects-view'),
+      aiAnalyticsView: document.getElementById('dedicated-ai-analytics-view'),
       btnSettingsBack: document.getElementById('btn-settings-back'),
       controlTabLayout: document.getElementById('control-tab-layout'),
       controlWindowStyle: document.getElementById('control-window-style'),
@@ -535,6 +544,31 @@ class MyNetworkShell {
       ghInputUsername: document.getElementById('gh-input-username'),
       btnGhSaveAuth: document.getElementById('btn-gh-save-auth'),
       btnGhDisconnect: document.getElementById('btn-gh-disconnect'),
+      btnGhOauthLogin: document.getElementById('btn-gh-oauth-login'),
+      btnGhSyncScratchpad: document.getElementById('btn-gh-sync-scratchpad'),
+      ghProfileHero: document.getElementById('gh-profile-hero'),
+      ghAvatarImg: document.getElementById('gh-avatar-img'),
+      ghProfileName: document.getElementById('gh-profile-name'),
+      ghProfileLogin: document.getElementById('gh-profile-login'),
+      ghProfileBio: document.getElementById('gh-profile-bio'),
+      ghStatRepos: document.getElementById('gh-stat-repos'),
+      ghStatFollowers: document.getElementById('gh-stat-followers'),
+      ghLinkProfileExt: document.getElementById('gh-link-profile-ext'),
+      ghAuthConnectedBox: document.getElementById('gh-auth-connected-box'),
+      ghAuthDisconnectedBox: document.getElementById('gh-auth-disconnected-box'),
+      ghConnectedAccountTitle: document.getElementById('gh-connected-account-title'),
+
+      // GitHub Heatmap Dashboard Widget
+      widgetGithubHeatmap: document.getElementById('widget-github-heatmap'),
+      ghHeatmapUserTag: document.getElementById('gh-heatmap-user-tag'),
+      ghHeatmapStreakVal: document.getElementById('gh-heatmap-streak-val'),
+      btnRefreshHeatmap: document.getElementById('btn-refresh-heatmap'),
+      btnOpenGhHubFromWidget: document.getElementById('btn-open-gh-hub-from-widget'),
+      ghHeatmapGrid: document.getElementById('gh-heatmap-grid'),
+      ghHeatmapTotalVal: document.getElementById('gh-heatmap-total-val'),
+      ghHeatmapLongestVal: document.getElementById('gh-heatmap-longest-val'),
+      ghHeatmapTodayVal: document.getElementById('gh-heatmap-today-val'),
+
 
       // Mock Server DOM
       btnSidebarMockServer: document.getElementById('btn-sidebar-mock-server'),
@@ -581,7 +615,34 @@ class MyNetworkShell {
       menuItemGithubHub: document.getElementById('menu-item-github-hub'),
       menuItemMockServer: document.getElementById('menu-item-mock-server'),
       menuItemWorkspaceVault: document.getElementById('menu-item-workspace-vault'),
-      menuItemMacros: document.getElementById('menu-item-macros')
+      menuItemMacros: document.getElementById('menu-item-macros'),
+
+      // Split View System DOM
+      btnSplitToggle: document.getElementById('btn-split-toggle'),
+      btnSidebarSplitToggle: document.getElementById('btn-sidebar-split-toggle'),
+      splitViewContainer: document.getElementById('split-view-container'),
+      splitPaneLeft: document.getElementById('split-pane-left'),
+      splitPaneRight: document.getElementById('split-pane-right'),
+      splitDivider: document.getElementById('split-divider'),
+      splitLeftFavicon: document.getElementById('split-left-favicon'),
+      splitLeftTitle: document.getElementById('split-left-title'),
+      btnSplitLeftFullscreen: document.getElementById('btn-split-left-fullscreen'),
+      btnSplitLeftClose: document.getElementById('btn-split-left-close'),
+      splitLeftWebviewHost: document.getElementById('split-left-webview-host'),
+      splitLeftNewtab: document.getElementById('split-left-newtab'),
+      splitLeftSearchInput: document.getElementById('split-left-search-input'),
+      btnSplitLeftGo: document.getElementById('btn-split-left-go'),
+      splitLeftQuickTabs: document.getElementById('split-left-quick-tabs'),
+      splitRightFavicon: document.getElementById('split-right-favicon'),
+      splitRightTitle: document.getElementById('split-right-title'),
+      btnSplitRightFullscreen: document.getElementById('btn-split-right-fullscreen'),
+      btnSplitRightClose: document.getElementById('btn-split-right-close'),
+      splitRightWebviewHost: document.getElementById('split-right-webview-host'),
+      splitRightNewtab: document.getElementById('split-right-newtab'),
+      splitRightSearchInput: document.getElementById('split-right-search-input'),
+      btnSplitRightGo: document.getElementById('btn-split-right-go'),
+      splitRightQuickTabs: document.getElementById('split-right-quick-tabs'),
+      ctxSplitRight: document.getElementById('ctx-split-right')
     };
   }
 
@@ -639,6 +700,9 @@ class MyNetworkShell {
         this.updateOmniboxIcon(activeTab);
         this.updateOmniboxStarState(activeTab);
       }
+      if (browserContext.isSplit && browserContext.splitTabIds && browserContext.splitTabIds.includes(tabId)) {
+        this.updateSplitViewWebviews(true);
+      }
       sessionService.saveSession(tabManager.getAllTabs(), tabManager.activeTabId, activeWsId);
     });
 
@@ -659,6 +723,9 @@ class MyNetworkShell {
         this.updateNavButtonsState(tabId);
         const { adBlockerEngine } = require('../../engine/adblock/ad-blocker');
         this.updateShieldBadge(adBlockerEngine.getBlockedCountForTab(tabId));
+      }
+      if (browserContext.isSplit && browserContext.splitTabIds && browserContext.splitTabIds.includes(tabId)) {
+        this.updateSplitViewWebviews(true);
       }
     });
 
@@ -727,12 +794,13 @@ class MyNetworkShell {
     eventBus.on('ui:splitview-toggled', ({ isSplit, layout = 'dual', tabIds = null }) => {
       const splitBtn = document.getElementById('btn-split-toggle');
       if (splitBtn) splitBtn.classList.toggle('active', isSplit);
-      if (this.dom.webviewContainer) {
-        this.dom.webviewContainer.classList.toggle('split-mode', isSplit);
-        this.dom.webviewContainer.classList.toggle('split-triple', isSplit && layout === 'triple');
-        this.dom.webviewContainer.classList.toggle('split-quad', isSplit && layout === 'quad');
-      }
+      const sbSplitBtn = document.getElementById('btn-sidebar-split-toggle');
+      if (sbSplitBtn) sbSplitBtn.classList.toggle('active', isSplit);
       this.updateSplitViewWebviews(isSplit, layout, tabIds || browserContext.splitTabIds);
+    });
+
+    eventBus.on('ui:splitview-resized', () => {
+      this.applySplitRatioAndFocus();
     });
 
     eventBus.on('ui:ai-drawer-toggled', ({ isOpen }) => {
@@ -905,10 +973,15 @@ class MyNetworkShell {
       });
     });
 
-    // Split View Toggle
-    const splitBtn = document.getElementById('btn-split-toggle');
-    if (splitBtn) {
-      splitBtn.addEventListener('click', () => browserContext.toggleSplitView());
+    // Sidebar Search Tabs Icon
+    const btnSearchTabs = document.getElementById('btn-search-tabs');
+    if (btnSearchTabs) {
+      btnSearchTabs.addEventListener('click', () => {
+        if (this.dom.urlInput) {
+          this.dom.urlInput.focus();
+          this.dom.urlInput.select();
+        }
+      });
     }
 
     // AI Assistant Drawer
@@ -999,11 +1072,11 @@ class MyNetworkShell {
     if (this.dom.horizontalTabsList) this.dom.horizontalTabsList.innerHTML = '';
     
     const activeWsId = workspaceService.getActiveWorkspaceId();
-    const tabs = tabManager.getTabsForWorkspace(activeWsId);
+    let tabs = tabManager.getTabsForWorkspace(activeWsId);
 
     if (tabs.length === 0) {
-      tabManager.createTab(DEFAULT_NEWTAB_URL, 'New Tab', null, activeWsId);
-      return;
+      const newTab = tabManager.createTab(DEFAULT_NEWTAB_URL, 'New Tab', null, activeWsId);
+      tabs = [newTab];
     }
 
     tabs.forEach(tab => {
@@ -1015,13 +1088,16 @@ class MyNetworkShell {
 
     const activeTab = tabManager.getActiveTab();
     if (!activeTab || (activeTab.workspaceId || 'ws_default') !== activeWsId) {
-      tabManager.activateTab(tabs[0].id);
+      if (tabs.length > 0) {
+        tabManager.activateTab(tabs[0].id);
+      }
     } else {
       this.updateActiveTabUi(activeTab.id, activeTab);
     }
   }
 
   renderTabPill(tab) {
+    if (!tab) return;
     const createPillEl = (prefix) => {
       const el = document.createElement('div');
       el.className = `tab-item ${tab.isPinned ? 'pinned' : ''} ${tab.isHibernated ? 'tab-hibernated' : ''}`;
@@ -1039,13 +1115,15 @@ class MyNetworkShell {
       const isHistory = url === HISTORY_URL || url === LEGACY_HISTORY_URL || url.toLowerCase() === 'mynetwork://history' || url.toLowerCase() === 'about:history';
       const isBookmarks = url === BOOKMARKS_URL || url === LEGACY_BOOKMARKS_URL || url.toLowerCase() === 'mynetwork://bookmarks' || url.toLowerCase() === 'about:bookmarks';
       const isProjects = url === PROJECTS_URL || url === LEGACY_PROJECTS_URL || url.toLowerCase() === 'mynetwork://projects' || url.toLowerCase() === 'about:projects';
-      const isInternal = isNewTab || isSettings || isHistory || isBookmarks || isProjects || url.startsWith('mynetwork://') || url.startsWith('about:') || url.startsWith('chrome://');
+      const isAiAnalytics = url === AI_ANALYTICS_URL || url === LEGACY_AI_ANALYTICS_URL || url.toLowerCase() === 'mynetwork://ai-analytics' || url.toLowerCase() === 'about:ai-analytics';
+      const isInternal = isNewTab || isSettings || isHistory || isBookmarks || isProjects || isAiAnalytics || url.startsWith('mynetwork://') || url.startsWith('about:') || url.startsWith('chrome://');
 
       let displayTitle = 'New Tab';
       if (isSettings) displayTitle = 'Settings';
       else if (isHistory) displayTitle = 'History';
       else if (isBookmarks) displayTitle = 'Bookmarks';
       else if (isProjects) displayTitle = 'Projects';
+      else if (isAiAnalytics) displayTitle = 'AI Analytics';
       else if (isNewTab) displayTitle = 'New Tab';
       else displayTitle = (tab.title && tab.title !== 'about:blank') ? tab.title : (url || 'New Tab');
 
@@ -1079,12 +1157,20 @@ class MyNetworkShell {
         </button>
       ` : '';
 
+      let domain = '';
+      try {
+        if (!isInternal && url) {
+          domain = new URL(url).hostname.replace(/^www\./, '');
+        }
+      } catch (e) {}
+
       const hibernateBadgeHtml = tab.isHibernated ? `<span class="tab-hibernate-badge" title="Suspended to free RAM (Click to wake)">💤</span>` : '';
+      el.title = `${displayTitle}${domain ? ` • ${domain}` : ''}`;
 
       el.innerHTML = `
         ${chevronHtml}
         <div class="tab-favicon">${faviconHtml}</div>
-        <span class="tab-title" title="${displayTitle}">${displayTitle}</span>
+        <span class="tab-title">${displayTitle}</span>
         ${hibernateBadgeHtml}
         ${containerBadgeHtml}
         ${tab.isPinned ? `<span class="tab-pin-indicator" title="Pinned Tab"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.89A2 2 0 0 1 15 10.77V6h1a1 1 0 0 0 0-2H8a1 1 0 0 0 0 2h1v4.77a2 2 0 0 1-1.11 1.79l-1.78.89A2 2 0 0 0 5 15.24V17z"/></svg></span>` : ''}
@@ -1188,12 +1274,12 @@ class MyNetworkShell {
     };
 
     // Render Vertical Tab
-    if (this.dom.tabsList) {
+    if (this.dom.tabsList && !document.getElementById(`tab-pill-${tab.id}`)) {
       this.dom.tabsList.appendChild(createPillEl('tab-pill'));
     }
 
     // Render Horizontal Tab
-    if (this.dom.horizontalTabsList) {
+    if (this.dom.horizontalTabsList && !document.getElementById(`h-tab-pill-${tab.id}`)) {
       this.dom.horizontalTabsList.appendChild(createPillEl('h-tab-pill'));
     }
   }
@@ -1266,6 +1352,7 @@ class MyNetworkShell {
     const isHistory = tab.url === HISTORY_URL || tab.url === LEGACY_HISTORY_URL;
     const isBookmarks = tab.url === BOOKMARKS_URL || tab.url === LEGACY_BOOKMARKS_URL;
     const isProjects = tab.url === PROJECTS_URL || tab.url === LEGACY_PROJECTS_URL || tab.url.toLowerCase() === 'mynetwork://projects' || tab.url.toLowerCase() === 'about:projects';
+    const isAiAnalytics = tab.url === AI_ANALYTICS_URL || tab.url === LEGACY_AI_ANALYTICS_URL || tab.url.toLowerCase() === 'mynetwork://ai-analytics' || tab.url.toLowerCase() === 'about:ai-analytics';
     const isNewTab = tab.url === DEFAULT_NEWTAB_URL || tab.url === LEGACY_NEWTAB_URL || tab.url === BLANK_URL;
 
     if (isSettings) {
@@ -1275,6 +1362,7 @@ class MyNetworkShell {
       if (this.dom.historyView) this.dom.historyView.style.display = 'none';
       if (this.dom.bookmarksView) this.dom.bookmarksView.style.display = 'none';
       if (this.dom.projectsView) this.dom.projectsView.style.display = 'none';
+      if (this.dom.aiAnalyticsView) this.dom.aiAnalyticsView.style.display = 'none';
       if (this.dom.settingsView) this.dom.settingsView.style.display = 'flex';
       this.dom.urlInput.value = 'mynetwork://settings';
       document.querySelectorAll('.browser-webview').forEach(wv => wv.classList.remove('active'));
@@ -1287,6 +1375,7 @@ class MyNetworkShell {
       if (this.dom.settingsView) this.dom.settingsView.style.display = 'none';
       if (this.dom.bookmarksView) this.dom.bookmarksView.style.display = 'none';
       if (this.dom.projectsView) this.dom.projectsView.style.display = 'none';
+      if (this.dom.aiAnalyticsView) this.dom.aiAnalyticsView.style.display = 'none';
       if (this.dom.historyView) this.dom.historyView.style.display = 'flex';
       this.dom.urlInput.value = 'mynetwork://history';
       document.querySelectorAll('.browser-webview').forEach(wv => wv.classList.remove('active'));
@@ -1298,6 +1387,7 @@ class MyNetworkShell {
       if (this.dom.settingsView) this.dom.settingsView.style.display = 'none';
       if (this.dom.historyView) this.dom.historyView.style.display = 'none';
       if (this.dom.projectsView) this.dom.projectsView.style.display = 'none';
+      if (this.dom.aiAnalyticsView) this.dom.aiAnalyticsView.style.display = 'none';
       if (this.dom.bookmarksView) this.dom.bookmarksView.style.display = 'flex';
       this.dom.urlInput.value = 'mynetwork://bookmarks';
       document.querySelectorAll('.browser-webview').forEach(wv => wv.classList.remove('active'));
@@ -1309,10 +1399,23 @@ class MyNetworkShell {
       if (this.dom.settingsView) this.dom.settingsView.style.display = 'none';
       if (this.dom.historyView) this.dom.historyView.style.display = 'none';
       if (this.dom.bookmarksView) this.dom.bookmarksView.style.display = 'none';
+      if (this.dom.aiAnalyticsView) this.dom.aiAnalyticsView.style.display = 'none';
       if (this.dom.projectsView) this.dom.projectsView.style.display = 'flex';
       this.dom.urlInput.value = 'mynetwork://projects';
       document.querySelectorAll('.browser-webview').forEach(wv => wv.classList.remove('active'));
       this.renderProjectsDashboard();
+    } else if (isAiAnalytics) {
+      if (this.dom.sidebar) this.dom.sidebar.style.display = 'none';
+      if (this.dom.horizontalTabsBar) this.dom.horizontalTabsBar.style.display = 'none';
+      if (this.dom.newTabView) this.dom.newTabView.style.display = 'none';
+      if (this.dom.settingsView) this.dom.settingsView.style.display = 'none';
+      if (this.dom.historyView) this.dom.historyView.style.display = 'none';
+      if (this.dom.bookmarksView) this.dom.bookmarksView.style.display = 'none';
+      if (this.dom.projectsView) this.dom.projectsView.style.display = 'none';
+      if (this.dom.aiAnalyticsView) this.dom.aiAnalyticsView.style.display = 'flex';
+      this.dom.urlInput.value = 'mynetwork://ai-analytics';
+      document.querySelectorAll('.browser-webview').forEach(wv => wv.classList.remove('active'));
+      if (this.aiAnalyticsController) this.aiAnalyticsController.renderAll();
     } else {
       const currentLayout = settingsService.get('tabLayout', 'vertical');
       this.applyTabLayout(currentLayout);
@@ -1321,8 +1424,15 @@ class MyNetworkShell {
       if (this.dom.historyView) this.dom.historyView.style.display = 'none';
       if (this.dom.bookmarksView) this.dom.bookmarksView.style.display = 'none';
       if (this.dom.projectsView) this.dom.projectsView.style.display = 'none';
+      if (this.dom.aiAnalyticsView) this.dom.aiAnalyticsView.style.display = 'none';
 
-      if (browserContext.isSplitView && browserContext.splitTabIds && browserContext.splitTabIds.includes(tabId)) {
+      if (browserContext.isSplitView) {
+        if (browserContext.splitTabIds && browserContext.splitTabIds.includes(tabId)) {
+          const paneIdx = browserContext.splitTabIds.indexOf(tabId);
+          browserContext.focusedSplitPane = paneIdx;
+        } else {
+          browserContext.splitTabIds[browserContext.focusedSplitPane] = tabId;
+        }
         if (this.dom.newTabView) this.dom.newTabView.style.display = 'none';
         this.dom.urlInput.value = (tab.url && tab.url !== DEFAULT_NEWTAB_URL && tab.url !== BLANK_URL) ? tab.url : '';
         this.updateSplitViewWebviews(true, 'dual', browserContext.splitTabIds);
@@ -1330,7 +1440,10 @@ class MyNetworkShell {
         if (this.dom.newTabView) this.dom.newTabView.style.display = 'flex';
         this.dom.urlInput.value = '';
         this.dom.urlInput.placeholder = browserContext.getCurrentEngine().placeholder;
-        document.querySelectorAll('.browser-webview').forEach(wv => wv.classList.remove('active'));
+        document.querySelectorAll('.browser-webview').forEach(wv => {
+          wv.classList.remove('active');
+          wv.style.display = 'none';
+        });
         this.renderNewTabShortcuts();
       } else {
         if (this.dom.newTabView) this.dom.newTabView.style.display = 'none';
@@ -1355,13 +1468,15 @@ class MyNetworkShell {
       const isHistory = url === HISTORY_URL || url === LEGACY_HISTORY_URL || url.toLowerCase() === 'mynetwork://history' || url.toLowerCase() === 'about:history';
       const isBookmarks = url === BOOKMARKS_URL || url === LEGACY_BOOKMARKS_URL || url.toLowerCase() === 'mynetwork://bookmarks' || url.toLowerCase() === 'about:bookmarks';
       const isProjects = url === PROJECTS_URL || url === LEGACY_PROJECTS_URL || url.toLowerCase() === 'mynetwork://projects' || url.toLowerCase() === 'about:projects';
-      const isInternal = isNewTab || isSettings || isHistory || isBookmarks || isProjects || url.startsWith('mynetwork://') || url.startsWith('about:') || url.startsWith('chrome://');
+      const isAiAnalytics = url === AI_ANALYTICS_URL || url === LEGACY_AI_ANALYTICS_URL || url.toLowerCase() === 'mynetwork://ai-analytics' || url.toLowerCase() === 'about:ai-analytics';
+      const isInternal = isNewTab || isSettings || isHistory || isBookmarks || isProjects || isAiAnalytics || url.startsWith('mynetwork://') || url.startsWith('about:') || url.startsWith('chrome://');
 
       let displayTitle = 'New Tab';
       if (isSettings) displayTitle = 'Settings';
       else if (isHistory) displayTitle = 'History';
       else if (isBookmarks) displayTitle = 'Bookmarks';
       else if (isProjects) displayTitle = 'Projects';
+      else if (isAiAnalytics) displayTitle = 'AI Analytics';
       else if (isNewTab) displayTitle = 'New Tab';
       else displayTitle = (tab.title && tab.title !== 'about:blank') ? tab.title : (url || 'New Tab');
       
@@ -1369,6 +1484,10 @@ class MyNetworkShell {
         titleEl.textContent = displayTitle;
         titleEl.title = displayTitle;
       }
+
+      let domain = '';
+      try { if (!isInternal && url) domain = new URL(url).hostname.replace(/^www\./, ''); } catch(e) {}
+      el.title = `${displayTitle}${domain ? ` • ${domain}` : ''}`;
 
       const faviconEl = el.querySelector('.tab-favicon');
       if (faviconEl) {
@@ -1422,17 +1541,33 @@ class MyNetworkShell {
       return;
     }
 
+    if (targetUrl.toLowerCase() === 'mynetwork://ai-analytics' || targetUrl.toLowerCase() === 'about:ai-analytics' || targetUrl.toLowerCase() === 'ai-analytics' || targetUrl.toLowerCase() === 'mynetwork://analytics') {
+      tabManager.updateTab(activeTab.id, { url: AI_ANALYTICS_URL, title: 'AI Analytics' });
+      this.updateActiveTabUi(activeTab.id, tabManager.getActiveTab());
+      return;
+    }
+
     if (targetUrl === DEFAULT_NEWTAB_URL || targetUrl === LEGACY_NEWTAB_URL || targetUrl === BLANK_URL) {
       tabManager.updateTab(activeTab.id, { url: DEFAULT_NEWTAB_URL, title: 'New Tab', favicon: null });
       this.updateActiveTabUi(activeTab.id, tabManager.getActiveTab());
       return;
     }
 
-    const isUrl = /^https?:\/\//i.test(targetUrl) || (targetUrl.includes('.') && !targetUrl.includes(' '));
-    if (isUrl) {
-      if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-        targetUrl = 'https://' + targetUrl;
-      }
+    const isLocalhost = /^localhost(:\d+)?(\/.*)?$/i.test(targetUrl) ||
+                        /^127\.0\.0\.1(:\d+)?(\/.*)?$/i.test(targetUrl) ||
+                        /^0\.0\.0\.0(:\d+)?(\/.*)?$/i.test(targetUrl) ||
+                        /^192\.168\.\d+\.\d+(:\d+)?(\/.*)?$/i.test(targetUrl) ||
+                        /^10\.\d+\.\d+\.\d+(:\d+)?(\/.*)?$/i.test(targetUrl) ||
+                        /^[\w-]+:\d+(\/.*)?$/i.test(targetUrl);
+    const isExplicitHttp = /^https?:\/\//i.test(targetUrl) || /^file:\/\//i.test(targetUrl);
+    const isDomain = targetUrl.includes('.') && !targetUrl.includes(' ') && !targetUrl.startsWith('@') && !targetUrl.startsWith('>');
+
+    if (isExplicitHttp) {
+      // Keep targetUrl as is
+    } else if (isLocalhost) {
+      targetUrl = 'http://' + targetUrl;
+    } else if (isDomain) {
+      targetUrl = 'https://' + targetUrl;
     } else {
       const engine = browserContext.getCurrentEngine();
       targetUrl = engine.url + encodeURIComponent(targetUrl);
@@ -1664,268 +1799,15 @@ class MyNetworkShell {
   }
 
   /* ==========================================================================
-     CLAUDE AI COPILOT & INTELLIGENCE CONTROLLER
+     CLAUDE & MULTI-PROVIDER AI COPILOT CONTROLLER
      ========================================================================== */
   initClaudeCopilotController() {
-    this.updateClaudeConfigUi();
-
-    if (this.dom.btnClaudeSettings) {
-      this.dom.btnClaudeSettings.addEventListener('click', () => {
-        if (this.dom.modalClaudeSettings) {
-          if (this.dom.claudeInputApiKey) this.dom.claudeInputApiKey.value = claudeService.apiKey;
-          if (this.dom.claudeSelectModel) this.dom.claudeSelectModel.value = claudeService.model;
-          if (this.dom.claudeInputPrompt) this.dom.claudeInputPrompt.value = claudeService.customSystemPrompt;
-          this.dom.modalClaudeSettings.showModal();
-        }
-      });
-    }
-
-    if (this.dom.btnCloseClaudeModal) {
-      this.dom.btnCloseClaudeModal.addEventListener('click', () => {
-        if (this.dom.modalClaudeSettings) this.dom.modalClaudeSettings.close();
-      });
-    }
-
-    if (this.dom.btnToggleKeyVisibility) {
-      this.dom.btnToggleKeyVisibility.addEventListener('click', () => {
-        if (this.dom.claudeInputApiKey) {
-          const isPass = this.dom.claudeInputApiKey.type === 'password';
-          this.dom.claudeInputApiKey.type = isPass ? 'text' : 'password';
-        }
-      });
-    }
-
-    if (this.dom.linkGetClaudeKey) {
-      this.dom.linkGetClaudeKey.addEventListener('click', (e) => {
-        e.preventDefault();
-        const activeWsId = workspaceService.getActiveWorkspaceId();
-        tabManager.createTab('https://console.anthropic.com/settings/keys', 'Anthropic Console', null, activeWsId);
-        if (this.dom.modalClaudeSettings) this.dom.modalClaudeSettings.close();
-      });
-    }
-
-    if (this.dom.btnClaudeSaveSettings) {
-      this.dom.btnClaudeSaveSettings.addEventListener('click', () => {
-        const key = this.dom.claudeInputApiKey ? this.dom.claudeInputApiKey.value.trim() : '';
-        const model = this.dom.claudeSelectModel ? this.dom.claudeSelectModel.value : 'claude-3-5-sonnet-20241022';
-        const prompt = this.dom.claudeInputPrompt ? this.dom.claudeInputPrompt.value.trim() : '';
-
-        claudeService.setApiKey(key);
-        claudeService.setModel(model);
-        claudeService.setCustomPrompt(prompt);
-
-        this.updateClaudeConfigUi();
-        this.showToast('Claude settings & API key saved successfully.');
-        if (this.dom.modalClaudeSettings) this.dom.modalClaudeSettings.close();
-      });
-    }
-
-    if (this.dom.btnClaudeClearKey) {
-      this.dom.btnClaudeClearKey.addEventListener('click', () => {
-        claudeService.setApiKey('');
-        if (this.dom.claudeInputApiKey) this.dom.claudeInputApiKey.value = '';
-        this.updateClaudeConfigUi();
-        this.showToast('Claude API key cleared.');
-      });
-    }
-
-    if (this.dom.btnClaudeClear) {
-      this.dom.btnClaudeClear.addEventListener('click', () => {
-        claudeService.clearHistory();
-        if (this.dom.aiMessages) {
-          this.dom.aiMessages.innerHTML = `
-            <div class="ai-msg bot">
-              <p>Conversation cleared. Hello! I am your built-in <strong>Claude Copilot</strong>. Ask me anything about your active page or workspace!</p>
-            </div>
-          `;
-        }
-        this.showToast('Claude conversation reset.');
-      });
-    }
-
-    eventBus.on('claude:config-updated', () => this.updateClaudeConfigUi());
-    eventBus.on('tabs:activated', () => this.updateClaudeContextBadge());
-    eventBus.on('tab:loaded', () => this.updateClaudeContextBadge());
+    this.aiDrawerController = new AiDrawerController(this);
   }
 
-  updateClaudeConfigUi() {
-    if (this.dom.claudeModelBadge) {
-      if (claudeService.apiKey) {
-        const friendlyName = claudeService.model.includes('haiku') ? 'Claude 3.5 Haiku' : claudeService.model.includes('opus') ? 'Claude 3 Opus' : 'Claude 3.5 Sonnet';
-        this.dom.claudeModelBadge.textContent = `${friendlyName} • Active`;
-        this.dom.claudeModelBadge.style.color = '#10b981';
-      } else {
-        this.dom.claudeModelBadge.textContent = 'Smart Local Mode (No API Key)';
-        this.dom.claudeModelBadge.style.color = '#8e8e93';
-      }
-    }
-  }
-
-  updateClaudeContextBadge() {
-    const activeTab = tabManager.getActiveTab();
-    if (!this.dom.claudeContextLabel) return;
-    if (!activeTab || activeTab.url === DEFAULT_NEWTAB_URL || activeTab.url.startsWith('mynetwork://')) {
-      this.dom.claudeContextLabel.textContent = 'Page Context: Focus Dashboard';
-    } else {
-      let domain = '';
-      try {
-        domain = new URL(activeTab.url).hostname.replace(/^www\./, '');
-      } catch (e) {
-        domain = activeTab.url;
-      }
-      this.dom.claudeContextLabel.textContent = `Page Context: ${activeTab.title || 'Web Page'} (${domain})`;
-    }
-  }
-
-  async getActiveWebviewElement() {
-    const activeTabId = tabManager.activeTabId;
-    if (!activeTabId) return null;
-    return this.engineAdapter?.webviewMap?.get(activeTabId) || null;
-  }
-
-  async handleAiSubmit() {
-    const text = this.dom.aiInput ? this.dom.aiInput.value.trim() : '';
-    if (!text) return;
-
-    this.appendAiMessage('user', text);
-    if (this.dom.aiInput) this.dom.aiInput.value = '';
-
-    // Append typing indicator
-    const typingId = this.showClaudeTyping();
-
-    try {
-      const webview = await this.getActiveWebviewElement();
-      const pageContext = await claudeService.extractActivePageContext(webview);
-      const response = await claudeService.sendMessage(text, pageContext);
-      this.removeClaudeTyping(typingId);
-      this.appendAiMessage('bot', response);
-    } catch (err) {
-      this.removeClaudeTyping(typingId);
-      this.appendAiMessage('bot', `⚠️ Error connecting to Claude: ${err.message}`);
-    }
-  }
-
-  async handleAiQuickAction(action) {
-    const activeTab = tabManager.getActiveTab();
-    const title = activeTab ? activeTab.title : 'Current Page';
-    const webview = await this.getActiveWebviewElement();
-    const pageContext = await claudeService.extractActivePageContext(webview);
-
-    if (action === 'summarize') {
-      this.appendAiMessage('user', `Summarize this page: "${title}"`);
-      const typingId = this.showClaudeTyping();
-      const res = await claudeService.sendMessage(`Please generate a structured, executive summary of this page (${title}). Include Core Purpose, Key Highlights, and Conclusions.`, pageContext);
-      this.removeClaudeTyping(typingId);
-      this.appendAiMessage('bot', res);
-    } else if (action === 'keypoints') {
-      this.appendAiMessage('user', `Key Takeaways for "${title}"`);
-      const typingId = this.showClaudeTyping();
-      const res = await claudeService.sendMessage(`Extract the top 5 most actionable key takeaways, facts, and insights from this webpage (${title}).`, pageContext);
-      this.removeClaudeTyping(typingId);
-      this.appendAiMessage('bot', res);
-    } else if (action === 'codereview') {
-      this.appendAiMessage('user', `Code Review / Technical Analysis`);
-      const typingId = this.showClaudeTyping();
-      const res = await claudeService.sendMessage(`Analyze the code blocks and technical architectural concepts on this page (${title}). Explain key logic, highlight optimizations, and provide clean code snippets.`, pageContext);
-      this.removeClaudeTyping(typingId);
-      this.appendAiMessage('bot', res);
-    } else if (action === 'savetomemo') {
-      // Save last assistant message or summary to scratchpad
-      const lastMsg = claudeService.history.filter(m => m.role === 'assistant').slice(-1)[0];
-      const contentToSave = lastMsg ? lastMsg.content : `Note from ${title} (${pageContext.url}):\n${pageContext.bodyText ? pageContext.bodyText.substring(0, 500) : ''}`;
-      const currentNotes = scratchpadService.getContent();
-      const updatedNotes = currentNotes ? `${currentNotes}\n\n--- Claude Notes (${new Date().toLocaleTimeString()}) ---\n${contentToSave}` : `--- Claude Notes (${new Date().toLocaleTimeString()}) ---\n${contentToSave}`;
-      scratchpadService.save(updatedNotes);
-      if (this.dom.scratchpadTextarea) this.dom.scratchpadTextarea.value = updatedNotes;
-      this.showToast('Saved Claude notes directly into Dashboard Scratchpad!');
-    }
-  }
-
-  showClaudeTyping() {
-    const id = 'typing-' + Date.now();
-    const msgEl = document.createElement('div');
-    msgEl.className = 'ai-msg bot';
-    msgEl.id = id;
-    msgEl.innerHTML = `
-      <div class="claude-typing-dots">
-        <span></span><span></span><span></span>
-      </div>
-    `;
-    if (this.dom.aiMessages) {
-      this.dom.aiMessages.appendChild(msgEl);
-      this.dom.aiMessages.scrollTop = this.dom.aiMessages.scrollHeight;
-    }
-    return id;
-  }
-
-  removeClaudeTyping(id) {
-    const el = document.getElementById(id);
-    if (el) el.remove();
-  }
-
-  appendAiMessage(sender, text) {
-    if (!this.dom.aiMessages) return;
-    const msgEl = document.createElement('div');
-    msgEl.className = `ai-msg ${sender}`;
-
-    if (sender === 'user') {
-      msgEl.textContent = text;
-    } else {
-      msgEl.innerHTML = this.formatClaudeMarkdown(text);
-    }
-
-    this.dom.aiMessages.appendChild(msgEl);
-    this.dom.aiMessages.scrollTop = this.dom.aiMessages.scrollHeight;
-  }
-
-  formatClaudeMarkdown(text) {
-    if (!text) return '';
-    let html = text;
-
-    // 1. Code blocks with copy button
-    html = html.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (match, lang, code) => {
-      const safeCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      const encodedCode = encodeURIComponent(code);
-      return `
-        <div class="code-block-wrapper">
-          <div class="code-header">
-            <span>${lang || 'code'}</span>
-            <button class="copy-code-btn" onclick="navigator.clipboard.writeText(decodeURIComponent('${encodedCode}')); this.innerText = '✓ Copied!'; setTimeout(() => this.innerText = 'Copy Code', 2000);">
-              Copy Code
-            </button>
-          </div>
-          <pre><code>${safeCode}</code></pre>
-        </div>
-      `;
-    });
-
-    // 2. Inline code
-    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-    // 3. Headers
-    html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-    html = html.replace(/^## (.*$)/gim, '<h3>$1</h3>');
-    html = html.replace(/^# (.*$)/gim, '<h3>$1</h3>');
-
-    // 4. Bold and Italics
-    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-
-    // 5. Blockquotes
-    html = html.replace(/^\> (.*$)/gim, '<blockquote>$1</blockquote>');
-
-    // 6. Bullet lists
-    html = html.replace(/^- (.*$)/gim, '<li>$1</li>');
-    html = html.replace(/^([0-9]+)\. (.*$)/gim, '<li><strong>$1.</strong> $2</li>');
-
-    // Wrap list items
-    html = html.replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>');
-    html = html.replace(/<\/ul>\s*<ul>/g, '');
-
-    // 7. Line breaks
-    html = html.replace(/\n\n/g, '<br><br>');
-
-    return html;
+  initAiAnalyticsController() {
+    this.aiAnalyticsController = new AiAnalyticsController(this);
+    this.aiAnalyticsController.init();
   }
 
   updateNavButtonsState(tabId) {
@@ -1951,18 +1833,37 @@ class MyNetworkShell {
       const pct = Math.max(0, Math.min(100, Number(percentage) || 0));
       this.dom.progressBar.style.opacity = '1';
       this.dom.progressBar.style.width = `${pct}%`;
+
+      if (this._progressTimeout) clearTimeout(this._progressTimeout);
+      if (this._progressTrickleInterval) clearInterval(this._progressTrickleInterval);
+
       if (pct >= 100) {
-        if (this._progressTimeout) clearTimeout(this._progressTimeout);
         this._progressTimeout = setTimeout(() => {
           this.hideProgress();
-        }, 260);
+        }, 220);
+      } else {
+        // Natural progress trickle from current percentage up to 88%
+        let current = pct;
+        this._progressTrickleInterval = setInterval(() => {
+          if (current < 88) {
+            current += (88 - current) * 0.12;
+            if (this.dom.progressBar) this.dom.progressBar.style.width = `${current.toFixed(1)}%`;
+          }
+        }, 180);
+
+        // Safety timeout: Never let progress bar hang stuck forever (completes after 3.5s max)
+        this._progressTimeout = setTimeout(() => {
+          this.hideProgress();
+        }, 3500);
       }
     }
   }
 
   hideProgress() {
     if (this._progressTimeout) clearTimeout(this._progressTimeout);
+    if (this._progressTrickleInterval) clearInterval(this._progressTrickleInterval);
     if (this.dom.progressBar) {
+      this.dom.progressBar.style.width = '100%';
       this.dom.progressBar.style.opacity = '0';
       setTimeout(() => {
         if (this.dom.progressBar && this.dom.progressBar.style.opacity === '0') {
@@ -2322,12 +2223,72 @@ class MyNetworkShell {
   /* ==========================================================================
      SETTINGS & 3-DOTS MENU CONTROLLER
      ========================================================================== */
+  recordOriginBeforeInternalNav() {
+    const activeTab = tabManager.getActiveTab();
+    const activeWsId = workspaceService.getActiveWorkspaceId() || 'ws_default';
+    if (activeTab && !this.isInternalUrl(activeTab.url)) {
+      this.lastNormalWorkspaceId = activeWsId;
+      this.lastNormalTabId = activeTab.id;
+    }
+  }
+
+  isInternalUrl(url) {
+    if (!url) return true;
+    const lower = url.toLowerCase();
+    return (
+      url === SETTINGS_URL ||
+      url === LEGACY_SETTINGS_URL ||
+      url === HISTORY_URL ||
+      url === LEGACY_HISTORY_URL ||
+      url === BOOKMARKS_URL ||
+      url === LEGACY_BOOKMARKS_URL ||
+      url === PROJECTS_URL ||
+      url === LEGACY_PROJECTS_URL ||
+      url === AI_ANALYTICS_URL ||
+      url === LEGACY_AI_ANALYTICS_URL ||
+      lower === 'mynetwork://settings' ||
+      lower === 'mynetwork://history' ||
+      lower === 'mynetwork://bookmarks' ||
+      lower === 'mynetwork://projects' ||
+      lower === 'mynetwork://ai-analytics' ||
+      lower.startsWith('about:') ||
+      lower.startsWith('mynetwork://')
+    );
+  }
+
+  returnFromInternalPage() {
+    const targetWsId = this.lastNormalWorkspaceId || workspaceService.getActiveWorkspaceId() || 'ws_default';
+    workspaceService.setActiveWorkspace(targetWsId);
+
+    const wsTabs = tabManager.getTabsForWorkspace(targetWsId);
+    let targetTab = null;
+
+    if (this.lastNormalTabId) {
+      targetTab = wsTabs.find(t => t.id === this.lastNormalTabId && !this.isInternalUrl(t.url));
+    }
+    if (!targetTab) {
+      targetTab = wsTabs.find(t => !this.isInternalUrl(t.url));
+    }
+
+    if (targetTab) {
+      tabManager.activateTab(targetTab.id);
+    } else {
+      const newTab = tabManager.createTab(DEFAULT_NEWTAB_URL, 'New Tab', null, targetWsId);
+      tabManager.activateTab(newTab.id);
+    }
+    this.renderWorkspaceSidebar();
+    this.renderWorkspaceTabs();
+  }
+
   openSettingsTab(category = 'general') {
-    const existing = tabManager.getTabs().find(t => t.url === SETTINGS_URL || t.url === LEGACY_SETTINGS_URL);
+    this.recordOriginBeforeInternalNav();
+    const activeWsId = workspaceService.getActiveWorkspaceId() || 'ws_default';
+    const wsTabs = tabManager.getTabsForWorkspace(activeWsId);
+    const existing = wsTabs.find(t => t.url === SETTINGS_URL || t.url === LEGACY_SETTINGS_URL);
     if (existing) {
       tabManager.activateTab(existing.id);
     } else {
-      tabManager.createTab(SETTINGS_URL, 'Settings');
+      tabManager.createTab(SETTINGS_URL, 'Settings', null, activeWsId);
     }
     this.switchSettingsCategory(category);
   }
@@ -2378,12 +2339,15 @@ class MyNetworkShell {
      DEDICATED macOS BROWSING HISTORY CONTROLLER
      ========================================================================== */
   openHistoryTab(mode = 'date') {
+    this.recordOriginBeforeInternalNav();
     this.historyViewMode = mode;
-    const existing = tabManager.getTabs().find(t => t.url === HISTORY_URL || t.url === LEGACY_HISTORY_URL);
+    const activeWsId = workspaceService.getActiveWorkspaceId() || 'ws_default';
+    const wsTabs = tabManager.getTabsForWorkspace(activeWsId);
+    const existing = wsTabs.find(t => t.url === HISTORY_URL || t.url === LEGACY_HISTORY_URL);
     if (existing) {
       tabManager.activateTab(existing.id);
     } else {
-      tabManager.createTab(HISTORY_URL, 'History');
+      tabManager.createTab(HISTORY_URL, 'History', null, activeWsId);
     }
     this.updateHistorySegmentButtons();
     this.renderHistoryView();
@@ -2393,14 +2357,7 @@ class MyNetworkShell {
     // 1. History Back Button
     if (this.dom.btnHistoryBack) {
       this.dom.btnHistoryBack.addEventListener('click', () => {
-        const active = tabManager.getActiveTab();
-        const nonHistoryTab = tabManager.getTabs().find(t => t.url !== HISTORY_URL && t.url !== LEGACY_HISTORY_URL && t.url !== SETTINGS_URL && t.url !== LEGACY_SETTINGS_URL);
-        if (nonHistoryTab) {
-          tabManager.activateTab(nonHistoryTab.id);
-        } else {
-          tabManager.createTab(DEFAULT_NEWTAB_URL, 'New Tab');
-          if (active) tabManager.closeTab(active.id);
-        }
+        this.returnFromInternalPage();
       });
     }
 
@@ -3069,12 +3026,14 @@ class MyNetworkShell {
      BOOKMARKS & WORKSPACES SYSTEM CONTROLLER (macOS Finder Style)
      ========================================================================== */
   openBookmarksTab() {
-    const allTabs = tabManager.getAllTabs();
-    const existing = allTabs.find(t => t.url === BOOKMARKS_URL || t.url === LEGACY_BOOKMARKS_URL);
+    this.recordOriginBeforeInternalNav();
+    const activeWsId = workspaceService.getActiveWorkspaceId() || 'ws_default';
+    const wsTabs = tabManager.getTabsForWorkspace(activeWsId);
+    const existing = wsTabs.find(t => t.url === BOOKMARKS_URL || t.url === LEGACY_BOOKMARKS_URL);
     if (existing) {
       tabManager.activateTab(existing.id);
     } else {
-      tabManager.createTab(BOOKMARKS_URL, 'Bookmarks');
+      tabManager.createTab(BOOKMARKS_URL, 'Bookmarks', null, activeWsId);
     }
   }
 
@@ -4181,14 +4140,7 @@ class MyNetworkShell {
     // Back button
     if (this.dom.btnBookmarksBack) {
       this.dom.btnBookmarksBack.addEventListener('click', () => {
-        const active = tabManager.getActiveTab();
-        const nonBmTab = tabManager.getTabs().find(t => t.url !== BOOKMARKS_URL && t.url !== LEGACY_BOOKMARKS_URL && t.url !== SETTINGS_URL && t.url !== HISTORY_URL);
-        if (nonBmTab) {
-          tabManager.activateTab(nonBmTab.id);
-        } else {
-          tabManager.createTab(DEFAULT_NEWTAB_URL, 'New Tab');
-          if (active) tabManager.closeTab(active.id);
-        }
+        this.returnFromInternalPage();
       });
     }
 
@@ -4642,14 +4594,7 @@ class MyNetworkShell {
     // 3. Settings Back Button (Returns to workspace)
     if (this.dom.btnSettingsBack) {
       this.dom.btnSettingsBack.addEventListener('click', () => {
-        const active = tabManager.getActiveTab();
-        const nonSettingsTab = tabManager.getTabs().find(t => t.url !== SETTINGS_URL && t.url !== LEGACY_SETTINGS_URL);
-        if (nonSettingsTab) {
-          tabManager.activateTab(nonSettingsTab.id);
-        } else {
-          tabManager.createTab(DEFAULT_NEWTAB_URL, 'New Tab');
-          if (active) tabManager.closeTab(active.id);
-        }
+        this.returnFromInternalPage();
       });
     }
 
@@ -4830,12 +4775,33 @@ class MyNetworkShell {
       });
     }
 
-    // Apply saved layout, window controls style, density, and accent theme on load
+    // Status Bar Settings
+    const sbToggle = document.getElementById('setting-show-statusbar');
+    if (sbToggle) {
+      sbToggle.addEventListener('change', (e) => {
+        const show = e.target.checked;
+        settingsService.set('showStatusBar', show);
+        this.applyStatusBarPreferences();
+      });
+    }
+
+    document.querySelectorAll('.mac-sb-item-toggle').forEach(chk => {
+      chk.addEventListener('change', () => {
+        const itemKey = chk.getAttribute('data-item');
+        const current = settingsService.get('statusBarItems', {});
+        current[itemKey] = chk.checked;
+        settingsService.set('statusBarItems', current);
+        this.applyStatusBarPreferences();
+      });
+    });
+
+    // Apply saved layout, window controls style, density, status bar, and accent theme on load
     const savedLayout = settingsService.get('tabLayout', 'vertical');
     this.applyTabLayout(savedLayout);
     this.applyAccentTheme(settingsService.get('accentTheme', 'blue'));
     this.applyWindowControlsStyle(settingsService.get('windowControlsStyle', 'mac'));
     this.applyTabDensity(settingsService.get('tabDensity', 'comfortable'));
+    this.applyStatusBarPreferences();
   }
 
   populateSettingsForm() {
@@ -4847,6 +4813,15 @@ class MyNetworkShell {
     if (this.dom.settingTrackingLevel) this.dom.settingTrackingLevel.value = s.trackingProtectionLevel;
     if (this.dom.settingFocusDuration) this.dom.settingFocusDuration.value = s.focusDurationMinutes;
     if (this.dom.settingBreakDuration) this.dom.settingBreakDuration.value = s.breakDurationMinutes;
+
+    const sbToggle = document.getElementById('setting-show-statusbar');
+    if (sbToggle) sbToggle.checked = s.showStatusBar !== false;
+
+    const sbItems = s.statusBarItems || {};
+    document.querySelectorAll('.mac-sb-item-toggle').forEach(chk => {
+      const itemKey = chk.getAttribute('data-item');
+      chk.checked = sbItems[itemKey] !== false;
+    });
 
     document.querySelectorAll('.accent-color-btn').forEach(btn => {
       btn.classList.toggle('active', btn.getAttribute('data-color') === s.accentTheme);
@@ -4862,6 +4837,39 @@ class MyNetworkShell {
 
     document.querySelectorAll('#control-tab-density .segmented-btn').forEach(btn => {
       btn.classList.toggle('active', btn.getAttribute('data-density') === (s.tabDensity || 'comfortable'));
+    });
+  }
+
+  applyStatusBarPreferences() {
+    const show = settingsService.get('showStatusBar', true);
+    const sb = document.getElementById('app-status-bar');
+    if (sb) {
+      sb.style.display = show ? 'flex' : 'none';
+    }
+
+    document.body.classList.toggle('no-status-bar', !show);
+    document.body.setAttribute('data-status-bar', show ? 'visible' : 'hidden');
+
+    const sbItems = settingsService.get('statusBarItems', {});
+    const map = {
+      workspace: document.getElementById('sb-workspace-badge'),
+      git: document.getElementById('sb-git-branch'),
+      diagnostics: document.getElementById('sb-diagnostics'),
+      network: document.getElementById('sb-network-status'),
+      tabsInfo: document.getElementById('sb-tabs-info'),
+      aiModel: document.getElementById('sb-ai-status-badge'),
+      aiTokens: document.getElementById('sb-ai-tokens'),
+      copilot: document.getElementById('sb-claude-copilot-btn'),
+      zoom: document.getElementById('sb-zoom-level'),
+      settings: document.getElementById('sb-btn-settings'),
+      bell: document.getElementById('sb-btn-bell')
+    };
+
+    Object.keys(map).forEach(key => {
+      const el = map[key];
+      if (el) {
+        el.style.display = (sbItems[key] !== false) ? 'inline-flex' : 'none';
+      }
     });
   }
 
@@ -4881,19 +4889,28 @@ class MyNetworkShell {
 
   applyAccentTheme(theme) {
     const themeColors = {
-      blue: { main: '#2563eb', light: '#eff6ff', hover: '#1d4ed8' },
-      indigo: { main: '#4f46e5', light: '#eef2ff', hover: '#4338ca' },
-      purple: { main: '#7c3aed', light: '#f5f3ff', hover: '#6d28d9' },
-      emerald: { main: '#059669', light: '#ecfdf5', hover: '#047857' },
-      amber: { main: '#d97706', light: '#fef3c7', hover: '#b45309' },
-      rose: { main: '#e11d48', light: '#ffe4e6', hover: '#be123c' },
-      slate: { main: '#475569', light: '#f1f5f9', hover: '#334155' }
+      blue: { main: '#007aff', light: 'rgba(0, 122, 255, 0.12)', hover: '#0062cc', border: 'rgba(0, 122, 255, 0.3)' },
+      indigo: { main: '#5856d6', light: 'rgba(88, 86, 214, 0.12)', hover: '#4745b8', border: 'rgba(88, 86, 214, 0.3)' },
+      purple: { main: '#af52de', light: 'rgba(175, 82, 222, 0.12)', hover: '#963ec4', border: 'rgba(175, 82, 222, 0.3)' },
+      emerald: { main: '#34c759', light: 'rgba(52, 199, 89, 0.12)', hover: '#28a745', border: 'rgba(52, 199, 89, 0.3)' },
+      amber: { main: '#ff9500', light: 'rgba(255, 149, 0, 0.12)', hover: '#e08400', border: 'rgba(255, 149, 0, 0.3)' },
+      rose: { main: '#ff2d55', light: 'rgba(255, 45, 85, 0.12)', hover: '#e02047', border: 'rgba(255, 45, 85, 0.3)' },
+      slate: { main: '#8e8e93', light: 'rgba(142, 142, 147, 0.12)', hover: '#707075', border: 'rgba(142, 142, 147, 0.3)' }
     };
 
     const palette = themeColors[theme] || themeColors.blue;
     document.documentElement.style.setProperty('--accent-blue', palette.main);
+    document.documentElement.style.setProperty('--accent-main', palette.main);
     document.documentElement.style.setProperty('--accent-light', palette.light);
     document.documentElement.style.setProperty('--accent-hover', palette.hover);
+    document.documentElement.style.setProperty('--accent-bg', palette.light);
+    document.documentElement.style.setProperty('--accent-border', palette.border);
+    document.body.setAttribute('data-accent', theme);
+
+    // Update active class on accent picker buttons
+    document.querySelectorAll('.accent-color-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-color') === theme);
+    });
   }
 
   /* ==========================================================================
@@ -5634,21 +5651,7 @@ class MyNetworkShell {
   initProjectsOverviewController() {
     if (this.dom.btnProjectsBack) {
       this.dom.btnProjectsBack.addEventListener('click', () => {
-        const nonProjectsTab = tabManager.getTabs().find(t => 
-          t.url !== PROJECTS_URL && 
-          t.url !== LEGACY_PROJECTS_URL && 
-          t.url !== SETTINGS_URL && 
-          t.url !== LEGACY_SETTINGS_URL && 
-          t.url !== HISTORY_URL && 
-          t.url !== LEGACY_HISTORY_URL && 
-          t.url !== BOOKMARKS_URL && 
-          t.url !== LEGACY_BOOKMARKS_URL
-        );
-        if (nonProjectsTab) {
-          tabManager.activateTab(nonProjectsTab.id);
-        } else {
-          tabManager.createTab(DEFAULT_NEWTAB_URL, 'New Tab', null, workspaceService.getActiveWorkspaceId());
-        }
+        this.returnFromInternalPage();
       });
     }
 
@@ -5667,11 +5670,14 @@ class MyNetworkShell {
   }
 
   openProjectsTab() {
-    const existing = tabManager.getTabs().find(t => t.url === PROJECTS_URL || t.url === LEGACY_PROJECTS_URL);
+    this.recordOriginBeforeInternalNav();
+    const activeWsId = workspaceService.getActiveWorkspaceId() || 'ws_default';
+    const wsTabs = tabManager.getTabsForWorkspace(activeWsId);
+    const existing = wsTabs.find(t => t.url === PROJECTS_URL || t.url === LEGACY_PROJECTS_URL);
     if (existing) {
       tabManager.activateTab(existing.id);
     } else {
-      tabManager.createTab(PROJECTS_URL, 'Projects', null, workspaceService.getActiveWorkspaceId());
+      tabManager.createTab(PROJECTS_URL, 'Projects', null, activeWsId);
     }
     this.renderProjectsDashboard();
   }
@@ -5969,12 +5975,14 @@ class MyNetworkShell {
 
   closeWorkspaceModal() {
     if (this.dom.modalCreateWorkspace) {
-      this.dom.modalCreateWorkspace.close();
+      try {
+        this.dom.modalCreateWorkspace.close();
+      } catch (e) {}
     }
   }
 
   handleWorkspaceSubmit(e) {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     const id = this.dom.workspaceFormId?.value;
     const name = this.dom.workspaceFormName?.value?.trim();
     if (!name) return;
@@ -5984,22 +5992,25 @@ class MyNetworkShell {
     const color = this.dom.workspaceColorPicker?.querySelector('.color-dot.active')?.getAttribute('data-color') || '#007aff';
     const icon = this.dom.workspaceIconSelector?.querySelector('.project-icon-choice.active')?.getAttribute('data-icon') || 'globe';
 
+    // Close modal immediately
+    this.closeWorkspaceModal();
+
     try {
       if (id) {
         workspaceService.updateWorkspace(id, { name, color, icon, description, devUrl });
-        this.showToast(`Updated project "${name}"`);
+        this.showToast(`Updated workspace "${name}"`);
       } else {
         const newWs = workspaceService.createWorkspace({ name, color, icon, description, devUrl });
-        this.showToast(`Created project "${name}"`);
+        this.showToast(`Created workspace "${name}"`);
         this.switchWorkspace(newWs.id);
       }
-      this.closeWorkspaceModal();
       this.renderWorkspaceSidebar();
       if (this.dom.projectsView && this.dom.projectsView.style.display !== 'none') {
         this.renderProjectsDashboard();
       }
     } catch (err) {
       console.error('[WorkspaceModal] Failed to save workspace:', err);
+      this.showToast('Error saving workspace: ' + err.message);
     }
   }
 
@@ -6229,6 +6240,16 @@ class MyNetworkShell {
         this.closeTabContextMenu();
       });
     }
+
+    if (this.dom.ctxSplitRight) {
+      this.dom.ctxSplitRight.addEventListener('click', () => {
+        if (this.currentContextTabId) {
+          const activeTabId = tabManager.getActiveTabId();
+          browserContext.splitWithTab(activeTabId, this.currentContextTabId);
+        }
+        this.closeTabContextMenu();
+      });
+    }
   }
 
   openTabContextMenu(e, tabId) {
@@ -6392,79 +6413,420 @@ class MyNetworkShell {
   }
 
   /* ==========================================================================
-     MULTI-PANE SPLIT SCREEN WEBVIEW CONTROLLER
+     DEDICATED ARC/ZEN-STYLE SPLIT VIEW CONTROLLER
      ========================================================================== */
-  updateSplitViewWebviews(isSplit, layout = 'dual', tabIds = null) {
-    const activeWsId = workspaceService.getActiveWorkspaceId();
-    const wsTabs = tabManager.getTabsForWorkspace(activeWsId);
-    const activeTabId = tabManager.getActiveTabId();
+  initSplitViewController() {
+    this.isDraggingSplit = false;
 
-    // Reset split styles on all webviews
-    this.engineAdapter.webviewMap.forEach((wv) => {
-      wv.classList.remove('split-pane-visible', 'active-pane');
-      wv.style.display = 'none';
-    });
+    // 1. Top and Sidebar Split Buttons
+    if (this.dom.btnSplitToggle) {
+      this.dom.btnSplitToggle.addEventListener('click', () => {
+        browserContext.toggleSplitView();
+      });
+    }
 
-    // Reset split styles on tab pills
+    if (this.dom.btnSidebarSplitToggle) {
+      this.dom.btnSidebarSplitToggle.addEventListener('click', () => {
+        browserContext.toggleSplitView();
+      });
+    }
+
+    // 2. Draggable Split Divider
+    if (this.dom.splitDivider) {
+      this.dom.splitDivider.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        this.isDraggingSplit = true;
+        this.dom.splitDivider.classList.add('dragging');
+        document.querySelectorAll('webview').forEach(wv => {
+          wv.style.pointerEvents = 'none';
+        });
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!this.isDraggingSplit || !this.dom.splitViewContainer) return;
+        const rect = this.dom.splitViewContainer.getBoundingClientRect();
+        if (rect.width > 0) {
+          const pct = ((e.clientX - rect.left) / rect.width) * 100;
+          browserContext.setSplitRatio(pct);
+        }
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (this.isDraggingSplit) {
+          this.isDraggingSplit = false;
+          this.dom.splitDivider?.classList.remove('dragging');
+          document.querySelectorAll('webview').forEach(wv => {
+            wv.style.pointerEvents = 'auto';
+          });
+        }
+      });
+
+      this.dom.splitDivider.addEventListener('dblclick', () => {
+        browserContext.setSplitRatio(50);
+      });
+    }
+
+    // 3. Pane Focus on Mouse Down / Click
+    if (this.dom.splitPaneLeft) {
+      this.dom.splitPaneLeft.addEventListener('mousedown', () => {
+        if (browserContext.isSplit && browserContext.focusedSplitPane !== 0) {
+          browserContext.setFocusedSplitPane(0);
+        }
+      });
+    }
+
+    if (this.dom.splitPaneRight) {
+      this.dom.splitPaneRight.addEventListener('mousedown', () => {
+        if (browserContext.isSplit && browserContext.focusedSplitPane !== 1) {
+          browserContext.setFocusedSplitPane(1);
+        }
+      });
+    }
+
+    // 4. Pane Header Buttons: Fullscreen & Close
+    if (this.dom.btnSplitLeftFullscreen) {
+      this.dom.btnSplitLeftFullscreen.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const leftTabId = browserContext.splitTabIds[0];
+        if (leftTabId) tabManager.activateTab(leftTabId);
+        browserContext.toggleSplitView(false);
+      });
+    }
+
+    if (this.dom.btnSplitLeftClose) {
+      this.dom.btnSplitLeftClose.addEventListener('click', (e) => {
+        e.stopPropagation();
+        browserContext.closeSplitPane(0);
+      });
+    }
+
+    if (this.dom.btnSplitRightFullscreen) {
+      this.dom.btnSplitRightFullscreen.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const rightTabId = browserContext.splitTabIds[1];
+        if (rightTabId) tabManager.activateTab(rightTabId);
+        browserContext.toggleSplitView(false);
+      });
+    }
+
+    if (this.dom.btnSplitRightClose) {
+      this.dom.btnSplitRightClose.addEventListener('click', (e) => {
+        e.stopPropagation();
+        browserContext.closeSplitPane(1);
+      });
+    }
+
+    // 5. Embedded Quick Search / Open Tab in Left Pane
+    const handleLeftOpen = () => {
+      const q = this.dom.splitLeftSearchInput?.value.trim();
+      if (!q) return;
+      const isLocalhost = /^localhost(:\d+)?(\/.*)?$/i.test(q) ||
+                          /^127\.0\.0\.1(:\d+)?(\/.*)?$/i.test(q) ||
+                          /^0\.0\.0\.0(:\d+)?(\/.*)?$/i.test(q) ||
+                          /^[\w-]+:\d+(\/.*)?$/i.test(q);
+      const isExplicitHttp = /^https?:\/\//i.test(q) || /^file:\/\//i.test(q);
+      const isDomain = q.includes('.') && !q.includes(' ');
+      let targetUrl = q;
+      if (isExplicitHttp) {
+        targetUrl = q;
+      } else if (isLocalhost) {
+        targetUrl = 'http://' + q;
+      } else if (isDomain) {
+        targetUrl = 'https://' + q;
+      } else {
+        targetUrl = `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+      }
+
+      const leftTabId = browserContext.splitTabIds[0];
+      const tab = leftTabId ? tabManager.getTab(leftTabId) : null;
+      if (tab) {
+        tabManager.updateTab(tab.id, { url: targetUrl, title: targetUrl });
+        this.engineAdapter.navigate(tab.id, targetUrl);
+      } else {
+        const newTab = tabManager.createTab(targetUrl, q, null, workspaceService.getActiveWorkspaceId());
+        browserContext.splitTabIds[0] = newTab.id;
+      }
+      this.updateSplitViewWebviews(true);
+    };
+
+    if (this.dom.btnSplitLeftGo) this.dom.btnSplitLeftGo.addEventListener('click', handleLeftOpen);
+    if (this.dom.splitLeftSearchInput) {
+      this.dom.splitLeftSearchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleLeftOpen();
+      });
+    }
+
+    // 6. Embedded Quick Search / Open Tab in Right Pane
+    const handleRightOpen = () => {
+      const q = this.dom.splitRightSearchInput?.value.trim();
+      if (!q) return;
+      const isLocalhost = /^localhost(:\d+)?(\/.*)?$/i.test(q) ||
+                          /^127\.0\.0\.1(:\d+)?(\/.*)?$/i.test(q) ||
+                          /^0\.0\.0\.0(:\d+)?(\/.*)?$/i.test(q) ||
+                          /^[\w-]+:\d+(\/.*)?$/i.test(q);
+      const isExplicitHttp = /^https?:\/\//i.test(q) || /^file:\/\//i.test(q);
+      const isDomain = q.includes('.') && !q.includes(' ');
+      let targetUrl = q;
+      if (isExplicitHttp) {
+        targetUrl = q;
+      } else if (isLocalhost) {
+        targetUrl = 'http://' + q;
+      } else if (isDomain) {
+        targetUrl = 'https://' + q;
+      } else {
+        targetUrl = `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+      }
+
+      const rightTabId = browserContext.splitTabIds[1];
+      const tab = rightTabId ? tabManager.getTab(rightTabId) : null;
+      if (tab) {
+        tabManager.updateTab(tab.id, { url: targetUrl, title: targetUrl });
+        this.engineAdapter.navigate(tab.id, targetUrl);
+      } else {
+        const newTab = tabManager.createTab(targetUrl, q, null, workspaceService.getActiveWorkspaceId());
+        browserContext.splitTabIds[1] = newTab.id;
+      }
+      this.updateSplitViewWebviews(true);
+    };
+
+    if (this.dom.btnSplitRightGo) this.dom.btnSplitRightGo.addEventListener('click', handleRightOpen);
+    if (this.dom.splitRightSearchInput) {
+      this.dom.splitRightSearchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleRightOpen();
+      });
+    }
+  }
+
+  applySplitRatioAndFocus() {
+    if (!browserContext.isSplitView) return;
+
+    // Apply Ratio to flex
+    const ratio = browserContext.splitRatio || 50;
+    if (this.dom.splitPaneLeft) {
+      this.dom.splitPaneLeft.style.flex = `${ratio} 1 0%`;
+    }
+    if (this.dom.splitPaneRight) {
+      this.dom.splitPaneRight.style.flex = `${100 - ratio} 1 0%`;
+    }
+
+    // Apply Focus Highlight
+    const focusedIndex = browserContext.focusedSplitPane || 0;
+    if (this.dom.splitPaneLeft) {
+      this.dom.splitPaneLeft.classList.toggle('active-pane', focusedIndex === 0);
+    }
+    if (this.dom.splitPaneRight) {
+      this.dom.splitPaneRight.classList.toggle('active-pane', focusedIndex === 1);
+    }
+
+    // Sync focused tab with active tab in TabManager and top Omnibox
+    const focusedTabId = browserContext.splitTabIds[focusedIndex];
+    if (focusedTabId) {
+      const tab = tabManager.getTab(focusedTabId);
+      if (tab) {
+        tabManager.activeTabId = tab.id;
+        if (this.dom.urlInput && tab.url && tab.url !== DEFAULT_NEWTAB_URL && !tab.url.startsWith('mynetwork://')) {
+          this.dom.urlInput.value = tab.url;
+        }
+        this.updateOmniboxIcon(tab);
+        this.updateOmniboxStarState(tab);
+        this.updateNavButtonsState(tab.id);
+      }
+    }
+
+    // Update Tab Pills in sidebar
     document.querySelectorAll('.tab-item').forEach(el => {
-      el.classList.remove('split-grouped', 'split-active');
+      const id = el.id.replace('tab-pill-', '').replace('h-tab-pill-', '');
+      const isInSplit = browserContext.splitTabIds && browserContext.splitTabIds.includes(id);
+      const isFocused = id === focusedTabId;
+      el.classList.toggle('split-grouped', !!isInSplit);
+      el.classList.toggle('split-active', !!isFocused);
     });
+  }
 
+  renderSplitQuickTabs(containerEl, paneIndex) {
+    if (!containerEl) return;
+    const activeWsId = workspaceService.getActiveWorkspaceId();
+    const otherPaneTabId = browserContext.splitTabIds[paneIndex === 0 ? 1 : 0];
+    const tabs = tabManager.getTabsForWorkspace(activeWsId).filter(t => t.id !== otherPaneTabId && t.url !== DEFAULT_NEWTAB_URL && t.url !== BLANK_URL);
+
+    if (tabs.length === 0) {
+      containerEl.innerHTML = '<span style="font-size:11px; color:#86868b; padding: 4px 0;">No other open tabs</span>';
+      return;
+    }
+
+    containerEl.innerHTML = '';
+    tabs.forEach(t => {
+      const chip = document.createElement('div');
+      chip.className = 'split-quick-tab-chip';
+      const iconSrc = t.favicon || 'assets/icon-symbol.svg';
+      chip.innerHTML = `
+        <img src="${this.escapeHtml(iconSrc)}" width="12" height="12" style="border-radius: 2px;" onerror="this.src='assets/icon-symbol.svg'">
+        <span>${this.escapeHtml(t.title || t.url)}</span>
+      `;
+      chip.addEventListener('click', () => {
+        browserContext.splitTabIds[paneIndex] = t.id;
+        browserContext.setFocusedSplitPane(paneIndex);
+        this.updateSplitViewWebviews(true);
+      });
+      containerEl.appendChild(chip);
+    });
+  }
+
+  updateSplitViewWebviews(isSplit, layout = 'dual', tabIds = null) {
+    // 1. When exiting Split View
     if (!isSplit) {
+      if (this.dom.splitViewContainer) {
+        this.dom.splitViewContainer.style.display = 'none';
+      }
+
+      // Restore mounted webviews back to webviewContainer
+      this.engineAdapter.webviewMap.forEach((wv) => {
+        if (wv.parentNode && wv.parentNode !== this.dom.webviewContainer) {
+          this.dom.webviewContainer.appendChild(wv);
+        }
+        wv.classList.remove('split-pane-visible', 'active-pane');
+        wv.style.display = 'none';
+      });
+
+      // Clear split tab pills
+      document.querySelectorAll('.tab-item').forEach(el => {
+        el.classList.remove('split-grouped', 'split-active');
+      });
+
       const activeTab = tabManager.getActiveTab();
       if (activeTab) {
-        this.engineAdapter.showWebview(activeTab.id);
+        this.updateActiveTabUi(activeTab.id, activeTab);
       }
       return;
     }
 
-    let panes = [];
-    if (tabIds && Array.isArray(tabIds) && tabIds.length >= 2) {
-      panes = tabIds.map(id => tabManager.getTab(id)).filter(Boolean);
+    // 2. When entering / updating Split View
+    if (this.dom.newTabView) this.dom.newTabView.style.display = 'none';
+    if (this.dom.settingsView) this.dom.settingsView.style.display = 'none';
+    if (this.dom.historyView) this.dom.historyView.style.display = 'none';
+    if (this.dom.bookmarksView) this.dom.bookmarksView.style.display = 'none';
+    if (this.dom.projectsView) this.dom.projectsView.style.display = 'none';
+    if (this.dom.aiAnalyticsView) this.dom.aiAnalyticsView.style.display = 'none';
+
+    if (this.dom.splitViewContainer) {
+      this.dom.splitViewContainer.style.display = 'flex';
     }
 
-    if (panes.length < 2) {
-      let paneCount = 2;
-      if (layout === 'triple') paneCount = 3;
-      if (layout === 'quad') paneCount = 4;
+    const activeWsId = workspaceService.getActiveWorkspaceId();
+    const wsTabs = tabManager.getTabsForWorkspace(activeWsId);
 
-      while (wsTabs.length < paneCount) {
-        const newT = tabManager.createTab(DEFAULT_NEWTAB_URL, 'New Tab', null, activeWsId);
-        wsTabs.push(newT);
+    // Validate splitTabIds
+    if (!browserContext.splitTabIds || browserContext.splitTabIds.length < 2) {
+      const activeTabId = tabManager.getActiveTabId();
+      const companionTab = wsTabs.find(t => t.id !== activeTabId);
+      if (companionTab) {
+        browserContext.splitTabIds = [activeTabId, companionTab.id];
+      } else {
+        const newTab = tabManager.createTab(DEFAULT_NEWTAB_URL, 'New Tab', null, activeWsId);
+        browserContext.splitTabIds = [activeTabId, newTab.id];
       }
-      panes = wsTabs.slice(0, paneCount);
     }
 
-    panes.forEach(tab => {
-      let wv = this.engineAdapter.webviewMap.get(tab.id);
-      if (!wv) {
-        wv = this.engineAdapter.createWebview(tab);
-      }
-      wv.style.display = 'flex';
-      wv.classList.add('split-pane-visible');
-      if (tab.id === activeTabId) {
-        wv.classList.add('active-pane');
-      }
+    const leftTabId = browserContext.splitTabIds[0];
+    const rightTabId = browserContext.splitTabIds[1];
+    const leftTab = leftTabId ? tabManager.getTab(leftTabId) : null;
+    const rightTab = rightTabId ? tabManager.getTab(rightTabId) : null;
 
-      // Mark tab pills in sidebar as part of the split group
-      const pill1 = document.getElementById(`tab-pill-${tab.id}`);
-      if (pill1) {
-        pill1.classList.add('split-grouped');
-        if (tab.id === activeTabId) pill1.classList.add('split-active');
-      }
-      const pill2 = document.getElementById(`h-tab-pill-${tab.id}`);
-      if (pill2) {
-        pill2.classList.add('split-grouped');
-        if (tab.id === activeTabId) pill2.classList.add('split-active');
-      }
+    // Apply Split Ratio and Focus
+    this.applySplitRatioAndFocus();
 
-      wv.onmousedown = () => {
-        if (tabManager.getActiveTabId() !== tab.id) {
-          tabManager.activateTab(tab.id);
-          this.updateSplitViewWebviews(true, layout, panes.map(p => p.id));
+    // Hide any webviews not currently active in split panes
+    this.engineAdapter.webviewMap.forEach((wv, tId) => {
+      if (tId !== leftTabId && tId !== rightTabId) {
+        wv.style.display = 'none';
+        wv.classList.remove('active', 'split-pane-visible');
+        if (wv.parentNode && wv.parentNode !== this.dom.webviewContainer) {
+          this.dom.webviewContainer.appendChild(wv);
         }
-      };
+      }
     });
+
+    // Setup Left Pane
+    if (leftTab && leftTab.url && leftTab.url !== DEFAULT_NEWTAB_URL && leftTab.url !== BLANK_URL) {
+      if (this.dom.splitLeftTitle) this.dom.splitLeftTitle.textContent = leftTab.title || leftTab.url;
+      if (this.dom.splitLeftFavicon) {
+        const iconSrc = leftTab.favicon || 'assets/icon-symbol.svg';
+        this.dom.splitLeftFavicon.innerHTML = `<img src="${this.escapeHtml(iconSrc)}" width="13" height="13" onerror="this.src='assets/icon-symbol.svg'">`;
+      }
+      if (this.dom.splitLeftNewtab) this.dom.splitLeftNewtab.style.display = 'none';
+
+      let wv = this.engineAdapter.webviewMap.get(leftTab.id);
+      if (!wv) wv = this.engineAdapter.createWebview(leftTab);
+      if (wv && this.dom.splitLeftWebviewHost) {
+        Array.from(this.dom.splitLeftWebviewHost.children).forEach(ch => {
+          if (ch !== wv && ch.tagName === 'WEBVIEW') {
+            ch.style.display = 'none';
+            this.dom.webviewContainer.appendChild(ch);
+          }
+        });
+        wv.style.display = 'flex';
+        wv.classList.add('split-pane-visible');
+        if (this.dom.splitLeftWebviewHost !== wv.parentNode) {
+          this.dom.splitLeftWebviewHost.appendChild(wv);
+        }
+      }
+    } else {
+      if (this.dom.splitLeftTitle) this.dom.splitLeftTitle.textContent = 'New Tab';
+      if (this.dom.splitLeftFavicon) this.dom.splitLeftFavicon.innerHTML = `<img src="assets/icon-symbol.svg" width="13" height="13">`;
+      if (this.dom.splitLeftWebviewHost) {
+        Array.from(this.dom.splitLeftWebviewHost.children).forEach(ch => {
+          if (ch.tagName === 'WEBVIEW') {
+            ch.style.display = 'none';
+            this.dom.webviewContainer.appendChild(ch);
+          }
+        });
+      }
+      if (this.dom.splitLeftNewtab) {
+        this.dom.splitLeftNewtab.style.display = 'flex';
+        this.renderSplitQuickTabs(this.dom.splitLeftQuickTabs, 0);
+      }
+    }
+
+    // Setup Right Pane
+    if (rightTab && rightTab.url && rightTab.url !== DEFAULT_NEWTAB_URL && rightTab.url !== BLANK_URL) {
+      if (this.dom.splitRightTitle) this.dom.splitRightTitle.textContent = rightTab.title || rightTab.url;
+      if (this.dom.splitRightFavicon) {
+        const iconSrc = rightTab.favicon || 'assets/icon-symbol.svg';
+        this.dom.splitRightFavicon.innerHTML = `<img src="${this.escapeHtml(iconSrc)}" width="13" height="13" onerror="this.src='assets/icon-symbol.svg'">`;
+      }
+      if (this.dom.splitRightNewtab) this.dom.splitRightNewtab.style.display = 'none';
+
+      let wv = this.engineAdapter.webviewMap.get(rightTab.id);
+      if (!wv) wv = this.engineAdapter.createWebview(rightTab);
+      if (wv && this.dom.splitRightWebviewHost) {
+        Array.from(this.dom.splitRightWebviewHost.children).forEach(ch => {
+          if (ch !== wv && ch.tagName === 'WEBVIEW') {
+            ch.style.display = 'none';
+            this.dom.webviewContainer.appendChild(ch);
+          }
+        });
+        wv.style.display = 'flex';
+        wv.classList.add('split-pane-visible');
+        if (this.dom.splitRightWebviewHost !== wv.parentNode) {
+          this.dom.splitRightWebviewHost.appendChild(wv);
+        }
+      }
+    } else {
+      if (this.dom.splitRightTitle) this.dom.splitRightTitle.textContent = 'New Tab';
+      if (this.dom.splitRightFavicon) this.dom.splitRightFavicon.innerHTML = `<img src="assets/icon-symbol.svg" width="13" height="13">`;
+      if (this.dom.splitRightWebviewHost) {
+        Array.from(this.dom.splitRightWebviewHost.children).forEach(ch => {
+          if (ch.tagName === 'WEBVIEW') {
+            ch.style.display = 'none';
+            this.dom.webviewContainer.appendChild(ch);
+          }
+        });
+      }
+      if (this.dom.splitRightNewtab) {
+        this.dom.splitRightNewtab.style.display = 'flex';
+        this.renderSplitQuickTabs(this.dom.splitRightQuickTabs, 1);
+      }
+    }
   }
 
   /* ==========================================================================
@@ -7090,7 +7452,52 @@ class MyNetworkShell {
     if (this.dom.btnGithubRefresh) {
       this.dom.btnGithubRefresh.addEventListener('click', () => {
         githubHubService.fetchData();
+        if (githubHubService.username) githubHubService.fetchContributions(githubHubService.username);
         this.showToast('🔄 Refreshing GitHub Data...');
+      });
+    }
+
+    // 1-Click Desktop OAuth Login
+    if (this.dom.btnGhOauthLogin) {
+      this.dom.btnGhOauthLogin.addEventListener('click', async () => {
+        try {
+          this.showToast('🚀 Opening GitHub OAuth Sign-In...');
+          const res = await githubHubService.loginWithOAuth();
+          if (res && res.success) {
+            this.showToast(`✅ Welcome, @${githubHubService.username}! Signed in via GitHub OAuth.`);
+          }
+        } catch (err) {
+          this.showToast(`OAuth Error: ${err.message}`);
+        }
+      });
+    }
+
+    // Sync Scratchpad Notes to GitHub Gist
+    if (this.dom.btnGhSyncScratchpad) {
+      this.dom.btnGhSyncScratchpad.addEventListener('click', async () => {
+        const notes = scratchpadService.getNotes();
+        if (!notes || notes.trim().length === 0) {
+          this.showToast('Scratchpad is empty. Type some notes first!');
+          return;
+        }
+        try {
+          this.showToast('⏳ Syncing Scratchpad to private GitHub Gist...');
+          const res = await githubHubService.syncScratchpadToGist(notes);
+          if (res && res.htmlUrl) {
+            this.showToast(`✅ Synced to Gist: mynetwork-scratchpad.md`);
+          }
+        } catch (err) {
+          this.showToast(`Sync Failed: ${err.message}`);
+        }
+      });
+    }
+
+    // External profile click link
+    if (this.dom.ghLinkProfileExt) {
+      this.dom.ghLinkProfileExt.addEventListener('click', () => {
+        if (githubHubService.username) {
+          this.openExternalUrl(`https://github.com/${githubHubService.username}`);
+        }
       });
     }
 
@@ -7106,7 +7513,7 @@ class MyNetworkShell {
       });
     });
 
-    // Save PAT / Username Auth
+    // Save PAT / Username Auth Fallback
     if (this.dom.btnGhSaveAuth) {
       this.dom.btnGhSaveAuth.addEventListener('click', () => {
         const pat = this.dom.ghInputPat ? this.dom.ghInputPat.value.trim() : '';
@@ -7160,20 +7567,123 @@ class MyNetworkShell {
       this.renderGitHubHubUi(data);
     });
 
+    eventBus.on('github:contributions-updated', (data) => {
+      this.renderGitHubHeatmap(data);
+    });
+
     eventBus.on('github:loading-state', ({ isLoading }) => {
       if (this.dom.btnGithubRefresh) {
         this.dom.btnGithubRefresh.style.opacity = isLoading ? '0.5' : '1';
       }
     });
 
+    eventBus.on('github:contributions-loading', ({ isLoading }) => {
+      if (this.dom.btnRefreshHeatmap) {
+        this.dom.btnRefreshHeatmap.style.opacity = isLoading ? '0.5' : '1';
+      }
+    });
+
+    // Heatmap Widget DOM Bindings
+    this.initGitHubHeatmapWidget();
+
     // Populate initial state
     this.renderGitHubHubUi(githubHubService.getSummary());
+    if (githubHubService.contributions) {
+      this.renderGitHubHeatmap(githubHubService.contributions);
+    } else if (githubHubService.username) {
+      githubHubService.fetchContributions(githubHubService.username);
+    } else {
+      // Default to creator stats for instant preview
+      githubHubService.fetchContributions('TanishkGoswami');
+    }
+  }
+
+  initGitHubHeatmapWidget() {
+    if (this.dom.btnRefreshHeatmap) {
+      this.dom.btnRefreshHeatmap.addEventListener('click', () => {
+        const target = githubHubService.username || 'TanishkGoswami';
+        githubHubService.fetchContributions(target);
+        this.showToast(`🔄 Refreshing contributions for @${target}...`);
+      });
+    }
+
+    if (this.dom.btnOpenGhHubFromWidget) {
+      this.dom.btnOpenGhHubFromWidget.addEventListener('click', () => {
+        this.openGitHubHubModal();
+      });
+    }
+  }
+
+  renderGitHubHeatmap(data) {
+    if (!data) {
+      if (this.dom.ghHeatmapUserTag) this.dom.ghHeatmapUserTag.textContent = '@connect';
+      if (this.dom.ghHeatmapStreakVal) this.dom.ghHeatmapStreakVal.textContent = '0';
+      if (this.dom.ghHeatmapTotalVal) this.dom.ghHeatmapTotalVal.textContent = '0';
+      if (this.dom.ghHeatmapLongestVal) this.dom.ghHeatmapLongestVal.textContent = '0';
+      if (this.dom.ghHeatmapTodayVal) this.dom.ghHeatmapTodayVal.textContent = '0';
+      if (this.dom.ghHeatmapGrid) {
+        this.dom.ghHeatmapGrid.innerHTML = Array.from({ length: 364 }, () => `<div class="gh-day-cell level-0"></div>`).join('');
+      }
+      return;
+    }
+
+    if (this.dom.ghHeatmapUserTag) {
+      this.dom.ghHeatmapUserTag.textContent = `@${data.username || 'user'}`;
+    }
+    if (this.dom.ghHeatmapStreakVal) {
+      this.dom.ghHeatmapStreakVal.textContent = data.currentStreak || 0;
+    }
+    if (this.dom.ghHeatmapTotalVal) {
+      this.dom.ghHeatmapTotalVal.textContent = data.totalContributions ? Number(data.totalContributions).toLocaleString() : '0';
+    }
+    if (this.dom.ghHeatmapLongestVal) {
+      this.dom.ghHeatmapLongestVal.textContent = data.longestStreak || 0;
+    }
+    if (this.dom.ghHeatmapTodayVal) {
+      this.dom.ghHeatmapTodayVal.textContent = data.todayCount || 0;
+    }
+
+    // Render cells in 52 weeks grid
+    if (this.dom.ghHeatmapGrid && data.weeks) {
+      let cellsHtml = '';
+      data.weeks.forEach(week => {
+        if (week.contributionDays) {
+          week.contributionDays.forEach(day => {
+            const count = day.contributionCount || 0;
+            let level = 0;
+            if (count >= 10) level = 4;
+            else if (count >= 6) level = 3;
+            else if (count >= 3) level = 2;
+            else if (count >= 1) level = 1;
+
+            const dateStr = day.date ? new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+            const tooltip = `${count} contribution${count === 1 ? '' : 's'} on ${dateStr}`;
+
+            cellsHtml += `<div class="gh-day-cell level-${level}" title="${tooltip}" data-count="${count}" data-date="${day.date || ''}" onclick="window.myNetworkApp.openExternalUrl('https://github.com/${data.username}?tab=overview&from=${day.date}')"></div>`;
+          });
+        }
+      });
+      this.dom.ghHeatmapGrid.innerHTML = cellsHtml;
+    }
   }
 
   openGitHubHubModal() {
     if (!this.dom.modalGithubHub) return;
     if (this.dom.ghInputPat) this.dom.ghInputPat.value = githubHubService.token;
     if (this.dom.ghInputUsername) this.dom.ghInputUsername.value = githubHubService.username;
+    
+    const summary = githubHubService.getSummary();
+    this.renderGitHubHubUi(summary);
+
+    // Default to 'prs' tab if already connected, otherwise default to 'auth' settings tab
+    const defaultTab = summary.connected ? 'prs' : 'auth';
+    document.querySelectorAll('.github-tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-tab') === defaultTab);
+    });
+    document.querySelectorAll('.github-tab-pane').forEach(pane => {
+      pane.classList.toggle('active', pane.id === `gh-pane-${defaultTab}`);
+    });
+
     this.dom.modalGithubHub.showModal();
   }
 
@@ -7191,18 +7701,52 @@ class MyNetworkShell {
     if (this.dom.ghBadgePrs) this.dom.ghBadgePrs.textContent = data.prCount || 0;
     if (this.dom.ghBadgeIssues) this.dom.ghBadgeIssues.textContent = data.issueCount || 0;
 
+    // Render User Profile Hero Banner
+    if (this.dom.ghProfileHero) {
+      if (data.profile) {
+        this.dom.ghProfileHero.style.display = 'flex';
+        if (this.dom.ghAvatarImg) this.dom.ghAvatarImg.src = data.profile.avatar_url || 'assets/icon.svg';
+        if (this.dom.ghProfileName) this.dom.ghProfileName.textContent = data.profile.name || data.profile.login;
+        if (this.dom.ghProfileLogin) this.dom.ghProfileLogin.textContent = `@${data.profile.login}`;
+        if (this.dom.ghProfileBio) this.dom.ghProfileBio.textContent = data.profile.bio || '';
+        if (this.dom.ghStatRepos) this.dom.ghStatRepos.textContent = data.profile.public_repos || 0;
+        if (this.dom.ghStatFollowers) this.dom.ghStatFollowers.textContent = data.profile.followers || 0;
+      } else {
+        this.dom.ghProfileHero.style.display = 'none';
+      }
+    }
+
+    // Toggle Settings Auth Connected vs Disconnected View
+    if (this.dom.ghAuthConnectedBox && this.dom.ghAuthDisconnectedBox) {
+      if (data.connected) {
+        this.dom.ghAuthConnectedBox.style.display = 'flex';
+        this.dom.ghAuthDisconnectedBox.style.display = 'none';
+        if (this.dom.ghConnectedAccountTitle) {
+          this.dom.ghConnectedAccountTitle.textContent = `Connected as @${data.profile?.login || githubHubService.username || 'user'}`;
+        }
+      } else {
+        this.dom.ghAuthConnectedBox.style.display = 'none';
+        this.dom.ghAuthDisconnectedBox.style.display = 'flex';
+      }
+    }
+
     // Render PRs
     if (this.dom.ghPrsList) {
       if (!data.prs || data.prs.length === 0) {
-        this.dom.ghPrsList.innerHTML = `<div class="empty-state-muted">No open pull requests found.</div>`;
+        this.dom.ghPrsList.innerHTML = `<div class="empty-state-muted">${data.connected ? 'No open pull requests found.' : 'Sign in with GitHub to view your open Pull Requests.'}</div>`;
       } else {
         this.dom.ghPrsList.innerHTML = data.prs.map(pr => `
           <div class="github-item-card" onclick="window.myNetworkApp.openExternalUrl('${pr.html_url}')">
-            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
-              <span style="font-size: 12.5px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${pr.title}</span>
-              <span style="font-size: 11px; color: #64748b;">#${pr.number} by @${pr.user.login}</span>
+            <div style="display: flex; align-items: flex-start; gap: 10px; min-width: 0; flex: 1;">
+              <div style="width: 26px; height: 26px; border-radius: 6px; background: rgba(52, 199, 89, 0.12); color: #34c759; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+                <span style="font-size: 12.5px; font-weight: 650; color: var(--text-main, #1d1d1f); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${pr.title}</span>
+                <span style="font-size: 11px; color: var(--text-muted, #86868b);">#${pr.number} by @${pr.user.login}</span>
+              </div>
             </div>
-            <span style="font-size: 10px; font-weight: 700; background: rgba(16, 185, 129, 0.12); color: #10b981; padding: 2px 7px; border-radius: 8px;">OPEN PR</span>
+            <span style="font-size: 10px; font-weight: 700; background: rgba(52, 199, 89, 0.14); color: #248a3d; padding: 2px 7px; border-radius: 6px; flex-shrink: 0;">OPEN</span>
           </div>
         `).join('');
       }
@@ -7211,15 +7755,20 @@ class MyNetworkShell {
     // Render Issues
     if (this.dom.ghIssuesList) {
       if (!data.issues || data.issues.length === 0) {
-        this.dom.ghIssuesList.innerHTML = `<div class="empty-state-muted">No assigned issues found.</div>`;
+        this.dom.ghIssuesList.innerHTML = `<div class="empty-state-muted">${data.connected ? 'No assigned issues found.' : 'Sign in with GitHub to view assigned issues.'}</div>`;
       } else {
         this.dom.ghIssuesList.innerHTML = data.issues.map(issue => `
           <div class="github-item-card" onclick="window.myNetworkApp.openExternalUrl('${issue.html_url}')">
-            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
-              <span style="font-size: 12.5px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${issue.title}</span>
-              <span style="font-size: 11px; color: #64748b;">#${issue.number} in ${issue.repository_url ? issue.repository_url.split('/').slice(-1)[0] : 'Repo'}</span>
+            <div style="display: flex; align-items: flex-start; gap: 10px; min-width: 0; flex: 1;">
+              <div style="width: 26px; height: 26px; border-radius: 6px; background: rgba(0, 122, 255, 0.12); color: #007aff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+                <span style="font-size: 12.5px; font-weight: 650; color: var(--text-main, #1d1d1f); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${issue.title}</span>
+                <span style="font-size: 11px; color: var(--text-muted, #86868b);">#${issue.number} in ${issue.repository_url ? issue.repository_url.split('/').slice(-1)[0] : 'Repo'}</span>
+              </div>
             </div>
-            <span style="font-size: 10px; font-weight: 700; background: rgba(2, 132, 199, 0.12); color: #0284c7; padding: 2px 7px; border-radius: 8px;">ISSUE</span>
+            <span style="font-size: 10px; font-weight: 700; background: rgba(0, 122, 255, 0.14); color: #007aff; padding: 2px 7px; border-radius: 6px; flex-shrink: 0;">ISSUE</span>
           </div>
         `).join('');
       }
@@ -7228,15 +7777,44 @@ class MyNetworkShell {
     // Render Repos
     if (this.dom.ghReposList) {
       if (!data.repos || data.repos.length === 0) {
-        this.dom.ghReposList.innerHTML = `<div class="empty-state-muted">No repositories found.</div>`;
+        this.dom.ghReposList.innerHTML = `<div class="empty-state-muted">${data.connected ? 'No repositories found.' : 'Sign in with GitHub to browse your repositories.'}</div>`;
       } else {
+        const getLangColor = (lang) => {
+          switch ((lang || '').toLowerCase()) {
+            case 'javascript': return '#f1e05a';
+            case 'typescript': return '#3178c6';
+            case 'python': return '#3572A5';
+            case 'html': return '#e34c26';
+            case 'css': return '#563d7c';
+            case 'rust': return '#dea584';
+            case 'go': return '#00ADD8';
+            default: return '#007aff';
+          }
+        };
+
         this.dom.ghReposList.innerHTML = data.repos.map(repo => `
           <div class="github-item-card" onclick="window.myNetworkApp.openExternalUrl('${repo.html_url}')">
-            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
-              <span style="font-size: 12.5px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${repo.name}</span>
-              <span style="font-size: 11px; color: #64748b;">${repo.stagger_count || repo.stargazers_count || 0} stars • ${repo.language || 'Code'}</span>
+            <div style="display: flex; align-items: flex-start; gap: 10px; min-width: 0; flex: 1;">
+              <div style="width: 26px; height: 26px; border-radius: 6px; background: rgba(0, 0, 0, 0.05); color: var(--text-main, #1d1d1f); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 12.5px; font-weight: 650; color: var(--text-main, #1d1d1f); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${repo.name}</span>
+                  ${repo.private ? '<span style="font-size: 9.5px; font-weight: 700; background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px; color: var(--text-muted, #86868b);">PRIVATE</span>' : ''}
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-muted, #86868b);">
+                  <span style="display: inline-flex; align-items: center; gap: 4px;">
+                    <span style="width: 7px; height: 7px; border-radius: 50%; background: ${getLangColor(repo.language)};"></span>
+                    ${repo.language || 'Code'}
+                  </span>
+                  <span>•</span>
+                  <span>⭐ ${repo.stargazers_count || 0}</span>
+                  ${repo.forks_count ? `<span>•</span><span>🍴 ${repo.forks_count}</span>` : ''}
+                </div>
+              </div>
             </div>
-            <span style="font-size: 11px; color: #007aff;">Open ↗</span>
+            <span style="font-size: 11.5px; font-weight: 600; color: #007aff; flex-shrink: 0;">Open ↗</span>
           </div>
         `).join('');
       }
@@ -7249,6 +7827,8 @@ class MyNetworkShell {
     tabManager.createTab(url, 'GitHub', null, activeWsId);
     if (this.dom.modalGithubHub) this.dom.modalGithubHub.close();
   }
+
+
 
   /* ==========================================================================
      2. DEVELOPER API MOCK SERVER CONTROLLER
@@ -7635,6 +8215,168 @@ class MyNetworkShell {
   deleteMacro(macroId) {
     macroRecorderService.deleteMacro(macroId);
     this.renderMacroLibraryList();
+  }
+
+  /* ==========================================================================
+     5. CLAUDE COPILOT & AI ANALYTICS CONTROLLERS
+     ========================================================================== */
+  initClaudeCopilotController() {
+    this.aiDrawerController = new AiDrawerController(this);
+    this.aiDrawerController.init();
+  }
+
+  initAiAnalyticsController() {
+    this.aiAnalyticsController = new AiAnalyticsController(this);
+    this.aiAnalyticsController.init();
+  }
+
+  /* ==========================================================================
+     6. VS CODE / MACOS INTEGRATED BOTTOM STATUS BAR
+     ========================================================================== */
+  initStatusBarController() {
+    // 1. Workspace indicator
+    const updateWorkspaceLabel = () => {
+      const nameEl = document.getElementById('sb-active-workspace-name');
+      if (nameEl) {
+        const ws = workspaceService.getActiveWorkspace();
+        nameEl.textContent = ws ? ws.name : 'Personal';
+      }
+    };
+    updateWorkspaceLabel();
+    eventBus.on('workspace:changed', updateWorkspaceLabel);
+
+    const wsBadge = document.getElementById('sb-workspace-badge');
+    if (wsBadge) {
+      wsBadge.addEventListener('click', () => {
+        this.openWorkspaceModal();
+      });
+    }
+
+    // 2. Git branch / Hub
+    const gitBranchBtn = document.getElementById('sb-git-branch');
+    if (gitBranchBtn) {
+      gitBranchBtn.addEventListener('click', () => {
+        this.openGitHubHubModal();
+      });
+    }
+
+    // 3. Network online/offline status
+    const updateNetworkStatus = () => {
+      const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+      const dot = document.getElementById('sb-network-dot');
+      const txt = document.getElementById('sb-network-text');
+      if (dot) dot.className = isOnline ? 'sb-dot-online' : 'sb-dot-offline';
+      if (txt) txt.textContent = isOnline ? 'Online' : 'Offline';
+    };
+    updateNetworkStatus();
+    window.addEventListener('online', updateNetworkStatus);
+    window.addEventListener('offline', updateNetworkStatus);
+
+    // 4. Tabs count & Memory estimator
+    const updateTabsInfo = () => {
+      const tabsInfo = document.getElementById('sb-tabs-info');
+      if (tabsInfo) {
+        const tabs = tabManager.getAllTabs();
+        const tabCount = tabs.length;
+        const ramEstimate = Math.max(85, tabCount * 38 + 45);
+        tabsInfo.textContent = `⚡ ${tabCount} Tab${tabCount === 1 ? '' : 's'} • ~${ramEstimate} MB`;
+      }
+    };
+    updateTabsInfo();
+    eventBus.on('tab:opened', updateTabsInfo);
+    eventBus.on('tab:closed', updateTabsInfo);
+    eventBus.on('tab:switched', updateTabsInfo);
+
+    // 5. AI Model and Tokens status
+    const updateAiStatusBar = () => {
+      const activeKey = claudeService.apiKey || '';
+      const { aiProviderEngine } = require('../../features/intelligence/ai-provider-engine');
+      const { aiTelemetryService } = require('../../features/intelligence/ai-telemetry-service');
+      const provider = aiProviderEngine.detectProvider(activeKey);
+
+      const modelLabel = document.getElementById('sb-ai-model-label');
+      if (modelLabel) {
+        let label = 'Gemini Flash';
+        if (provider === 'gemini') label = 'Gemini Flash';
+        else if (provider === 'openrouter') label = 'OpenRouter AI';
+        else if (provider === 'anthropic') label = 'Claude 3.5';
+        modelLabel.textContent = label;
+      }
+
+      const quotaLabel = document.getElementById('sb-ai-quota-label');
+      if (quotaLabel) {
+        let quota = '100% Free';
+        if (provider === 'openrouter') quota = 'Live Credit';
+        else if (provider === 'anthropic') quota = 'Direct API';
+        quotaLabel.textContent = quota;
+      }
+
+      const tokensCount = document.getElementById('sb-tokens-count');
+      if (tokensCount) {
+        const stats = aiTelemetryService.getSummaryStats('all');
+        tokensCount.textContent = stats.totalTokens > 1000 ? `${(stats.totalTokens / 1000).toFixed(1)}k` : (stats.totalTokens || 0);
+      }
+    };
+    updateAiStatusBar();
+    eventBus.on('ai:telemetry-updated', updateAiStatusBar);
+
+    // 6. Click handlers
+    const aiBadge = document.getElementById('sb-ai-status-badge');
+    const aiTokens = document.getElementById('sb-ai-tokens');
+    const openAiAnalytics = () => this.navigateCurrentTab('mynetwork://ai-analytics');
+    if (aiBadge) aiBadge.addEventListener('click', openAiAnalytics);
+    if (aiTokens) aiTokens.addEventListener('click', openAiAnalytics);
+
+    const copilotBtn = document.getElementById('sb-claude-copilot-btn');
+    if (copilotBtn) {
+      copilotBtn.addEventListener('click', () => {
+        eventBus.emit('ui:toggle-ai-drawer');
+      });
+    }
+
+    const settingsBtn = document.getElementById('sb-btn-settings');
+    if (settingsBtn) {
+      settingsBtn.addEventListener('click', () => {
+        this.navigateCurrentTab('mynetwork://settings');
+      });
+    }
+
+    const diagBtn = document.getElementById('sb-diagnostics');
+    if (diagBtn) {
+      diagBtn.addEventListener('click', () => {
+        this.openShieldPopover();
+      });
+    }
+
+    // Zoom level toggle
+    const zoomBtn = document.getElementById('sb-zoom-level');
+    if (zoomBtn) {
+      this.currentZoomFactor = 1.0;
+      zoomBtn.addEventListener('click', () => {
+        const activeTab = tabManager.getActiveTab();
+        if (!activeTab) return;
+        const wv = this.engineAdapter.getWebview(activeTab.id);
+        if (!wv) return;
+
+        if (this.currentZoomFactor === 1.0) this.currentZoomFactor = 1.25;
+        else if (this.currentZoomFactor === 1.25) this.currentZoomFactor = 1.5;
+        else if (this.currentZoomFactor === 1.5) this.currentZoomFactor = 0.8;
+        else this.currentZoomFactor = 1.0;
+
+        wv.setZoomFactor(this.currentZoomFactor);
+        const zoomText = document.getElementById('sb-zoom-text');
+        if (zoomText) zoomText.textContent = `${Math.round(this.currentZoomFactor * 100)}%`;
+      });
+    }
+
+    this.applyStatusBarPreferences();
+  }
+
+  /* ==========================================================================
+     macOS AUTHENTIC WI-FI & NETWORK PERFORMANCE CONTROLLER
+     ========================================================================== */
+  initWifiController() {
+    this.wifiPopoverController = new WifiPopoverController(this);
   }
 }
 

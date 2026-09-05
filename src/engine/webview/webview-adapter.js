@@ -77,9 +77,11 @@ class WebviewAdapter {
     });
 
     webview.addEventListener('did-start-loading', () => {
-      const currentUrl = webview.getURL();
-      eventBus.emit(EVENTS.NAV_START, { tabId, url: currentUrl });
-      eventBus.emit(EVENTS.NAV_PROGRESS, { percentage: 30 });
+      const currentUrl = webview.getURL() || '';
+      if (!currentUrl.startsWith('mynetwork://') && currentUrl !== 'about:blank') {
+        eventBus.emit(EVENTS.NAV_START, { tabId, url: currentUrl });
+        eventBus.emit(EVENTS.NAV_PROGRESS, { percentage: 35 });
+      }
     });
 
     webview.addEventListener('page-title-updated', (e) => {
@@ -255,6 +257,12 @@ class WebviewAdapter {
         canGoBack: webview.canGoBack(),
         canGoForward: webview.canGoForward()
       });
+    });
+
+    webview.addEventListener('did-stop-loading', () => {
+      const { tabManager } = require('../../core/tabs/tab-manager');
+      tabManager.updateTab(tabId, { isLoading: false });
+      eventBus.emit(EVENTS.NAV_PROGRESS, { percentage: 100 });
     });
 
     webview.addEventListener('did-fail-load', (e) => {
@@ -1034,9 +1042,11 @@ class WebviewAdapter {
     this.webviewMap.forEach((wv, id) => {
       if (id === tabId) {
         wv.classList.add('active');
+        wv.style.display = 'flex';
         this.injectAutofill(wv);
       } else {
         wv.classList.remove('active');
+        wv.style.display = 'none';
       }
     });
   }

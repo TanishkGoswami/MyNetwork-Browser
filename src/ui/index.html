@@ -206,6 +206,93 @@
 
       <!-- Right Actions -->
       <div class="top-right-tools">
+        <!-- macOS Wi-Fi & Network Performance Indicator -->
+        <div class="mac-wifi-tool-wrapper" style="position: relative;">
+          <button id="btn-topbar-wifi" class="nav-btn mac-wifi-nav-btn" title="Wi-Fi & Network Performance">
+            <svg class="mac-wifi-icon" id="topbar-wifi-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+              <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+              <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+              <circle cx="12" cy="20" r="1.5" fill="currentColor"/>
+            </svg>
+          </button>
+
+          <!-- macOS AUTHENTIC WI-FI CONTROL CENTER POPOVER -->
+          <div id="mac-wifi-popover" class="mac-wifi-popover" style="display: none;">
+            <!-- Top Switch Header -->
+            <div class="mac-wifi-card-header">
+              <div class="mac-wifi-title-group">
+                <div class="mac-wifi-circle-badge">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+                    <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+                    <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                    <circle cx="12" cy="20" r="1.5" fill="currentColor"/>
+                  </svg>
+                </div>
+                <div class="mac-wifi-header-text">
+                  <span class="mac-wifi-heading">Wi-Fi</span>
+                  <span class="mac-wifi-heading-sub" id="wifi-pop-sub-state">Connected</span>
+                </div>
+              </div>
+              <label class="mac-switch" title="Toggle Wi-Fi">
+                <input type="checkbox" id="wifi-monitor-toggle" checked>
+                <span class="mac-switch-slider"></span>
+              </label>
+            </div>
+
+            <!-- Active Connected Network Card -->
+            <div class="mac-wifi-section-label">Known Network</div>
+            <div class="mac-wifi-network-item active">
+              <div class="mac-wifi-item-left">
+                <svg class="mac-wifi-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#007aff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <div class="mac-wifi-item-info">
+                  <span class="mac-wifi-ssid-name" id="wifi-pop-ssid">Wi-Fi (5GHz)</span>
+                  <span class="mac-wifi-ssid-sub" id="wifi-pop-status-text">Connected • Internet Access</span>
+                </div>
+              </div>
+              <div class="mac-wifi-item-right">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1.5" fill="currentColor"/></svg>
+              </div>
+            </div>
+
+            <!-- macOS Inset Grouped Details Box -->
+            <div class="mac-wifi-section-label" style="margin-top: 10px;">Performance & Details</div>
+            <div class="mac-wifi-grouped-box">
+              <div class="mac-wifi-row">
+                <span class="mac-wifi-row-label">Download Speed</span>
+                <span class="mac-wifi-row-val highlight-blue" id="wifi-metric-downlink">80.0 Mbps</span>
+              </div>
+              <div class="mac-wifi-row">
+                <span class="mac-wifi-row-label">Ping Latency</span>
+                <span class="mac-wifi-row-val highlight-green" id="wifi-metric-ping">18 ms (Low)</span>
+              </div>
+              <div class="mac-wifi-row">
+                <span class="mac-wifi-row-label">Network Quality</span>
+                <span class="mac-wifi-row-val" id="wifi-metric-quality">Excellent (98%)</span>
+              </div>
+              <div class="mac-wifi-row">
+                <span class="mac-wifi-row-label">IP Address</span>
+                <span class="mac-wifi-row-val" id="wifi-detail-ip">192.168.1.105</span>
+              </div>
+              <div class="mac-wifi-row">
+                <span class="mac-wifi-row-label">Security & Protocol</span>
+                <span class="mac-wifi-row-val" id="wifi-detail-proto">WPA3 • HTTP/3</span>
+              </div>
+            </div>
+
+            <!-- Actions Footer -->
+            <div class="mac-wifi-actions-footer">
+              <button class="mac-wifi-action-btn primary" id="btn-wifi-speedtest">
+                <span id="wifi-speedtest-label">Test Speed</span>
+              </button>
+              <button class="mac-wifi-action-btn secondary" id="btn-wifi-copy-info" title="Copy Diagnostics">
+                Copy Info
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- Toggle Split View -->
         <button id="btn-split-toggle" class="nav-btn" title="Toggle Split View (Ctrl+Shift+S)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
@@ -352,30 +439,28 @@
         <!-- Top Action Row -->
         <div class="sidebar-top-bar">
           <button id="sidebar-collapse-icon-btn" class="sidebar-icon-btn" title="Collapse / Expand Sidebar (Ctrl+S)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="4" y1="6" x2="14" y2="6"/>
-              <line x1="4" y1="12" x2="11" y2="12"/>
-              <line x1="4" y1="18" x2="14" y2="18"/>
-              <polyline points="15 9 18 12 15 15"/>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="4"/>
+              <line x1="9" y1="3" x2="9" y2="21"/>
             </svg>
           </button>
 
           <div class="sidebar-top-actions">
             <!-- Workspaces / Projects Dashboard Icon -->
             <button class="sidebar-icon-btn" id="btn-workspaces" title="Projects & Workspaces (Ctrl+Shift+P)">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="7" height="7"/>
-                <rect x="14" y="3" width="7" height="7"/>
-                <rect x="14" y="14" width="7" height="7"/>
-                <rect x="3" y="14" width="7" height="7"/>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7.5" height="7.5" rx="2"/>
+                <rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/>
+                <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/>
+                <rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/>
               </svg>
             </button>
 
             <!-- Search Tabs Icon -->
-            <button class="sidebar-icon-btn" id="btn-search-tabs" title="Focus Omnibox (Ctrl+L)">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            <button class="sidebar-icon-btn" id="btn-search-tabs" title="Focus Omnibox Search (Ctrl+L)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="10.5" cy="10.5" r="7.5"/>
+                <line x1="21" y1="21" x2="15.8" y2="15.8"/>
               </svg>
             </button>
           </div>
@@ -405,7 +490,7 @@
           </div>
           <div class="sidebar-ws-dropdown-footer">
             <button id="btn-manage-projects-nav" class="mac-btn-sub">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
               <span>Projects Board</span>
             </button>
             <button id="btn-create-project-modal-trigger" class="mac-btn-sub primary">
@@ -423,22 +508,22 @@
         <!-- Tab Actions Row -->
         <div class="sidebar-tab-actions-row">
           <button id="btn-add-tab" class="add-tab-btn" title="New Tab (Ctrl+T)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"/>
               <line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
             <span>New Tab</span>
           </button>
           <button id="btn-add-ghost-tab" class="ghost-tab-btn" title="New Disposable Ghost Tab (Ctrl+Shift+G) - Auto-destructs on close">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 10h.01"/><path d="M15 10h.01"/><path d="M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 10h.01"/><path d="M15 10h.01"/><path d="M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/></svg>
             <span>Ghost</span>
           </button>
         </div>
 
-        <!-- Bottom Sidebar Tools -->
+        <!-- Bottom Sidebar Tools (macOS Style List) -->
         <div class="sidebar-bottom-tools">
-          <button class="sidebar-footer-btn" id="btn-split-toggle" title="Split View Mode">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+          <button class="sidebar-footer-btn" id="btn-sidebar-split-toggle" title="Toggle Split View Mode (Ctrl+Shift+S)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
             <span class="footer-btn-label">Split View</span>
           </button>
           
@@ -449,17 +534,17 @@
           </button>
 
           <button class="sidebar-footer-btn" id="btn-sidebar-mock-server" title="API Mock Server (Ctrl+M)">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="7" rx="2"/><rect x="2" y="14" width="20" height="7" rx="2"/><circle cx="6" cy="6.5" r="1" fill="currentColor"/><circle cx="6" cy="17.5" r="1" fill="currentColor"/><line x1="10" y1="6.5" x2="18" y2="6.5"/><line x1="10" y1="17.5" x2="18" y2="17.5"/></svg>
             <span class="footer-btn-label">Mock API</span>
           </button>
 
           <button class="sidebar-footer-btn" id="btn-sidebar-vault" title="Workspace Secrets & .env (Ctrl+Shift+E)">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="3"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             <span class="footer-btn-label">Vault</span>
           </button>
 
           <button class="sidebar-footer-btn" id="btn-sidebar-macros" title="Automation & Macros (Ctrl+Shift+R)">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
             <span class="footer-btn-label">Macros</span>
           </button>
         </div>
@@ -627,9 +712,148 @@
                   </div>
                 </div>
 
+                <!-- WIDGET 5: GitHub Live 365-Day Contribution Heatmap -->
+                <div class="widget-card widget-card-wide" id="widget-github-heatmap">
+                  <div class="widget-header">
+                    <div class="widget-title">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color: #24292f;"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                      <span>GitHub Activity</span>
+                      <span class="gh-user-handle-tag" id="gh-heatmap-user-tag" title="Connected GitHub Account">@TanishkGoswami</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <div class="gh-streak-badge" id="gh-heatmap-streak-badge" title="Current Daily Commit Streak">
+                        <span class="gh-streak-flame">🔥</span>
+                        <span id="gh-heatmap-streak-val">0</span> Days
+                      </div>
+                      <button class="widget-action-btn" id="btn-refresh-heatmap" title="Refresh Contributions">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+                      </button>
+                      <button class="widget-action-btn" id="btn-open-gh-hub-from-widget" title="Open GitHub Developer Hub">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="gh-heatmap-body" id="gh-heatmap-body">
+                    <div class="gh-heatmap-scroll-area">
+                      <div class="gh-heatmap-months-labels" id="gh-heatmap-months">
+                        <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
+                      </div>
+                      <div class="gh-heatmap-grid" id="gh-heatmap-grid">
+                        <!-- 52 columns of 7 day squares populated dynamically -->
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="gh-heatmap-footer">
+                    <div class="gh-heatmap-stats">
+                      <span id="gh-heatmap-total-label"><strong id="gh-heatmap-total-val">0</strong> contributions in the last year</span>
+                      <span class="gh-stat-sep">•</span>
+                      <span>Longest Streak: <strong id="gh-heatmap-longest-val">0</strong> days</span>
+                      <span class="gh-stat-sep">•</span>
+                      <span>Today: <strong id="gh-heatmap-today-val">0</strong> commits</span>
+                    </div>
+                    <div class="gh-heatmap-legend">
+                      <span>Less</span>
+                      <div class="legend-cell level-0"></div>
+                      <div class="legend-cell level-1"></div>
+                      <div class="legend-cell level-2"></div>
+                      <div class="legend-cell level-3"></div>
+                      <div class="legend-cell level-4"></div>
+                      <span>More</span>
+                    </div>
+                  </div>
+                </div>
+
               </section>
 
             </div>
+          </div>
+
+          <!-- DEDICATED DYNAMIC ARC/ZEN-STYLE SPLIT VIEW SYSTEM -->
+          <div class="split-view-container" id="split-view-container" style="display: none;">
+            
+            <!-- LEFT PANE -->
+            <div class="split-pane" id="split-pane-left" data-pane-index="0">
+              <div class="split-pane-header" id="split-pane-left-header">
+                <div class="split-pane-title-wrap">
+                  <div class="split-pane-favicon" id="split-left-favicon">
+                    <img src="assets/icon-symbol.svg" alt="" width="14" height="14">
+                  </div>
+                  <span class="split-pane-title" id="split-left-title">Left Tab</span>
+                </div>
+                <div class="split-pane-actions">
+                  <button class="split-pane-btn btn-split-fullscreen" id="btn-split-left-fullscreen" title="Maximize Left Tab (Exit Split View)">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                  </button>
+                  <button class="split-pane-btn btn-split-close" id="btn-split-left-close" title="Close Left Pane">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="split-pane-content" id="split-pane-left-content">
+                <!-- Mounted Webview Slot -->
+                <div class="split-pane-webview-host" id="split-left-webview-host"></div>
+                <!-- Embedded NewTab Launcher -->
+                <div class="split-embedded-newtab" id="split-left-newtab" style="display: none;">
+                  <div class="split-newtab-card">
+                    <div class="split-newtab-icon">✨</div>
+                    <h3>Open page in Left Pane</h3>
+                    <div class="split-newtab-searchbox">
+                      <input type="text" class="split-newtab-input" id="split-left-search-input" placeholder="Search Google or type a URL..." autocomplete="off">
+                      <button class="split-newtab-go-btn" id="btn-split-left-go">Open</button>
+                    </div>
+                    <div class="split-newtab-quick-tabs" id="split-left-quick-tabs">
+                      <!-- Populated dynamically with open tabs in current workspace -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- DRAGGABLE SPLIT RESIZE DIVIDER -->
+            <div class="split-divider" id="split-divider" title="Drag to resize split panes • Double-click to reset 50/50">
+              <div class="split-divider-handle"></div>
+            </div>
+
+            <!-- RIGHT PANE -->
+            <div class="split-pane" id="split-pane-right" data-pane-index="1">
+              <div class="split-pane-header" id="split-pane-right-header">
+                <div class="split-pane-title-wrap">
+                  <div class="split-pane-favicon" id="split-right-favicon">
+                    <img src="assets/icon-symbol.svg" alt="" width="14" height="14">
+                  </div>
+                  <span class="split-pane-title" id="split-right-title">Right Tab</span>
+                </div>
+                <div class="split-pane-actions">
+                  <button class="split-pane-btn btn-split-fullscreen" id="btn-split-right-fullscreen" title="Maximize Right Tab (Exit Split View)">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                  </button>
+                  <button class="split-pane-btn btn-split-close" id="btn-split-right-close" title="Close Right Pane">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="split-pane-content" id="split-pane-right-content">
+                <!-- Mounted Webview Slot -->
+                <div class="split-pane-webview-host" id="split-right-webview-host"></div>
+                <!-- Embedded NewTab Launcher -->
+                <div class="split-embedded-newtab" id="split-right-newtab" style="display: none;">
+                  <div class="split-newtab-card">
+                    <div class="split-newtab-icon">✨</div>
+                    <h3>Open page in Right Pane</h3>
+                    <div class="split-newtab-searchbox">
+                      <input type="text" class="split-newtab-input" id="split-right-search-input" placeholder="Search Google or type a URL..." autocomplete="off">
+                      <button class="split-newtab-go-btn" id="btn-split-right-go">Open</button>
+                    </div>
+                    <div class="split-newtab-quick-tabs" id="split-right-quick-tabs">
+                      <!-- Populated dynamically with open tabs in current workspace -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
 
           <!-- DEDICATED SETTINGS VIEW (mynetwork://settings) - macOS System Settings Style -->
@@ -794,13 +1018,13 @@
                       <span class="setting-desc">Primary accent color for active tabs, buttons, and highlights.</span>
                     </div>
                     <div class="setting-control theme-accent-picker">
-                      <button class="accent-color-btn active" data-color="blue" style="background: #2563eb;" title="Ocean Blue"></button>
-                      <button class="accent-color-btn" data-color="indigo" style="background: #4f46e5;" title="Electric Indigo"></button>
-                      <button class="accent-color-btn" data-color="purple" style="background: #7c3aed;" title="Royal Purple"></button>
-                      <button class="accent-color-btn" data-color="emerald" style="background: #059669;" title="Emerald Green"></button>
-                      <button class="accent-color-btn" data-color="amber" style="background: #d97706;" title="Warm Amber"></button>
-                      <button class="accent-color-btn" data-color="rose" style="background: #e11d48;" title="Rose Red"></button>
-                      <button class="accent-color-btn" data-color="slate" style="background: #475569;" title="Slate Monochrome"></button>
+                      <button class="accent-color-btn active" data-color="blue" style="background: #007aff;" title="macOS Blue" aria-label="Blue Accent"></button>
+                      <button class="accent-color-btn" data-color="indigo" style="background: #5856d6;" title="Electric Indigo" aria-label="Indigo Accent"></button>
+                      <button class="accent-color-btn" data-color="purple" style="background: #af52de;" title="Royal Purple" aria-label="Purple Accent"></button>
+                      <button class="accent-color-btn" data-color="emerald" style="background: #34c759;" title="Emerald Green" aria-label="Emerald Accent"></button>
+                      <button class="accent-color-btn" data-color="amber" style="background: #ff9500;" title="Warm Amber" aria-label="Amber Accent"></button>
+                      <button class="accent-color-btn" data-color="rose" style="background: #ff2d55;" title="Rose Red" aria-label="Rose Accent"></button>
+                      <button class="accent-color-btn" data-color="slate" style="background: #8e8e93;" title="Slate Monochrome" aria-label="Slate Accent"></button>
                     </div>
                   </div>
 
@@ -828,6 +1052,82 @@
                       <label class="mac-toggle-switch">
                         <input type="checkbox" id="setting-compact-sidebar">
                         <span class="mac-toggle-slider"></span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 2b. macOS Bottom Status Bar Customization -->
+                <div class="settings-subsection-header" style="margin-top: 24px; margin-bottom: 8px;">
+                  <h3 style="font-size: 13.5px; font-weight: 650; color: #0f172a; margin: 0 0 4px 0;">macOS Bottom Status Bar</h3>
+                  <p style="font-size: 12px; color: #64748b; margin: 0;">Configure visibility and choose which telemetry widgets, badges, and quick toggles appear in the footer.</p>
+                </div>
+
+                <div class="mac-card-group">
+                  <!-- Master Status Bar Toggle -->
+                  <div class="mac-setting-row">
+                    <div class="setting-info">
+                      <span class="setting-title">Show Bottom Status Bar</span>
+                      <span class="setting-desc">Enable or disable the VS Code / macOS style bottom footer bar across all tabs.</span>
+                    </div>
+                    <div class="setting-control">
+                      <label class="mac-toggle-switch">
+                        <input type="checkbox" id="setting-show-statusbar" checked>
+                        <span class="mac-toggle-slider"></span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- Granular Status Bar Items Checklist -->
+                  <div class="mac-setting-row" id="row-statusbar-items" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+                    <div class="setting-info">
+                      <span class="setting-title">Status Bar Widgets & Badges</span>
+                      <span class="setting-desc">Select which items to keep active on the footer bar:</span>
+                    </div>
+                    <div class="mac-checkbox-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; width: 100%; margin-top: 4px;">
+                      <label class="mac-checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
+                        <input type="checkbox" class="mac-sb-item-toggle" data-item="workspace" checked>
+                        <span>Workspace Remote Badge</span>
+                      </label>
+                      <label class="mac-checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
+                        <input type="checkbox" class="mac-sb-item-toggle" data-item="git" checked>
+                        <span>Git Branch & Sync</span>
+                      </label>
+                      <label class="mac-checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
+                        <input type="checkbox" class="mac-sb-item-toggle" data-item="diagnostics" checked>
+                        <span>Shield & Diagnostics</span>
+                      </label>
+                      <label class="mac-checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
+                        <input type="checkbox" class="mac-sb-item-toggle" data-item="network" checked>
+                        <span>Live Network State</span>
+                      </label>
+                      <label class="mac-checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
+                        <input type="checkbox" class="mac-sb-item-toggle" data-item="tabsInfo" checked>
+                        <span>Tabs & RAM Monitor</span>
+                      </label>
+                      <label class="mac-checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
+                        <input type="checkbox" class="mac-sb-item-toggle" data-item="aiModel" checked>
+                        <span>AI Model & Quota Pill</span>
+                      </label>
+                      <label class="mac-checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
+                        <input type="checkbox" class="mac-sb-item-toggle" data-item="aiTokens" checked>
+                        <span>Session Token Count</span>
+                      </label>
+                      <label class="mac-checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
+                        <input type="checkbox" class="mac-sb-item-toggle" data-item="copilot" checked>
+                        <span>Copilot Drawer Toggle</span>
+                      </label>
+                      <label class="mac-checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
+                        <input type="checkbox" class="mac-sb-item-toggle" data-item="zoom" checked>
+                        <span>Zoom Level Reset</span>
+                      </label>
+                      <label class="mac-checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
+                        <input type="checkbox" class="mac-sb-item-toggle" data-item="settings" checked>
+                        <span>Settings Shortcut</span>
+                      </label>
+                      <label class="mac-checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
+                        <input type="checkbox" class="mac-sb-item-toggle" data-item="bell" checked>
+                        <span>Activity Bell</span>
                       </label>
                     </div>
                   </div>
@@ -1487,77 +1787,368 @@
             </div>
           </div>
 
-        </div>
-      </main>
+          <!-- DEDICATED AI INTELLIGENCE & TELEMETRY DASHBOARD (mynetwork://ai-analytics) -->
+          <div class="dedicated-view ai-analytics-view" id="dedicated-ai-analytics-view" style="display: none;">
+            <div class="ai-analytics-page-wrapper">
+              <header class="mac-view-header">
+                <div class="mac-header-left">
+                  <button id="btn-analytics-back" class="mac-nav-back-btn" title="Back to Workspace" style="margin-right: 8px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                  </button>
+                  <div class="projects-title-wrapper">
+                    <div class="ai-analytics-icon-badge">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    </div>
+                    <div>
+                      <h2>AI Telemetry & Token Analytics</h2>
+                      <p class="ai-analytics-subline">Real-time model tracking, token throughput, API latency, and provider quotas</p>
+                    </div>
+                  </div>
+                </div>
 
-      <!-- ASK CLAUDE AI ASSISTANT DRAWER -->
-      <aside class="ai-drawer" id="ai-drawer">
-        <div class="drawer-header">
-          <div class="drawer-title-group">
-            <div class="ai-icon-orb claude-orb">
-              <svg width="15" height="15" viewBox="0 0 24 24">
-                <path fill="#ffffff" d="m12 2.5 1.8 6.2c.4 1.5 1.6 2.7 3.1 3.1l6.2 1.8-6.2 1.8c-1.5.4-2.7 1.6-3.1 3.1L12 22.5l-1.8-6.2c-.4-1.5-1.6-2.7-3.1-3.1L.9 11.4l6.2-1.8c1.5-.4 2.7-1.6 3.1-3.1L12 2.5z"/>
-              </svg>
+                <div class="mac-header-center" style="display: flex; gap: 8px; align-items: center;">
+                  <span class="ai-status-pill" id="ai-analytics-active-model">Google Gemini Flash</span>
+                  <span class="ai-quota-pill" id="ai-analytics-live-balance">100% Free Tier Active</span>
+                </div>
+
+                <div class="mac-header-right" style="display: flex; gap: 6px; align-items: center;">
+                  <select id="ai-analytics-time-range" class="mac-select" style="height: 28px; font-size: 11.5px; padding: 0 8px;">
+                    <option value="24h">Past 24 Hours</option>
+                    <option value="7d">Past 7 Days</option>
+                    <option value="14d" selected>Past 14 Days</option>
+                    <option value="28d">Past 28 Days</option>
+                    <option value="all">All Time</option>
+                  </select>
+
+                  <button class="mac-btn-sub" id="btn-ai-analytics-refresh" title="Refresh Telemetry">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                  </button>
+                  <button class="mac-btn-sub" id="btn-ai-analytics-export" title="Export Telemetry JSON">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <span>Export JSON</span>
+                  </button>
+                  <button class="mac-btn-sub" id="btn-ai-analytics-clear" title="Clear History" style="color: #e11d48;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </button>
+                </div>
+              </header>
+
+              <!-- Analytics Main Canvas -->
+              <div class="ai-analytics-scroll-container">
+                
+                <!-- 1. Top 4 Metric Stat Cards -->
+                <div class="ai-metrics-grid">
+                  <div class="ai-stat-card">
+                    <div class="ai-stat-header">
+                      <span class="ai-stat-title">Total API Requests</span>
+                      <span class="stat-badge badge-success" id="stat-success-rate-badge">100% OK</span>
+                    </div>
+                    <div class="ai-stat-number" id="stat-total-requests">0</div>
+                    <div class="ai-stat-sub" id="stat-success-rate">100% Success Rate</div>
+                  </div>
+
+                  <div class="ai-stat-card">
+                    <div class="ai-stat-header">
+                      <span class="ai-stat-title">Tokens Consumed</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    </div>
+                    <div class="ai-stat-number" id="stat-total-tokens">0</div>
+                    <div class="ai-stat-sub" id="stat-tokens-breakdown">In: 0 • Out: 0</div>
+                  </div>
+
+                  <div class="ai-stat-card">
+                    <div class="ai-stat-header">
+                      <span class="ai-stat-title">Average Latency</span>
+                      <span class="stat-badge badge-success" id="stat-latency-speed">Ultra Fast</span>
+                    </div>
+                    <div class="ai-stat-number" id="stat-avg-latency">—</div>
+                    <div class="ai-stat-sub">Round-trip response time</div>
+                  </div>
+
+                  <div class="ai-stat-card">
+                    <div class="ai-stat-header">
+                      <span class="ai-stat-title">API Errors</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    </div>
+                    <div class="ai-stat-number" id="stat-total-errors" style="color: #e11d48;">0</div>
+                    <div class="ai-stat-sub" id="stat-error-breakdown">0 API errors recorded</div>
+                  </div>
+                </div>
+
+                <!-- 2. Interactive Charts & Quotas Section -->
+                <div class="ai-charts-grid">
+                  
+                  <!-- Left: Time Series Charts -->
+                  <div class="ai-charts-left-col">
+                    <div class="ai-chart-card">
+                      <div class="ai-chart-header">
+                        <div class="ai-chart-title">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0071e3" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                          <span>Request Activity Timeline</span>
+                        </div>
+                        <span class="ai-chart-legend-tag"><span class="legend-dot blue"></span> Requests & Success</span>
+                      </div>
+                      <div class="ai-chart-body" id="chart-requests-timeline" style="height: 160px;"></div>
+                    </div>
+
+                    <div class="ai-chart-card">
+                      <div class="ai-chart-header">
+                        <div class="ai-chart-title">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                          <span>Token Throughput (Input vs. Output Tokens)</span>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                          <span class="ai-chart-legend-tag"><span class="legend-dot blue"></span> Input</span>
+                          <span class="ai-chart-legend-tag"><span class="legend-dot purple"></span> Output</span>
+                        </div>
+                      </div>
+                      <div class="ai-chart-body" id="chart-tokens-volume" style="height: 160px;"></div>
+                    </div>
+                  </div>
+
+                  <!-- Right: Live Quotas & Model Donut -->
+                  <div class="ai-charts-right-col">
+                    <div class="ai-chart-card" id="ai-gemini-quota-card">
+                      <div class="ai-chart-header">
+                        <div class="ai-chart-title">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                          <span>Google AI Studio Free Quotas</span>
+                        </div>
+                        <span class="stat-badge badge-success">Active</span>
+                      </div>
+                      
+                      <div class="ai-quota-items">
+                        <div class="quota-item">
+                          <div class="quota-item-header">
+                            <span>Requests per Minute (RPM)</span>
+                            <strong id="quota-gemini-rpm-label">0 / 15 RPM</strong>
+                          </div>
+                          <div class="mac-progress-track">
+                            <div class="mac-progress-bar green" id="quota-gemini-rpm-bar" style="width: 0%;"></div>
+                          </div>
+                        </div>
+
+                        <div class="quota-item">
+                          <div class="quota-item-header">
+                            <span>Tokens per Minute (TPM)</span>
+                            <strong id="quota-gemini-tpm-label">0k / 1,000k TPM</strong>
+                          </div>
+                          <div class="mac-progress-track">
+                            <div class="mac-progress-bar blue" id="quota-gemini-tpm-bar" style="width: 0%;"></div>
+                          </div>
+                        </div>
+
+                        <div class="quota-item">
+                          <div class="quota-item-header">
+                            <span>Requests per Day (RPD)</span>
+                            <strong id="quota-gemini-rpd-label">0 / 1,500 RPD</strong>
+                          </div>
+                          <div class="mac-progress-track">
+                            <div class="mac-progress-bar purple" id="quota-gemini-rpd-bar" style="width: 0%;"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="ai-chart-card">
+                      <div class="ai-chart-header">
+                        <div class="ai-chart-title">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+                          <span>Model Distribution</span>
+                        </div>
+                      </div>
+                      <div style="display: flex; align-items: center; justify-content: space-around; padding: 10px 0;">
+                        <div id="chart-model-donut" style="width: 140px; height: 140px;"></div>
+                        <div id="chart-model-legend" style="flex: 1; padding-left: 14px;"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <!-- 3. Searchable Request Inspector Table -->
+                <div class="ai-log-card">
+                  <div class="ai-log-header">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <h3>Live Request Inspector & Telemetry Log</h3>
+                      <span class="ai-log-count-badge" id="ai-log-count-label">0 records</span>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                      <div class="projects-search-box" style="width: 200px;">
+                        <input type="text" id="ai-log-search-input" placeholder="Search prompt, model, error..." style="height: 26px; font-size: 11.5px;">
+                      </div>
+
+                      <select id="ai-log-provider-filter" class="mac-select" style="height: 26px; font-size: 11.5px;">
+                        <option value="all">All Providers</option>
+                        <option value="gemini">Google Gemini</option>
+                        <option value="openrouter">OpenRouter</option>
+                        <option value="anthropic">Anthropic</option>
+                      </select>
+
+                      <select id="ai-log-status-filter" class="mac-select" style="height: 26px; font-size: 11.5px;">
+                        <option value="all">All Status</option>
+                        <option value="success">Success (200)</option>
+                        <option value="error">Errors</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="ai-log-table-wrapper">
+                    <table class="ai-telemetry-table">
+                      <thead>
+                        <tr>
+                          <th style="width: 80px;">Time</th>
+                          <th style="width: 100px;">Provider</th>
+                          <th style="width: 170px;">Model</th>
+                          <th style="width: 90px;">Latency</th>
+                          <th style="width: 130px;">Tokens (In/Out)</th>
+                          <th style="width: 90px;">Status</th>
+                          <th>Prompt Preview / Diagnostics</th>
+                        </tr>
+                      </thead>
+                      <tbody id="ai-telemetry-log-tbody">
+                        <!-- Dynamically populated -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+              </div>
             </div>
-            <div>
-              <h3>Claude Copilot</h3>
-              <p id="claude-model-badge">Anthropic Intelligence</p>
-            </div>
+
           </div>
-          <div style="display: flex; align-items: center; gap: 4px;">
-            <button id="btn-claude-clear" class="drawer-header-btn" title="Clear Conversation">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-            </button>
-            <button id="btn-claude-settings" class="drawer-header-btn" title="Claude API & Model Settings">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            </button>
-            <button id="btn-close-ai" class="drawer-close-btn" title="Close">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
+      </div>
+    </main>
+
+    <!-- ASK CLAUDE AI ASSISTANT DRAWER (Right 3rd Panel Tile) -->
+    <aside class="ai-drawer" id="ai-drawer">
+      <div class="drawer-header">
+        <div class="drawer-title-group">
+          <div class="ai-icon-orb claude-orb">
+            <svg width="14" height="14" viewBox="0 0 24 24">
+              <path fill="#ffffff" d="m12 2.5 1.8 6.2c.4 1.5 1.6 2.7 3.1 3.1l6.2 1.8-6.2 1.8c-1.5.4-2.7 1.6-3.1 3.1L12 22.5l-1.8-6.2c-.4-1.5-1.6-2.7-3.1-3.1L.9 11.4l6.2-1.8c1.5-.4 2.7-1.6 3.1-3.1L12 2.5z"/>
+            </svg>
           </div>
-        </div>
-
-        <!-- Live Active Context Indicator -->
-        <div class="claude-context-bar" id="claude-context-bar">
-          <span class="claude-context-dot"></span>
-          <span class="claude-context-label" id="claude-context-label">Page Context: Focus Dashboard</span>
-        </div>
-
-        <!-- Action Chips -->
-        <div class="ai-quick-actions">
-          <button class="ai-chip" data-action="summarize">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="3" y2="18"/></svg>
-            <span>Summarize</span>
-          </button>
-          <button class="ai-chip" data-action="keypoints">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-            <span>Key Takeaways</span>
-          </button>
-          <button class="ai-chip" data-action="codereview">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-            <span>Code Review</span>
-          </button>
-          <button class="ai-chip" data-action="savetomemo">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            <span>Save to Notes</span>
-          </button>
-        </div>
-
-        <div class="ai-messages" id="ai-messages-container">
-          <div class="ai-msg bot">
-            <p>Hello! I am your built-in <strong>Claude Copilot</strong>. I have real-time access to your active web page content, open tabs, and workspace notes. Ask me anything, request deep summaries, or debug code on this page!</p>
+          <div class="drawer-title-text">
+            <h3>Claude Copilot</h3>
+            <p id="claude-model-badge">Gemini 2.0 Flash • Free</p>
           </div>
         </div>
-
-        <div class="ai-input-wrapper">
-          <input type="text" id="ai-user-input" placeholder="Ask Claude about this page or research anything..." autocomplete="off">
-          <button id="btn-send-ai" title="Send to Claude">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        <div class="drawer-header-actions">
+          <span class="ai-drawer-token-pill" id="ai-drawer-token-pill" title="Total Tokens in Session">⚡ 0 tk</span>
+          <button id="btn-drawer-open-analytics" class="drawer-header-btn" title="View AI Telemetry & Token Analytics">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+          </button>
+          <button id="btn-claude-clear" class="drawer-header-btn" title="Clear Conversation">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+          <button id="btn-claude-settings" class="drawer-header-btn" title="AI Provider & Key Settings">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+          <button id="btn-close-ai" class="drawer-close-btn" title="Close Copilot">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
-      </aside>
+      </div>
+
+      <!-- Live Active Context Indicator -->
+      <div class="claude-context-bar" id="claude-context-bar">
+        <span class="claude-context-dot"></span>
+        <span class="claude-context-label" id="claude-context-label">Page Context: Focus Dashboard</span>
+      </div>
+
+      <!-- Action Chips -->
+      <div class="ai-quick-actions">
+        <button class="ai-chip" data-action="summarize">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="3" y2="18"/></svg>
+          <span>Summarize</span>
+        </button>
+        <button class="ai-chip" data-action="keypoints">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <span>Key Takeaways</span>
+        </button>
+        <button class="ai-chip" data-action="codereview">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          <span>Code Review</span>
+        </button>
+        <button class="ai-chip" data-action="savetomemo">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          <span>Save to Notes</span>
+        </button>
+      </div>
+
+      <div class="ai-messages" id="ai-messages-container">
+        <div class="ai-msg bot">
+          <p>Hello! I am your built-in <strong>Claude Copilot</strong>. I have real-time access to your active web page content, open tabs, and workspace notes. Ask me anything, request deep summaries, or debug code on this page!</p>
+        </div>
+      </div>
+
+      <div class="ai-input-wrapper">
+        <input type="text" id="ai-user-input" placeholder="Ask Claude about this page or research anything..." autocomplete="off">
+        <button id="btn-send-ai" title="Send to Claude">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </aside>
+
+  </div> <!-- End #main-body -->
+
+  <!-- VS CODE / MACOS STYLE BOTTOM STATUS BAR -->
+  <footer class="app-status-bar" id="app-status-bar">
+    <!-- Left Controls: Workspace Remote, Git Sync, Diagnostics, Network, System Status -->
+    <div class="status-bar-left">
+      <button class="status-item-btn status-remote-badge" id="sb-workspace-badge" title="Active Workspace (Click to switch)">
+        <span class="sb-workspace-dot"></span>
+        <span id="sb-active-workspace-name">Personal</span>
+      </button>
+      <button class="status-item-btn" id="sb-git-branch" title="Workspace Git Source / Branch">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+        <span id="sb-git-branch-text">main*</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      </button>
+      <button class="status-item-btn" id="sb-diagnostics" title="Shield Protection & Blocked Trackers">
+        <span class="sb-icon-error">⮾ 0</span>
+        <span class="sb-icon-warn" id="sb-shield-count">🛡️ 0</span>
+      </button>
+      <button class="status-item-btn status-network-btn" id="sb-network-status" title="Wi-Fi & Network Performance (Click for Diagnostics)">
+        <svg class="sb-wifi-icon" id="sb-wifi-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+          <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+          <circle cx="12" cy="20" r="1.2" fill="currentColor"/>
+        </svg>
+        <span id="sb-network-text">45 Mbps • 22ms</span>
+      </button>
+      <span class="status-item-text" id="sb-tabs-info">⚡ 1 Tab • RAM Ready</span>
     </div>
-  </div>
+
+    <!-- Right Controls: AI Model Quota, Live Tokens, Copilot Toggle, Zoom, Settings, Activity Bell -->
+    <div class="status-bar-right">
+      <button class="status-item-btn status-ai-badge" id="sb-ai-status-badge" title="AI Model & Telemetry Dashboard (Click to open mynetwork://ai-analytics)">
+        <span class="sb-ai-sparkle">✨</span>
+        <span id="sb-ai-model-label">Gemini Flash</span>
+        <span class="sb-ai-pill" id="sb-ai-quota-label">100% Free</span>
+      </button>
+      <button class="status-item-btn" id="sb-ai-tokens" title="Session Tokens Consumed (Click for Analytics)">
+        <span>⚡ <span id="sb-tokens-count">0</span> tk</span>
+      </button>
+      <button class="status-item-btn" id="sb-claude-copilot-btn" title="Toggle Claude Copilot Drawer (Ctrl+J)">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <span>Copilot</span>
+      </button>
+      <button class="status-item-btn" id="sb-zoom-level" title="Page Zoom (Click to Reset 100%)">
+        <span id="sb-zoom-text">100%</span>
+      </button>
+      <button class="status-item-btn" id="sb-btn-settings" title="Browser Settings">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+      <button class="status-item-btn" id="sb-btn-bell" title="Activity Logs & Notifications">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </button>
+    </div>
+  </footer>
+</div> <!-- End .app-layout -->
 
   <!-- ADD / EDIT PASSWORD MODAL (macOS Sheet Style) -->
   <dialog id="pwd-modal-dialog" class="shortcuts-modal-dialog">
@@ -1769,66 +2360,7 @@
     </div>
   </div>
 
-  <!-- ADD / EDIT PROJECT WORKSPACE MODAL -->
-  <dialog id="modal-project-editor" class="shortcuts-modal-dialog">
-    <div class="shortcuts-modal-card" style="max-width: 480px;">
-      <div class="shortcuts-modal-header">
-        <div class="shortcuts-header-title">
-          <div class="settings-icon-badge" style="background: linear-gradient(135deg, #007aff, #0051a8); width: 22px; height: 22px; color: #ffffff;">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          </div>
-          <h3 id="project-editor-modal-title">New Project Workspace</h3>
-        </div>
-        <button id="btn-close-project-modal" class="shortcuts-modal-close" aria-label="Close">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
 
-      <form id="form-project-editor" class="pwd-modal-body">
-        <input type="hidden" id="project-edit-id" value="">
-        <div class="pwd-field-group">
-          <label for="project-input-name">Project / Workspace Name</label>
-          <input type="text" id="project-input-name" placeholder="e.g. MetaBull Client, AI Research, Backend Dev..." required autocomplete="off">
-        </div>
-        <div class="pwd-field-group">
-          <label for="project-input-desc">Description (Optional)</label>
-          <input type="text" id="project-input-desc" placeholder="Brief focus note or summary for this project..." autocomplete="off">
-        </div>
-        <div class="pwd-field-group">
-          <label for="project-input-devurl">Quick Dev URL / Local Port (Optional)</label>
-          <input type="text" id="project-input-devurl" placeholder="e.g. http://localhost:3000 or github.com/user/repo" autocomplete="off">
-        </div>
-        <div class="pwd-field-group">
-          <label>Theme Accent Color</label>
-          <div class="folder-color-pickers" id="project-color-options">
-            <span class="color-dot active" data-color="#007aff" style="background: #007aff;"></span>
-            <span class="color-dot" data-color="#10b981" style="background: #10b981;"></span>
-            <span class="color-dot" data-color="#8b5cf6" style="background: #8b5cf6;"></span>
-            <span class="color-dot" data-color="#f59e0b" style="background: #f59e0b;"></span>
-            <span class="color-dot" data-color="#ec4899" style="background: #ec4899;"></span>
-            <span class="color-dot" data-color="#06b6d4" style="background: #06b6d4;"></span>
-            <span class="color-dot" data-color="#64748b" style="background: #64748b;"></span>
-          </div>
-        </div>
-        <div class="pwd-field-group">
-          <label>Icon Style</label>
-          <div class="project-icon-selector" id="project-icon-options">
-            <button type="button" class="project-icon-choice active" data-icon="folder">📁 Folder</button>
-            <button type="button" class="project-icon-choice" data-icon="code">💻 Dev</button>
-            <button type="button" class="project-icon-choice" data-icon="globe">🌐 Web</button>
-            <button type="button" class="project-icon-choice" data-icon="ai">🤖 AI</button>
-            <button type="button" class="project-icon-choice" data-icon="rocket">🚀 Rocket</button>
-            <button type="button" class="project-icon-choice" data-icon="user">👤 User</button>
-          </div>
-        </div>
-        <div class="pwd-modal-actions">
-          <button type="button" id="btn-delete-project" class="mac-btn mac-btn-danger" style="display: none; margin-right: auto;">Delete Project</button>
-          <button type="button" id="btn-cancel-project-modal" class="mac-btn mac-btn-secondary">Cancel</button>
-          <button type="submit" id="btn-save-project" class="mac-btn mac-btn-primary">Save Project</button>
-        </div>
-      </form>
-    </div>
-  </dialog>
 
   <!-- CLEAR BROWSING DATA MODAL (macOS Sheet Style) -->
   <dialog id="clear-history-dialog" class="shortcuts-modal-dialog">
@@ -2083,6 +2615,10 @@
       <span style="font-size: 12px;">📱</span>
       <span>Push to Phone (QR Code)</span>
     </div>
+    <div class="context-menu-item" id="ctx-split-right">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+      <span>Split View with Tab</span>
+    </div>
     <div class="context-menu-separator"></div>
     <div class="context-menu-item" id="ctx-close-other-tabs">
       <span>Close Other Tabs</span>
@@ -2305,68 +2841,92 @@
     </div>
   </dialog>
 
-  <!-- ADD / EDIT PROJECT WORKSPACE MODAL (macOS Sheet Dialog) -->
+  <!-- ADD / EDIT PROJECT WORKSPACE MODAL (macOS Sequoia Sheet Dialog) -->
   <dialog id="modal-create-workspace" class="shortcuts-modal-dialog">
-    <div class="shortcuts-modal-card" style="max-width: 480px;">
-      <div class="shortcuts-modal-header">
+    <div class="shortcuts-modal-card" style="max-width: 490px; border-radius: 14px;">
+      <div class="shortcuts-modal-header" style="padding: 14px 18px;">
         <div class="shortcuts-header-title">
-          <div class="settings-icon-badge badge-blue" id="workspace-modal-icon-badge" style="background: #007aff; width: 22px; height: 22px; color: #ffffff;">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <div class="settings-icon-badge badge-blue" id="workspace-modal-icon-badge" style="background: linear-gradient(135deg, #007aff, #0056b3); width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; color: #ffffff; box-shadow: 0 2px 6px rgba(0,122,255,0.3);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
           </div>
-          <h3 id="workspace-modal-title">New Project Workspace</h3>
+          <div>
+            <h3 id="workspace-modal-title" style="font-size: 14px; font-weight: 650; margin: 0; line-height: 1.2;">New Project Workspace</h3>
+            <p style="font-size: 11px; color: #8e8e93; margin: 2px 0 0 0;">Dedicated workspace with isolated tabs & environment</p>
+          </div>
         </div>
-        <button id="btn-close-workspace-modal" class="shortcuts-modal-close" aria-label="Close">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <button id="btn-close-workspace-modal" class="shortcuts-modal-close" aria-label="Close" title="Close (Esc)">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
 
-      <form id="form-create-workspace" class="pwd-modal-body">
+      <form id="form-create-workspace" class="pwd-modal-body" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 14px;">
         <input type="hidden" id="workspace-form-id" value="">
+        
         <div class="pwd-field-group">
-          <label for="workspace-form-name">Project Name</label>
-          <input type="text" id="workspace-form-name" placeholder="e.g. AI Research, Client Dashboard..." required autocomplete="off">
+          <label for="workspace-form-name" style="font-size: 11.5px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.03em;">Workspace Name</label>
+          <input type="text" id="workspace-form-name" placeholder="e.g. MetaBull Client, AI Lab, Personal Focus..." required autocomplete="off" style="height: 34px; font-size: 13px; border-radius: 8px;">
         </div>
         
         <div class="pwd-field-group">
-          <label>Project Icon</label>
-          <div class="project-icon-selector" id="workspace-icon-selector">
-            <button type="button" class="project-icon-choice active" data-icon="globe">Globe</button>
-            <button type="button" class="project-icon-choice" data-icon="code">Code</button>
-            <button type="button" class="project-icon-choice" data-icon="user">Personal</button>
-            <button type="button" class="project-icon-choice" data-icon="briefcase">Work</button>
-            <button type="button" class="project-icon-choice" data-icon="rocket">Launch</button>
-            <button type="button" class="project-icon-choice" data-icon="star">Focus</button>
+          <label style="font-size: 11.5px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.03em;">Workspace Icon</label>
+          <div class="project-icon-selector" id="workspace-icon-selector" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px;">
+            <button type="button" class="project-icon-choice active" data-icon="globe" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 4px; border-radius: 8px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              <span style="font-size: 10.5px;">Globe</span>
+            </button>
+            <button type="button" class="project-icon-choice" data-icon="code" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 4px; border-radius: 8px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              <span style="font-size: 10.5px;">Code</span>
+            </button>
+            <button type="button" class="project-icon-choice" data-icon="user" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 4px; border-radius: 8px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span style="font-size: 10.5px;">Personal</span>
+            </button>
+            <button type="button" class="project-icon-choice" data-icon="briefcase" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 4px; border-radius: 8px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              <span style="font-size: 10.5px;">Work</span>
+            </button>
+            <button type="button" class="project-icon-choice" data-icon="rocket" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 4px; border-radius: 8px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg>
+              <span style="font-size: 10.5px;">Launch</span>
+            </button>
+            <button type="button" class="project-icon-choice" data-icon="star" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 4px; border-radius: 8px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <span style="font-size: 10.5px;">Focus</span>
+            </button>
           </div>
         </div>
 
         <div class="pwd-field-group">
-          <label>Accent Color</label>
-          <div class="folder-color-pickers" id="workspace-color-picker">
-            <span class="color-dot active" data-color="#007aff" style="background: #007aff;"></span>
-            <span class="color-dot" data-color="#10b981" style="background: #10b981;"></span>
-            <span class="color-dot" data-color="#8b5cf6" style="background: #8b5cf6;"></span>
-            <span class="color-dot" data-color="#f59e0b" style="background: #f59e0b;"></span>
-            <span class="color-dot" data-color="#ec4899" style="background: #ec4899;"></span>
-            <span class="color-dot" data-color="#06b6d4" style="background: #06b6d4;"></span>
-            <span class="color-dot" data-color="#64748b" style="background: #64748b;"></span>
-            <span class="color-dot" data-color="#ef4444" style="background: #ef4444;"></span>
+          <label style="font-size: 11.5px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.03em;">Accent Color</label>
+          <div class="folder-color-pickers" id="workspace-color-picker" style="display: flex; gap: 10px; padding: 4px 0;">
+            <span class="color-dot active" data-color="#007aff" style="background: #007aff; width: 22px; height: 22px;"></span>
+            <span class="color-dot" data-color="#10b981" style="background: #10b981; width: 22px; height: 22px;"></span>
+            <span class="color-dot" data-color="#8b5cf6" style="background: #8b5cf6; width: 22px; height: 22px;"></span>
+            <span class="color-dot" data-color="#f59e0b" style="background: #f59e0b; width: 22px; height: 22px;"></span>
+            <span class="color-dot" data-color="#ec4899" style="background: #ec4899; width: 22px; height: 22px;"></span>
+            <span class="color-dot" data-color="#06b6d4" style="background: #06b6d4; width: 22px; height: 22px;"></span>
+            <span class="color-dot" data-color="#64748b" style="background: #64748b; width: 22px; height: 22px;"></span>
+            <span class="color-dot" data-color="#ef4444" style="background: #ef4444; width: 22px; height: 22px;"></span>
           </div>
         </div>
 
         <div class="pwd-field-group">
-          <label for="workspace-form-dev-url">Dev Localhost URL (Optional)</label>
-          <input type="text" id="workspace-form-dev-url" placeholder="http://localhost:3000" autocomplete="off">
+          <label for="workspace-form-dev-url" style="font-size: 11.5px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.03em;">Dev Localhost URL (Optional)</label>
+          <input type="text" id="workspace-form-dev-url" placeholder="http://localhost:3000 or github.com/user/repo" autocomplete="off" style="font-family: var(--font-mono); font-size: 12px; height: 32px; border-radius: 8px;">
         </div>
 
         <div class="pwd-field-group">
-          <label for="workspace-form-desc">Description</label>
-          <textarea id="workspace-form-desc" rows="2" placeholder="Brief notes or focus goals for this project..." style="resize: none;"></textarea>
+          <label for="workspace-form-desc" style="font-size: 11.5px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.03em;">Description / Notes</label>
+          <textarea id="workspace-form-desc" rows="2" placeholder="Brief notes or focus goals for this project..." style="resize: none; font-family: var(--font-sans); font-size: 12px; border-radius: 8px;"></textarea>
         </div>
 
-        <div class="pwd-modal-actions">
-          <button type="button" id="btn-delete-workspace" class="mac-btn mac-btn-danger" style="display: none; margin-right: auto;">Delete Project</button>
-          <button type="button" id="btn-cancel-workspace-modal" class="mac-btn mac-btn-secondary">Cancel</button>
-          <button type="submit" id="btn-save-workspace" class="mac-btn mac-btn-primary">Save Project</button>
+        <div class="pwd-modal-actions" style="margin-top: 6px; padding-top: 14px; border-top: 1px solid rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center;">
+          <button type="button" id="btn-delete-workspace" class="mac-btn mac-btn-danger" style="display: none;">Delete Project</button>
+          <div style="margin-left: auto; display: flex; gap: 8px;">
+            <button type="button" id="btn-cancel-workspace-modal" class="mac-btn mac-btn-secondary" style="height: 32px; padding: 0 14px; font-size: 12px;">Cancel</button>
+            <button type="submit" id="btn-save-workspace" class="mac-btn mac-btn-primary" style="height: 32px; padding: 0 16px; font-size: 12px; background: linear-gradient(135deg, #007aff, #0056b3); font-weight: 600;">Save Workspace</button>
+          </div>
         </div>
       </form>
     </div>
@@ -2393,37 +2953,79 @@
        1. GITHUB DEVELOPER HUB & GLANCE BAR MODAL
        ========================================================================= -->
   <dialog id="modal-github-hub" class="shortcuts-modal-dialog">
-    <div class="shortcuts-modal-card" style="width: 620px; height: 490px;">
-      <div class="shortcuts-modal-header">
+    <div class="shortcuts-modal-card mac-github-hub-window">
+      <!-- Window Titlebar -->
+      <div class="shortcuts-modal-header mac-hub-header">
         <div class="shortcuts-header-title">
-          <div class="settings-icon-badge" style="background: #24292f; color: #ffffff;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          <div class="settings-icon-badge" style="width: 32px; height: 32px; border-radius: 9px; background: #24292f; color: #ffffff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
           </div>
-          <h3>GitHub Developer Hub</h3>
+          <div class="mac-hub-header-text">
+            <h3>GitHub Hub</h3>
+          </div>
         </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <button id="btn-github-refresh" class="mac-btn-sub" title="Refresh GitHub Data">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+        <div class="mac-hub-header-actions">
+          <button id="btn-github-refresh" class="mac-icon-btn" title="Refresh GitHub Data">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
           </button>
-          <button id="btn-close-github-modal" class="shortcuts-modal-close" aria-label="Close">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <button id="btn-close-github-modal" class="mac-icon-btn close-btn" aria-label="Close">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
+        </div>
+      </div>
+
+      <!-- Connected Profile Hero Banner -->
+      <div class="gh-profile-hero" id="gh-profile-hero" style="display: none;">
+        <div class="gh-avatar-wrapper">
+          <img class="gh-avatar-img" id="gh-avatar-img" src="" alt="Avatar">
+          <div class="gh-avatar-status-dot" title="Active"></div>
+        </div>
+        <div class="gh-profile-details">
+          <div class="gh-profile-header-row">
+            <span class="gh-profile-name" id="gh-profile-name">Developer</span>
+            <span class="gh-profile-login-chip" id="gh-profile-login">@username</span>
+            <span class="gh-oauth-badge" id="gh-oauth-badge">
+              <span class="status-pulse-dot"></span>
+              Connected
+            </span>
+          </div>
+          <div class="gh-profile-bio" id="gh-profile-bio"></div>
+          <div class="gh-profile-stats-row">
+            <div class="gh-stat-chip">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              <span><strong id="gh-stat-repos">0</strong> Repos</span>
+            </div>
+            <div class="gh-stat-chip">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span><strong id="gh-stat-followers">0</strong> Followers</span>
+            </div>
+            <a href="javascript:void(0)" id="gh-link-profile-ext" class="gh-profile-link-btn" title="Open GitHub Profile">
+              <span>Profile</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
+          </div>
         </div>
       </div>
 
       <!-- GitHub Sub Tabs -->
       <div class="github-sub-tabs">
-        <button class="github-tab-btn active" data-tab="prs">Pull Requests (<span id="gh-badge-prs">0</span>)</button>
-        <button class="github-tab-btn" data-tab="issues">Issues (<span id="gh-badge-issues">0</span>)</button>
+        <button class="github-tab-btn active" data-tab="prs">
+          Pull Requests
+          <span class="gh-tab-chip" id="gh-badge-prs">0</span>
+        </button>
+        <button class="github-tab-btn" data-tab="issues">
+          Issues
+          <span class="gh-tab-chip" id="gh-badge-issues">0</span>
+        </button>
         <button class="github-tab-btn" data-tab="repos">Repositories</button>
-        <button class="github-tab-btn" data-tab="gist">Create Gist</button>
-        <button class="github-tab-btn" data-tab="auth">Connect Token</button>
+        <button class="github-tab-btn" data-tab="gist">Gist Sync</button>
+        <button class="github-tab-btn" data-tab="auth">Settings</button>
       </div>
 
       <!-- Tab Content: PRs -->
       <div class="github-tab-pane active" id="gh-pane-prs">
         <div class="github-items-list" id="gh-prs-list">
-          <div class="empty-state-muted">Connect your GitHub Personal Access Token to see your open Pull Requests.</div>
+          <div class="empty-state-muted">No open pull requests found.</div>
         </div>
       </div>
 
@@ -2437,51 +3039,116 @@
       <!-- Tab Content: Repos -->
       <div class="github-tab-pane" id="gh-pane-repos">
         <div class="github-items-list" id="gh-repos-list">
-          <div class="empty-state-muted">Connect GitHub to browse your repositories.</div>
+          <div class="empty-state-muted">No repositories found.</div>
         </div>
       </div>
 
-      <!-- Tab Content: Gist Creator -->
+      <!-- Tab Content: Gist Creator & Scratchpad Sync -->
       <div class="github-tab-pane" id="gh-pane-gist">
         <div class="github-gist-form">
-          <div class="pwd-field-group">
-            <label>Gist Description</label>
-            <input type="text" id="gh-gist-desc" placeholder="e.g. Utility Helper Snippet" autocomplete="off">
+          <!-- Scratchpad Quick Sync Banner -->
+          <div class="gh-scratchpad-sync-bar">
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <span style="font-size: 12.5px; font-weight: 650; color: #1d1d1f;">Scratchpad ↔ Gist Sync</span>
+              <span style="font-size: 11px; color: #6e6e73;">Backup scratchpad notes to private GitHub Gist.</span>
+            </div>
+            <button type="button" id="btn-gh-sync-scratchpad" class="mac-btn-accent" style="white-space: nowrap; flex-shrink: 0;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+              <span>Sync Now</span>
+            </button>
           </div>
-          <div class="pwd-field-group">
-            <label>Filename</label>
-            <input type="text" id="gh-gist-filename" placeholder="snippet.js" value="snippet.js" autocomplete="off">
+
+          <div class="mac-form-group" style="margin-top: 4px;">
+            <label class="mac-form-label">Description</label>
+            <input type="text" id="gh-gist-desc" class="mac-input-modern" placeholder="e.g. Utility snippet" autocomplete="off">
           </div>
-          <div class="pwd-field-group" style="flex: 1; display: flex; flex-direction: column;">
-            <label>Code Content</label>
-            <textarea id="gh-gist-code" placeholder="Paste your code snippet here..." style="flex: 1; font-family: monospace; font-size: 11.5px; resize: none;"></textarea>
+          <div class="mac-form-group">
+            <label class="mac-form-label">Filename</label>
+            <input type="text" id="gh-gist-filename" class="mac-input-modern" placeholder="snippet.js" value="snippet.js" autocomplete="off">
+          </div>
+          <div class="mac-form-group" style="flex: 1; display: flex; flex-direction: column;">
+            <label class="mac-form-label">Code / Content</label>
+            <textarea id="gh-gist-code" class="mac-textarea-code" placeholder="Paste code or notes here..."></textarea>
           </div>
           <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px;">
-            <button type="button" id="btn-gh-create-gist" class="mac-btn mac-btn-primary">Create & Copy Gist URL</button>
+            <button type="button" id="btn-gh-create-gist" class="mac-btn-primary-action">Create Gist</button>
           </div>
         </div>
       </div>
 
       <!-- Tab Content: Auth / Settings -->
       <div class="github-tab-pane" id="gh-pane-auth">
-        <div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 12px;">
-          <div class="pwd-field-group">
-            <label>GitHub Personal Access Token (PAT)</label>
-            <input type="password" id="gh-input-pat" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
-            <div style="font-size: 11px; color: #8e8e93; margin-top: 2px;">Requires <code>repo</code>, <code>read:user</code>, and <code>gist</code> scopes.</div>
+        <div class="mac-auth-pane-container">
+          
+          <!-- View 1: When ALREADY CONNECTED -->
+          <div id="gh-auth-connected-box" style="display: none; flex-direction: column; gap: 12px;">
+            <div class="gh-oauth-apple-card">
+              <div class="gh-oauth-left">
+                <div class="gh-oauth-icon-circle" style="background: #24292f;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                </div>
+                <div class="gh-oauth-info">
+                  <span class="gh-oauth-title" id="gh-connected-account-title">Connected Account</span>
+                  <span class="gh-oauth-status-tag">
+                    <span class="dot-green"></span>
+                    Active & Synchronizing
+                  </span>
+                </div>
+              </div>
+              <button type="button" id="btn-gh-disconnect" class="mac-btn-destructive" style="padding: 6px 12px; font-size: 11.5px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+                <span>Disconnect</span>
+              </button>
+            </div>
           </div>
-          <div class="pwd-field-group">
-            <label>Or Public GitHub Username (Read-Only)</label>
-            <input type="text" id="gh-input-username" placeholder="e.g. torvalds" autocomplete="off">
+
+          <!-- View 2: When DISCONNECTED / SIGN-IN REQUIRED -->
+          <div id="gh-auth-disconnected-box" style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- 1-Click OAuth Box -->
+            <div class="gh-oauth-apple-card">
+              <div class="gh-oauth-left">
+                <div class="gh-oauth-icon-circle">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                </div>
+                <div class="gh-oauth-info">
+                  <span class="gh-oauth-title">GitHub Sign-In</span>
+                  <span class="gh-oauth-status-tag" style="color: #6e6e73;">
+                    1-Click OAuth
+                  </span>
+                </div>
+              </div>
+              <button type="button" id="btn-gh-oauth-login" class="mac-oauth-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span>Sign in with GitHub</span>
+              </button>
+            </div>
+
+            <!-- Inset Settings Group for Manual PAT Fallback -->
+            <div class="mac-settings-grouped-box">
+              <div class="mac-form-group">
+                <label class="mac-form-label">Personal Access Token (Optional)</label>
+                <input type="password" id="gh-input-pat" class="mac-input-modern" placeholder="ghp_..." autocomplete="off">
+              </div>
+
+              <div class="mac-form-group">
+                <label class="mac-form-label">Username (Read-Only Activity)</label>
+                <input type="text" id="gh-input-username" class="mac-input-modern" placeholder="e.g. username" autocomplete="off">
+              </div>
+            </div>
+
+            <!-- Action Footer -->
+            <div class="mac-auth-actions-bar" style="display: flex; justify-content: flex-end;">
+              <button type="button" id="btn-gh-save-auth" class="mac-btn-primary-action">
+                <span>Save & Connect</span>
+              </button>
+            </div>
           </div>
-          <div style="display: flex; gap: 8px; margin-top: 6px;">
-            <button type="button" id="btn-gh-save-auth" class="mac-btn mac-btn-primary">Save & Connect</button>
-            <button type="button" id="btn-gh-disconnect" class="mac-btn mac-btn-danger">Disconnect</button>
-          </div>
+
         </div>
       </div>
     </div>
   </dialog>
+
 
   <!-- =========================================================================
        2. DEVELOPER API MOCK SERVER MODAL
@@ -2632,6 +3299,13 @@
         </div>
       </div>
 
+      <!-- Macros List -->
+      <div class="macro-library-list" id="macro-library-list" style="flex: 1; overflow-y: auto; padding: 12px 16px;">
+        <!-- Dynamically rendered -->
+      </div>
+    </div>
+  </dialog>
+
   <!-- =========================================================================
        5. CLAUDE INTELLIGENCE & API SETTINGS MODAL
        ========================================================================= -->
@@ -2639,7 +3313,7 @@
     <div class="shortcuts-modal-card" style="width: 520px;">
       <div class="shortcuts-modal-header">
         <div class="shortcuts-header-title">
-          <div class="settings-icon-badge" style="background: linear-gradient(135deg, #ea580c, #c2410c); color: #ffffff;">
+          <div class="settings-icon-badge" style="background: linear-gradient(135deg, #6366f1, #8b5cf6, #d946ef); color: #ffffff;">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2.5 1.8 6.2c.4 1.5 1.6 2.7 3.1 3.1l6.2 1.8-6.2 1.8c-1.5.4-2.7 1.6-3.1 3.1L12 22.5l-1.8-6.2c-.4-1.5-1.6-2.7-3.1-3.1L.9 11.4l6.2-1.8c1.5-.4 2.7-1.6 3.1-3.1L12 2.5z"/></svg>
           </div>
           <h3>Claude Copilot Settings</h3>
@@ -2651,26 +3325,32 @@
 
       <div style="padding: 18px 20px; display: flex; flex-direction: column; gap: 14px;">
         <div class="pwd-field-group">
-          <label>API Key (Anthropic or OpenRouter)</label>
+          <label>API Key (OpenCode Zen, Anthropic, Gemini, or OpenRouter)</label>
           <div style="display: flex; gap: 6px;">
-            <input type="password" id="claude-input-api-key" placeholder="sk-or-v1-... or sk-ant-..." autocomplete="off" style="font-family: monospace; font-size: 11.5px; flex: 1;">
+            <input type="password" id="claude-input-api-key" placeholder="sk-TkQj... or sk-ant-... or sk-or-..." autocomplete="off" style="font-family: monospace; font-size: 11.5px; flex: 1;">
             <button type="button" id="btn-toggle-key-visibility" class="mac-btn-sub" title="Toggle visibility">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>
           <div style="font-size: 11px; color: #8e8e93; margin-top: 3px; display: flex; justify-content: space-between; align-items: center;">
-            <span>Universal AI gateway support (OpenRouter & Anthropic Direct).</span>
-            <a href="#" id="link-get-claude-key" style="color: #ea580c; text-decoration: none; font-weight: 500;">OpenRouter Console ↗</a>
+            <span>Universal AI gateway (OpenCode Zen, Anthropic, OpenRouter, Google Gemini).</span>
+            <a href="#" id="link-get-claude-key" style="color: #6366f1; text-decoration: none; font-weight: 500;">OpenCode Zen Console ↗</a>
           </div>
         </div>
 
         <div class="pwd-field-group">
           <label>Intelligence Model</label>
           <select id="claude-select-model" class="mac-select" style="width: 100%; height: 30px; font-size: 12px;">
-            <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet (Recommended - Most Intelligent & Accurate)</option>
-            <option value="anthropic/claude-3.5-haiku">Claude 3.5 Haiku (Ultra Fast & Efficient)</option>
-            <option value="openai/gpt-4o">OpenAI GPT-4o (Multimodal Intelligence)</option>
-            <option value="deepseek/deepseek-chat">DeepSeek V3 (High Performance Reasoning)</option>
+            <option value="claude-3-5-sonnet">Claude 3.5 Sonnet (OpenCode Zen • Recommended)</option>
+            <option value="claude-3-7-sonnet">Claude 3.7 Sonnet (OpenCode Zen)</option>
+            <option value="gemini-flash-latest">Google Gemini Flash (Ultra Fast • Recommended Free)</option>
+            <option value="gemini-pro-latest">Google Gemini Pro (Deep Reasoning • Google AI Studio)</option>
+            <option value="deepseek/deepseek-r1">DeepSeek R1 (Advanced Reasoning • OpenRouter)</option>
+            <option value="meta-llama/llama-3.3-70b-instruct">Meta Llama 3.3 70B (High Reasoning • OpenRouter)</option>
+            <option value="qwen/qwen-2.5-coder-32b-instruct">Qwen 2.5 Coder 32B (Best for Code Review • OpenRouter)</option>
+            <option value="openai/gpt-4o-mini">OpenAI GPT-4o Mini (OpenRouter)</option>
+            <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (Direct Anthropic Key)</option>
+            <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku (Direct Anthropic Key)</option>
           </select>
         </div>
 
@@ -2680,9 +3360,15 @@
         </div>
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.06);">
-          <button type="button" id="btn-claude-clear-key" class="mac-btn mac-btn-danger">Clear Key</button>
           <div style="display: flex; gap: 8px;">
-            <button type="button" id="btn-claude-save-settings" class="mac-btn mac-btn-primary" style="background: #ea580c;">Save Settings</button>
+            <button type="button" id="btn-claude-clear-key" class="mac-btn mac-btn-danger">Clear Key</button>
+            <button type="button" id="btn-modal-open-analytics" class="mac-btn-sub" style="font-size: 11.5px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              <span>View Telemetry</span>
+            </button>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" id="btn-claude-save-settings" class="mac-btn mac-btn-primary" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">Save Settings</button>
           </div>
         </div>
       </div>

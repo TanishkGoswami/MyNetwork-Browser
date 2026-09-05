@@ -1,6 +1,30 @@
 // Main Electron Process
 const { app, BrowserWindow, ipcMain, nativeImage } = require('electron');
 const path = require('path');
+const fs = require('fs');
+
+// Load environment variables from .env file into process.env
+try {
+  const envPath = path.join(__dirname, '../../../.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    envContent.split(/\r?\n/).forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const idx = trimmed.indexOf('=');
+        if (idx > -1) {
+          const key = trimmed.substring(0, idx).trim();
+          const val = trimmed.substring(idx + 1).trim();
+          if (key) {
+            process.env[key] = val;
+          }
+        }
+      }
+    });
+  }
+} catch (envErr) {
+  console.warn('[Main Process] .env load warning:', envErr.message);
+}
 
 // Global safety guards to prevent Electron GuestViewManager internal crash logs on network switches / aborts
 process.on('uncaughtException', (err) => {
@@ -318,6 +342,139 @@ if (ipcMain) {
       });
     }
   });
+
+  // GitHub 1-Click Desktop OAuth Flow Handler
+  ipcMain.handle('github-get-oauth-config', () => {
+    return {
+      clientId: process.env.GITHUB_CLIENT_ID || '',
+      hasSecret: !!process.env.GITHUB_CLIENT_SECRET
+    };
+  });
+
+  ipcMain.handle('github-oauth-login', async (event, { clientId, clientSecret, scopes = 'repo read:user gist workflow' } = {}) => {
+    const targetClientId = clientId || process.env.GITHUB_CLIENT_ID || '';
+    const targetClientSecret = clientSecret || process.env.GITHUB_CLIENT_SECRET || '';
+
+    if (!targetClientId || !targetClientSecret) {
+      return {
+        success: false,
+        error: 'GitHub OAuth Client ID or Secret is not configured in .env file or Settings.'
+      };
+    }
+
+    const redirectUri = 'http://localhost:8942/oauth/github/callback';
+    const authUrl = `https://github.com/login/oauth/authorize?client_id=${targetClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=mynetwork_${Date.now()}`;
+
+    return new Promise((resolve) => {
+      const authWin = new BrowserWindow({
+        width: 580,
+        height: 720,
+        parent: mainWindow || undefined,
+        modal: true,
+        title: 'Sign in to GitHub — MyNetwork Browser',
+        autoHideMenuBar: true,
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true
+        }
+      });
+
+      let resolved = false;
+
+      const handleCallback = async (targetUrl) => {
+        if (!targetUrl || resolved) return;
+        if (targetUrl.includes('localhost:8942/oauth/github/callback') || targetUrl.includes('code=')) {
+          try {
+            const urlObj = new URL(targetUrl);
+            const code = urlObj.searchParams.get('code');
+            const error = urlObj.searchParams.get('error_description') || urlObj.searchParams.get('error');
+
+            if (error) {
+              resolved = true;
+              if (!authWin.isDestroyed()) authWin.destroy();
+              resolve({ success: false, error });
+              return;
+            }
+
+            if (code) {
+              resolved = true;
+              // Exchange authorization code for access token
+              const https = require('https');
+              const postData = JSON.stringify({
+                client_id: targetClientId,
+                client_secret: targetClientSecret,
+                code: code,
+                redirect_uri: redirectUri
+              });
+
+              const req = https.request({
+                hostname: 'github.com',
+                path: '/login/oauth/access_token',
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json',
+                  'User-Agent': 'MyNetwork-Browser',
+                  'Content-Length': Buffer.byteLength(postData)
+                }
+              }, (res) => {
+                let body = '';
+                res.on('data', (chunk) => { body += chunk; });
+                res.on('end', () => {
+                  try {
+                    const parsed = JSON.parse(body);
+                    if (parsed.access_token) {
+                      if (!authWin.isDestroyed()) authWin.destroy();
+                      resolve({
+                        success: true,
+                        accessToken: parsed.access_token,
+                        tokenType: parsed.token_type,
+                        scope: parsed.scope
+                      });
+                    } else {
+                      if (!authWin.isDestroyed()) authWin.destroy();
+                      resolve({ success: false, error: parsed.error_description || 'Failed to obtain access token' });
+                    }
+                  } catch (parseErr) {
+                    if (!authWin.isDestroyed()) authWin.destroy();
+                    resolve({ success: false, error: 'Failed to parse GitHub token response' });
+                  }
+                });
+              });
+
+              req.on('error', (err) => {
+                if (!authWin.isDestroyed()) authWin.destroy();
+                resolve({ success: false, error: err.message });
+              });
+
+              req.write(postData);
+              req.end();
+            }
+          } catch (e) {
+            console.warn('[GitHub OAuth] Callback parse error:', e);
+          }
+        }
+      };
+
+      authWin.webContents.on('will-redirect', (e, url) => {
+        handleCallback(url);
+      });
+
+      authWin.webContents.on('will-navigate', (e, url) => {
+        handleCallback(url);
+      });
+
+      authWin.on('closed', () => {
+        if (!resolved) {
+          resolved = true;
+          resolve({ success: false, error: 'Login cancelled by user' });
+        }
+      });
+
+      authWin.loadURL(authUrl);
+    });
+  });
 }
+
 
 

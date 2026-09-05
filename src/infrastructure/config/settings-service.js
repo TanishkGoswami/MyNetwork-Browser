@@ -15,6 +15,20 @@ const DEFAULT_SETTINGS = {
   tabLayout: 'vertical', // 'vertical' | 'horizontal'
   accentTheme: 'blue', // 'blue' | 'indigo' | 'purple' | 'emerald' | 'slate'
   showTabFavicons: true,
+  showStatusBar: true,
+  statusBarItems: {
+    workspace: true,
+    git: true,
+    diagnostics: true,
+    network: true,
+    tabsInfo: true,
+    aiModel: true,
+    aiTokens: true,
+    copilot: true,
+    zoom: true,
+    settings: true,
+    bell: true
+  },
 
   // Productivity & Copilot
   focusDurationMinutes: 25,
